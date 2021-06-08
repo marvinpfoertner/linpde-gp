@@ -6,7 +6,7 @@ import probnum as pn
 import scipy.interpolate
 from probnum.type import FloatArgType
 
-from . import randprocs
+from . import domains, randprocs
 
 
 class Basis(abc.ABC):
@@ -39,10 +39,10 @@ class Basis(abc.ABC):
 class FiniteElementBasis(Basis):
     def __init__(
         self,
-        domain: Tuple[FloatArgType, FloatArgType],
+        domain: domains.DomainLike,
         num_elements: int,
     ):
-        self._domain = tuple(pn.utils.as_numpy_scalar(bound) for bound in domain)
+        self._domain = domains.asdomain(domain)
         self._num_elements = num_elements
         self._grid = np.linspace(*self._domain, self._num_elements + 2)
 
