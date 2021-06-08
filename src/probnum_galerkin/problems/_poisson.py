@@ -85,3 +85,27 @@ class PoissonEquation(_base.LinearPDE):
         rhs[-2] += u_r / (basis.grid[-2] - basis.grid[-3])
 
         return rhs
+
+    def _operator_fourier_basis(self, basis: bases.FourierBasis) -> pn.linops.Matrix:
+        (l, r) = self._domain
+
+        idcs = np.arange(1, len(basis) + 1)
+
+        return pn.linops.Matrix(
+            scipy.sparse.diags(
+                (
+                    (idcs * (np.pi / (4 * (r - l))))
+                    * ((2 * np.pi) * idcs + np.sin((2 * np.pi) * idcs))
+                ),
+                offsets=0,
+                format="csr",
+                dtype=np.double,
+            )
+        )
+
+    def _rhs_fourier_basis(self, basis: bases.FourierBasis) -> np.ndarray:
+        (l, r) = self._domain
+
+        idcs = np.arange(1, len(basis) + 1)
+
+        return (self._rhs * (r - l) / np.pi) * (1 - np.cos(np.pi * idcs)) / idcs
