@@ -6,19 +6,24 @@ import probnum as pn
 from probnum.type import FloatArgType
 from probnum_galerkin import bases
 
+from .. import domains
 from . import _boundary_conditions
 
 
 class LinearPDE(abc.ABC):
     def __init__(
         self,
-        domain: Tuple[FloatArgType, FloatArgType],
+        domain: domains.DomainLike,
         rhs: FloatArgType,
         boundary_condition: _boundary_conditions.DirichletBoundaryCondition,
     ):
-        self._domain = tuple(pn.utils.as_numpy_scalar(bound) for bound in domain)
+        self._domain = domains.asdomain(domain)
         self._rhs = pn.utils.as_numpy_scalar(rhs)
         self._boundary_condition = boundary_condition
+
+    @property
+    def domain(self) -> domains.Domain:
+        return self._domain
 
     def solution(self) -> Callable[[FloatArgType], np.floating]:
         raise NotImplementedError("A closed-form solution of the PDE is not available")
