@@ -31,6 +31,9 @@ class PoissonEquation(_base.LinearPDE):
         elif isinstance(basis, bases.FiniteElementBasis):
             A = self._operator_finite_element_basis(basis)
             b = self._rhs_finite_element_basis(basis)
+        elif isinstance(basis, bases.FourierBasis):
+            A = self._operator_fourier_basis(basis)
+            b = self._rhs_fourier_basis(basis)
         else:
             raise NotImplementedError(
                 f"Discretization with basis of type {basis.__class__.__name__} is not "
