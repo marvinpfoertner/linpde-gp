@@ -35,6 +35,10 @@ class Basis(abc.ABC):
     ]:
         pass
 
+    def observation_operator(self, xs: np.ndarray):
+        return self[:](xs)
+
+
 class ZeroBoundaryFiniteElementBasis(Basis):
     def __init__(
         self,
@@ -114,6 +118,10 @@ class ZeroBoundaryFiniteElementBasis(Basis):
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")
+
+    def observation_operator(self, xs: np.ndarray) -> np.ndarray:
+        return self[:](xs)
+
 
 class FiniteElementBasis(Basis):
     def __init__(
@@ -198,6 +206,9 @@ class FiniteElementBasis(Basis):
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")
+
+    def observation_operator(self, xs: np.ndarray) -> np.ndarray:
+        return self._observation_operator_fn(xs)
 
 
 class FourierBasis(Basis):
