@@ -25,7 +25,10 @@ class PoissonEquation(_base.LinearPDE):
         return u
 
     def discretize(self, basis: bases.Basis) -> pn.problems.LinearSystem:
-        if isinstance(basis, bases.FiniteElementBasis):
+        if isinstance(basis, bases.ZeroBoundaryFiniteElementBasis):
+            A = self._operator_zero_boundary_finite_element_basis(basis)
+            b = self._rhs_zero_boundary_finite_element_basis(basis)
+        elif isinstance(basis, bases.FiniteElementBasis):
             A = self._operator_finite_element_basis(basis)
             b = self._rhs_finite_element_basis(basis)
         else:
@@ -38,6 +41,27 @@ class PoissonEquation(_base.LinearPDE):
             pn.linops.aslinop(A),
             b,
         )
+
+    def _operator_zero_boundary_finite_element_basis(
+        self, basis: bases.FiniteElementBasis
+    ) -> pn.linops.Matrix:
+        diag = 1 / (basis.grid[1:-1] - basis.grid[:-2])
+        diag += 1 / (basis.grid[2:] - basis.grid[1:-1])
+
+        offdiag = -1.0 / (basis.grid[2:-1] - basis.grid[1:-2])
+
+        return pn.linops.Matrix(
+            scipy.sparse.diags(
+                (offdiag, diag, offdiag),
+                offsets=(-1, 0, 1),
+                format="csr",
+            )
+        )
+
+    def _rhs_zero_boundary_finite_element_basis(
+        self, basis: bases.FiniteElementBasis
+    ) -> np.ndarray:
+        return (self._rhs / 2.0) * (basis.grid[2:] - basis.grid[:-2])
 
     def _operator_finite_element_basis(
         self, basis: bases.FiniteElementBasis
