@@ -1,22 +1,30 @@
-from typing import Callable, Optional, Type
+from typing import Callable, Iterable, Optional
 
 import numpy as np
 import probnum as pn
 
 from .. import linalg
-from . import _base, belief_updates, beliefs, policies, stopping_criteria
+from . import (
+    _probabilistic_linear_solver,
+    belief_updates,
+    beliefs,
+    observation_ops,
+    policies,
+    stopping_criteria,
+)
 
 
-class BayesCG(_base.ProbabilisticLinearSolver):
+class BayesCG(_probabilistic_linear_solver.ProbabilisticLinearSolver):
     def __init__(
         self,
         prior: beliefs.BayesCGBelief,
-        stopping_criteria,
-        reorthogonalization_fn=None,
+        stopping_criteria: Iterable[stopping_criteria.StoppingCriterion],
+        reorthogonalization_fn: Optional[Callable[..., None]] = None,
     ) -> None:
         super().__init__(
             prior,
             policy=policies.CGPolicy(reorthogonalization_fn=reorthogonalization_fn),
+            observation_op=observation_ops.ResidualNormSquared(),
             belief_update=belief_updates.BayesCGBeliefUpdate(),
             stopping_criteria=tuple(stopping_criteria),
         )
@@ -57,15 +65,15 @@ def bayescg(
         stopping_criteria.ResidualNorm(atol, rtol),
     )
 
-    # Sentinel Callback
-    if callback is None:
-        callback = lambda **kwargs: None
-
     # Configure reorthogonalization
     reorthogonalization_fn = None
 
     if reorthogonalize:
         reorthogonalization_fn = linalg.modified_gram_schmidt
+
+    # Sentinel Callback
+    if callback is None:
+        callback = lambda **kwargs: None
 
     # Construct the solver
     solver = BayesCG(

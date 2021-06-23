@@ -1,4 +1,4 @@
-import dataclasses
+import abc
 import functools
 from typing import Optional, Union
 
@@ -6,12 +6,25 @@ import numpy as np
 import probnum as pn
 
 
-@dataclasses.dataclass(frozen=True)
-class BayesCGBelief:
-    mean: np.ndarray
-    cov_unscaled: pn.linops.LinearOperator
-    cov_scale: np.floating = 0.0
-    num_steps: int = 0
+class LinearSystemBelief(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def x(self) -> pn.randvars.RandomVariable:
+        pass
+
+
+class BayesCGBelief(LinearSystemBelief):
+    def __init__(
+        self,
+        mean: np.ndarray,
+        cov_unscaled: pn.linops.LinearOperator,
+        cov_scale: np.floating = 0.0,
+        num_steps: int = 0,
+    ) -> None:
+        self.mean = mean
+        self.cov_unscaled = cov_unscaled
+        self.cov_scale = cov_scale
+        self.num_steps = num_steps
 
     @functools.cached_property
     def cov(self) -> pn.linops.LinearOperator:
@@ -27,7 +40,7 @@ class BayesCGBelief:
 
     @classmethod
     def from_linear_system(
-        self,
+        cls,
         problem: pn.problems.LinearSystem,
         mean: Optional[Union[np.ndarray, pn.randvars.Constant]] = None,
     ) -> "BayesCGBelief":
@@ -42,7 +55,7 @@ class BayesCGBelief:
                 copy=True,
             )
 
-        return BayesCGBelief(
+        return cls(
             mean=mean,
             cov_unscaled=pn.linops.aslinop(problem.A).inv(),
         )

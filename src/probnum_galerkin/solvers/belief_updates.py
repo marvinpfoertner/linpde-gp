@@ -1,26 +1,38 @@
-from typing import Optional
+import abc
 
 import numpy as np
 import probnum as pn
 
 from . import beliefs
-from ._base import ProbabilisticLinearSolver as _ProbabilisticLinearSolver
 
 
-class BayesCGBeliefUpdate:
+class LinearSolverBeliefUpdate(abc.ABC):
+    @abc.abstractmethod
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        belief: beliefs.LinearSystemBelief,
+        action: np.ndarray,
+        observation: np.floating,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ) -> beliefs.LinearSystemBelief:
+        pass
+
+
+class BayesCGBeliefUpdate(LinearSolverBeliefUpdate):
     def __call__(
         self,
         problem: pn.problems.LinearSystem,
         belief: beliefs.BayesCGBelief,
         action: np.ndarray,
-        observation: Optional[np.floating],
-        solver_state: "_ProbabilisticLinearSolver.State",
+        observation: np.floating,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
     ) -> beliefs.BayesCGBelief:
         matvec = problem.A @ action
         stepdir = solver_state.prior.cov_unscaled @ matvec
 
         E_sq = np.inner(matvec, stepdir)
-        alpha = solver_state.residual_norm_sq / E_sq
+        alpha = observation / E_sq
 
         return beliefs.BayesCGBelief(
             mean=belief.mean + alpha * stepdir,
