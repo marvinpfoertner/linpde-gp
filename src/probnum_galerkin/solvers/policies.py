@@ -58,3 +58,23 @@ class CGPolicy(Policy):
                 )
 
         return action
+
+
+class CovariancePolicy(Policy):
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        belief: pn.randvars.Normal,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ) -> np.ndarray:
+        if solver_state.iteration == 0:
+            return solver_state.residual
+
+        A_linop = pn.linops.aslinop(problem.A)
+        prior_cov = pn.linops.aslinop(solver_state.prior.cov)
+
+        return (
+            A_linop.inv()
+            @ (prior_cov.inv() @ belief.cov)
+            @ (A_linop @ solver_state.residual)
+        )
