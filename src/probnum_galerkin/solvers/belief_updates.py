@@ -19,6 +19,28 @@ class LinearSolverBeliefUpdate(abc.ABC):
         pass
 
 
+class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        belief: beliefs.GaussianSolutionBelief,
+        action: np.ndarray,
+        observation: np.floating,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ) -> beliefs.GaussianSolutionBelief:
+        adj_obs_operator = problem.A @ action
+
+        cov_xy = belief.cov @ adj_obs_operator
+
+        gram = adj_obs_operator.T @ cov_xy
+        gram_pinv = 1.0 / gram  # if gram >= 1e-10 else 0.0
+
+        return beliefs.GaussianSolutionBelief(
+            mean=belief.mean + cov_xy * (gram_pinv * observation),
+            cov=belief.cov - np.outer(cov_xy, cov_xy) * gram_pinv,
+        )
+
+
 class BayesCGBeliefUpdate(LinearSolverBeliefUpdate):
     def __call__(
         self,

@@ -13,6 +13,42 @@ class LinearSystemBelief(abc.ABC):
         pass
 
 
+class GaussianSolutionBelief(LinearSystemBelief):
+    def __init__(
+        self,
+        mean: np.ndarray,
+        cov: pn.linops.LinearOperator,
+    ) -> None:
+        self.mean = mean
+        self.cov = cov
+
+    @functools.cached_property
+    def x(self) -> pn.randvars.Normal:
+        return pn.randvars.Normal(self.mean, self.cov)
+
+    @classmethod
+    def from_linear_system(
+        cls,
+        problem: pn.problems.LinearSystem,
+        mean: Optional[Union[np.ndarray, pn.randvars.Constant]] = None,
+    ) -> "GaussianSolutionBelief":
+        if mean is None:
+            mean = np.zeros_like(problem.b)
+        else:
+            if isinstance(mean, pn.randvars.Constant):
+                mean = mean.support
+
+            mean = mean.astype(
+                np.result_type(problem.A.dtype, problem.b.dtype),
+                copy=True,
+            )
+
+        return cls(
+            mean=mean,
+            cov=pn.linops.aslinop(problem.A).inv(),
+        )
+
+
 class BayesCGBelief(LinearSystemBelief):
     def __init__(
         self,

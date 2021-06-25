@@ -15,6 +15,16 @@ class ObservationOp(abc.ABC):
         pass
 
 
+class ResidualMatVec(ObservationOp):
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        action: np.ndarray,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ) -> np.ndarray:
+        return np.inner(action, solver_state.residual)
+
+
 class ResidualNormSquared(ObservationOp):
     def __call__(
         self,
