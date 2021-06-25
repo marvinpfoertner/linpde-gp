@@ -1,4 +1,4 @@
-from typing import Generator, Iterable, Iterator, Optional, Tuple
+from typing import Iterable, Iterator, Optional, Tuple
 
 import numpy as np
 import probnum as pn
@@ -66,7 +66,7 @@ class ProbabilisticLinearSolver(
                 solver_state,
             )
 
-            solver_state.iteration += 1
+            solver_state.next_iteration()
 
     class State:
         def __init__(
@@ -84,17 +84,15 @@ class ProbabilisticLinearSolver(
             self._belief = prior
 
             # Actions
-            self._action = None
+            self._action: Optional[np.ndarray] = None
 
             self._prev_actions = []
 
             # Observations
-            self._observation = None
-
-            self._prev_observations = []
+            self._observation: Optional[np.floating] = None
 
             # Caches
-            self._residual = None
+            self._residual: Optional[np.ndarray] = None
             self._residual_norm_squared = None
             self._residual_norm = None
 
@@ -118,15 +116,15 @@ class ProbabilisticLinearSolver(
             self._residual_norm = None
 
         @property
-        def action(self) -> np.ndarray:
+        def action(self) -> Optional[np.ndarray]:
             return self._action
 
         @action.setter
-        def action(self, value: np.ndarray) -> None:
-            if self._action is not None:
-                self._prev_actions.append(self._action)
+        def action(self, action: np.ndarray) -> None:
+            assert self._action is None
 
-            self._action = value
+            self._action = action
+            self._action.setflags(write=False)
 
         @property
         def prev_action(self) -> np.ndarray:
@@ -137,13 +135,12 @@ class ProbabilisticLinearSolver(
             return tuple(self._prev_actions)
 
         @property
-        def observation(self) -> np.ndarray:
+        def observation(self) -> Optional[np.floating]:
             return self._observation
 
         @observation.setter
-        def observation(self, value: np.ndarray) -> None:
-            if self._observation is not None:
-                self._prev_observations.append(self._observation)
+        def observation(self, value: np.floating) -> None:
+            assert self._observation is None
 
             self._observation = value
 
@@ -151,6 +148,7 @@ class ProbabilisticLinearSolver(
         def residual(self) -> np.ndarray:
             if self._residual is None:
                 self._residual = self.problem.b - self.problem.A @ self._belief.x.mean
+                self._residual.setflags(write=False)
 
             return self._residual
 
@@ -188,3 +186,11 @@ class ProbabilisticLinearSolver(
                 )
 
             return self._prev_residual_norms_squared[-1]
+
+        def next_iteration(self) -> None:
+            self._prev_actions.append(self._action)
+
+            self._action = None
+            self._observation = None
+
+            self.iteration += 1

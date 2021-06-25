@@ -33,7 +33,7 @@ class CGPolicy(Policy):
         belief: pn.randvars.Normal,
         solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
-        action = solver_state.residual
+        action = solver_state.residual.copy()
 
         if solver_state.iteration > 0:
             # Orthogonalization
@@ -42,7 +42,7 @@ class CGPolicy(Policy):
                 / solver_state.prev_residual_norm_squared
             )
 
-            action += beta * solver_state.action
+            action += beta * solver_state.prev_action
 
             # (Optional) Reorthogonalization
             if self._reorthogonalization_fn is not None:
