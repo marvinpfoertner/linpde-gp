@@ -54,7 +54,7 @@ class CGPolicy(Policy):
                 action = self._reorthogonalization_fn(
                     action,
                     solver_state.prev_actions,
-                    inprod_matrix=inprod_matrix,
+                    inprod_matrix,
                 )
 
         return action

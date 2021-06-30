@@ -88,7 +88,7 @@ def bayescg(
             residual=solver_state.residual.copy(),
             stop=stop,
             action=(
-                solver_state.action.copy() if solver_state.action is not None else None
+                solver_state.prev_action.copy() if solver_state.iteration > 0 else None
             ),
         )
 
