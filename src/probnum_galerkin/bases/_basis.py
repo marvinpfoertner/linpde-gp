@@ -3,7 +3,7 @@ from typing import Callable, Union
 
 import numpy as np
 import probnum as pn
-from probnum.type import FloatArgType
+from probnum.typing import FloatArgType
 
 
 class Basis(abc.ABC):

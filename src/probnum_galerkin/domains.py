@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Union
 import numpy as np
 import probnum as pn
 from numpy import typing as npt
-from probnum.type import FloatArgType, IntArgType
+from probnum.typing import FloatArgType, IntArgType
 
 DomainLike = Union["Domain", Tuple[FloatArgType, FloatArgType]]
 

@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import numpy as np
 import probnum as pn
 from numpy import typing as npt
-from probnum.type import DTypeArgType, IntArgType, RandomStateArgType, ShapeArgType
+from probnum.typing import DTypeArgType, IntArgType, ShapeArgType
 
 _InputType = npt.ArrayLike
 _OutputType = Union[np.floating, np.ndarray]
@@ -37,11 +37,12 @@ class Function(pn.randprocs.RandomProcess[_InputType, _OutputType]):
         return self(args).mean
 
     def _sample_at_input(
-        self, args: np.ndarray, size: ShapeArgType, random_state: RandomStateArgType
+        self,
+        rng: np.random.Generator,
+        args: np.ndarray,
+        size: ShapeArgType,
     ) -> np.ndarray:
-        return pn.randvars.Constant(
-            support=self._fn(args), random_state=random_state
-        ).sample(size=size)
+        return pn.randvars.Constant(support=self._fn(args)).sample(rng, size=size)
 
     def cov(self, args0, args1=None):
         raise NotImplementedError()

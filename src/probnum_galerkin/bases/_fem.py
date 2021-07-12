@@ -3,7 +3,7 @@ from typing import Callable, Union
 import numpy as np
 import probnum as pn
 import scipy.interpolate
-from probnum.type import FloatArgType
+from probnum.typing import FloatArgType
 
 from .. import domains, randprocs
 from . import _basis

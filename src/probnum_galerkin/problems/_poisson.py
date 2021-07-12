@@ -4,7 +4,7 @@ from typing import Callable
 import numpy as np
 import probnum as pn
 import scipy.sparse
-from probnum.type import FloatArgType
+from probnum.typing import FloatArgType
 from probnum_galerkin import bases
 
 from . import _base
