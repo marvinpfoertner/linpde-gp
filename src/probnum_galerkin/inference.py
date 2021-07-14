@@ -1,3 +1,4 @@
+import functools
 from typing import Union
 
 import numpy as np
@@ -5,33 +6,59 @@ import probnum as pn
 import scipy.linalg
 
 
-def linear_gaussian_model(
-    prior: pn.randvars.Normal,
-    A: Union[np.ndarray, pn.linops.LinearOperatorLike],
-    measurement_noise: pn.randvars.Normal,
-    measurements: np.ndarray,
-) -> pn.randvars.Normal:
-    prior_x = prior
+class LinearGaussianModel:
+    r"""Model for linear observations of a Gaussian random variable under Gaussian noise.
 
-    if not isinstance(A, np.ndarray):
-        A = pn.linops.aslinop(A)
+    To be precise, we posit a prior :math:`x \sim \mathcal{N}(\mu_0, \Sigma_0)` and we
+    observe realizations of :math:`y := Ax + \epsilon`, where the noise :math:`\epsilon`
+    is also assumed to follow a Gaussian distribution, i.e.
+    :math:`\epsilon \sim \mathcal{N}(b, \Lambda)`.
 
-    prior_pred_cov_yx = A @ prior_x.cov
+    Instances of this class give access to quantities inferred under this model.
+    """
 
-    prior_pred_Ax = pn.randvars.Normal(
-        mean=A @ prior.mean,
-        cov=prior_pred_cov_yx @ A.T,
-    )
-    prior_pred_y = prior_pred_Ax + measurement_noise
+    def __init__(
+        self,
+        prior_x: pn.randvars.Normal,
+        A: pn.linops.LinearOperatorLike,
+        measurement_noise: pn.randvars.Normal,
+    ) -> None:
+        self._prior_x = prior_x
+        self._A = pn.linops.aslinop(A)
+        self._measurement_noise = measurement_noise
 
-    gain = scipy.linalg.cho_solve(
-        scipy.linalg.cho_factor(prior_pred_y.dense_cov),
-        prior_pred_cov_yx
-        if isinstance(prior_pred_cov_yx, np.ndarray)
-        else prior_pred_cov_yx.todense(),
-    ).T
+    @functools.cached_property
+    def prior_pred_Ax(self) -> pn.randvars.Normal:
+        r"""Random variable :math:`Ax`."""
+        return pn.randvars.Normal(
+            mean=self._A @ self._prior_x.mean,
+            cov=self._cross_cov_Ax_x @ self._A.T,
+        )
 
-    return pn.randvars.Normal(
-        mean=prior.mean + gain @ (measurements - prior_pred_y.mean),
-        cov=prior.cov - gain @ prior_pred_cov_yx,
-    )
+    @functools.cached_property
+    def prior_pred_y(self) -> pn.randvars.Normal:
+        r"""Random variable :math:`y := Ax + \epsilon`."""
+        return self.prior_pred_Ax + self._measurement_noise
+
+    def posterior_x(self, y_measurements: np.ndarray) -> pn.randvars.Normal:
+        r"""Random variable :math:`x \mid y = y_\text{meas}`."""
+        return pn.randvars.Normal(
+            mean=(
+                self._prior_x.mean
+                + self._gain @ (y_measurements - self.prior_pred_y.mean)
+            ),
+            cov=self._prior_x.cov - self._gain @ self._cross_cov_Ax_x,
+        )
+
+    @functools.cached_property
+    def _cross_cov_Ax_x(self) -> Union[np.ndarray, pn.linops.LinearOperator]:
+        return self._A @ self._prior_x.cov
+
+    @functools.cached_property
+    def _gain(self) -> np.ndarray:
+        return scipy.linalg.cho_solve(
+            scipy.linalg.cho_factor(self.prior_pred_y.dense_cov),
+            self._cross_cov_Ax_x
+            if isinstance(self._cross_cov_Ax_x, np.ndarray)
+            else self._cross_cov_Ax_x.todense(),
+        ).T
