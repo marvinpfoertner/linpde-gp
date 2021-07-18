@@ -2,6 +2,7 @@ import abc
 
 import numpy as np
 import probnum as pn
+from probnum.typing import FloatArgType
 
 from . import beliefs
 
@@ -20,6 +21,9 @@ class LinearSolverBeliefUpdate(abc.ABC):
 
 
 class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
+    def __init__(self, noise_var: FloatArgType = 0.0) -> None:
+        self._noise_var = noise_var
+
     def __call__(
         self,
         problem: pn.problems.LinearSystem,
@@ -33,7 +37,7 @@ class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
         cov_xy = belief.cov @ adj_obs_operator
 
         gram = adj_obs_operator.T @ cov_xy
-        gram_pinv = 1.0 / gram  # if gram >= 1e-10 else 0.0
+        gram_pinv = 1.0 / (gram + self._noise_var)
 
         return beliefs.GaussianSolutionBelief(
             mean=belief.mean + cov_xy * (gram_pinv * observation),
