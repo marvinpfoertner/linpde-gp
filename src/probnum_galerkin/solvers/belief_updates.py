@@ -4,6 +4,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatArgType
 
+from .. import linops
 from . import beliefs
 
 
@@ -41,7 +42,7 @@ class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
 
         return beliefs.GaussianSolutionBelief(
             mean=belief.mean + cov_xy * (gram_pinv * observation),
-            cov=belief.cov - np.outer(cov_xy, cov_xy) * gram_pinv,
+            cov=belief.cov - linops.outer(cov_xy, cov_xy) * gram_pinv,
         )
 
 
@@ -62,7 +63,9 @@ class BayesCGBeliefUpdate(LinearSolverBeliefUpdate):
 
         return beliefs.BayesCGBelief(
             mean=belief.mean + alpha * stepdir,
-            cov_unscaled=belief.cov_unscaled - np.outer(stepdir, stepdir) / E_sq,
+            cov_unscaled=(
+                belief.cov_unscaled - linops.outer(stepdir, stepdir) * (1 / E_sq)
+            ),
             cov_scale=belief.cov_scale + alpha,
             num_steps=belief.num_steps + 1,
         )
