@@ -22,6 +22,7 @@ def problinsolve(
     atol=1e-5,
     rtol=1e-5,
     reorthogonalize: bool = False,
+    noise_var=0.0,
     callback: Optional[Callable[..., None]] = None,
 ) -> pn.randvars.Normal:
     # Construct the problem to be solved
@@ -64,7 +65,7 @@ def problinsolve(
         prior,
         policy=policies.CGPolicy(reorthogonalization_fn),
         observation_op=observation_ops.ResidualMatVec(),
-        belief_update=belief_updates.GaussianInferenceBeliefUpdate(),
+        belief_update=belief_updates.GaussianInferenceBeliefUpdate(noise_var=noise_var),
         stopping_criteria=stopping_criteria_,
     )
 
