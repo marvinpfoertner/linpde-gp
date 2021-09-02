@@ -3,6 +3,7 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 import probnum as pn
+import probnum_galerkin
 
 
 class Policy(abc.ABC):
@@ -78,3 +79,35 @@ class CovariancePolicy(Policy):
             @ (prior_cov.inv() @ belief.cov)
             @ (A_linop @ solver_state.residual)
         )
+
+
+class KrylovPolicy(Policy):
+    def __init__(
+        self,
+        reorthogonalization_fn: Optional[
+            Callable[
+                [np.ndarray, Iterable[np.ndarray], pn.linops.LinearOperator], np.ndarray
+            ]
+        ] = None,
+    ) -> None:
+        self._reorthogonalization_fn = reorthogonalization_fn
+
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        belief: pn.randvars.Normal,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ):
+        if solver_state.iteration == 0:
+            return solver_state.residual
+
+        action = problem.A @ belief.cov @ problem.A @ solver_state.prev_action
+
+        if self._reorthogonalization_fn is not None:
+            action = self._reorthogonalization_fn(
+                action,
+                solver_state.prev_actions,
+                problem.A @ solver_state.prior.x.cov @ problem.A,
+            )
+
+        return action
