@@ -98,10 +98,49 @@ class KrylovPolicy(Policy):
         belief: pn.randvars.Normal,
         solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
     ):
-        if solver_state.iteration == 0:
-            return solver_state.residual
+        # if solver_state.iteration == 0:
+        #     return solver_state.residual
 
-        action = problem.A @ belief.cov @ problem.A @ solver_state.prev_action
+        action = problem.A @ belief.cov @ problem.A @ solver_state.residual
+
+        if self._reorthogonalization_fn is not None:
+            action = self._reorthogonalization_fn(
+                action,
+                solver_state.prev_actions,
+                problem.A @ solver_state.prior.x.cov @ problem.A,
+            )
+
+        return action
+
+
+class RandomPolicy(Policy):
+    def __init__(
+        self,
+        rng: np.random.Generator,
+        reorthogonalization_fn: Optional[
+            Callable[
+                [np.ndarray, Iterable[np.ndarray], pn.linops.LinearOperator], np.ndarray
+            ]
+        ] = None,
+    ) -> None:
+        self._rng = rng
+        self._reorthogonalization_fn = reorthogonalization_fn
+
+    def __call__(
+        self,
+        problem: pn.problems.LinearSystem,
+        belief: pn.randvars.Normal,
+        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+    ):
+        # if solver_state.iteration == 0:
+        #     return solver_state.residual
+
+        action = (
+            problem.A
+            @ belief.cov
+            @ problem.A
+            @ self._rng.normal(size=problem.A.shape[0])
+        )
 
         if self._reorthogonalization_fn is not None:
             action = self._reorthogonalization_fn(

@@ -23,6 +23,7 @@ def problinsolve(
     rtol=1e-5,
     reorthogonalize: bool = False,
     noise_var=0.0,
+    rng=None,
     callback: Optional[Callable[..., None]] = None,
 ) -> pn.randvars.Normal:
     # Construct the problem to be solved
@@ -63,7 +64,12 @@ def problinsolve(
     # Construct the solver
     solver = _probabilistic_linear_solver.ProbabilisticLinearSolver(
         prior,
-        policy=policies.KrylovPolicy(reorthogonalization_fn=reorthogonalization_fn),
+        policy=policies.KrylovPolicy(
+            reorthogonalization_fn=reorthogonalization_fn,
+        ),
+        # policy=policies.RandomPolicy(
+        #     rng, reorthogonalization_fn=reorthogonalization_fn
+        # ),
         observation_op=observation_ops.ResidualMatVec(),
         belief_update=belief_updates.GaussianInferenceBeliefUpdate(noise_var=noise_var),
         stopping_criteria=stopping_criteria_,
