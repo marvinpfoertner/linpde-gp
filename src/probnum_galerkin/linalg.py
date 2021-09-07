@@ -149,3 +149,36 @@ def pairwise_inprods(
         inprods /= w_norms[None, :]
 
     return inprods
+
+
+def pivoted_cholesky(A: np.ndarray, k: int) -> np.ndarray:
+    N, _ = A.shape
+
+    assert 1 <= k <= N
+
+    L = np.zeros((N, k), dtype=A.dtype, order="F")
+
+    perm = np.arange(N)
+    perm_diag = np.diag(A).copy()
+
+    for m in range(k):
+        # Pivotization
+        i = np.argmax(perm_diag[m:]) + m
+
+        perm[m], perm[i] = perm[i], perm[m]
+        perm_diag[m], perm_diag[i] = perm_diag[i], perm_diag[m]
+
+        # Cholesky algorithm
+        buf = np.empty_like(L[m:, m])
+
+        buf[0] = np.sqrt(perm_diag[m])  # Pivot
+
+        buf[1:] = A[perm[(m + 1) :], perm[m]]
+        buf[1:] -= L[perm[(m + 1) :], :m] @ L[perm[m], :m]
+        buf[1:] /= buf[0]
+
+        perm_diag[m:] -= buf ** 2
+
+        L[perm[m:], m] = buf
+
+    return L
