@@ -152,6 +152,11 @@ def pairwise_inprods(
 
 
 def pivoted_cholesky(A: np.ndarray, k: int) -> np.ndarray:
+    """
+    TODO:
+    - Handle different memory types
+    - Implement for linear operators
+    """
     N, _ = A.shape
 
     assert 1 <= k <= N

@@ -1,3 +1,3 @@
 from probnum.linops import *
 
-from ._rank_1 import outer
+from ._low_rank import LowRankUpdate, outer
