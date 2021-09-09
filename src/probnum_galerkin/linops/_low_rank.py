@@ -51,7 +51,7 @@ class LowRankUpdate(pn.linops.LinearOperator):
         det = lambda: self._A.det() * self._C.det() * self._schur_complement.det()
 
         super().__init__(
-            self._AplusUCV.dtype,
+            self._AplusUCV.shape,
             dtype=self._AplusUCV.dtype,
             matmul=lambda x: self._AplusUCV @ x,
             rmatmul=lambda x: x @ self._AplusUCV,
