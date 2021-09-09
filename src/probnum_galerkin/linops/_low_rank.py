@@ -3,6 +3,8 @@ from typing import Optional
 
 import numpy as np
 import probnum as pn
+import scipy.linalg
+from scipy.linalg.decomp import eigvals
 
 
 def outer(u: np.ndarray, v: np.ndarray) -> pn.linops.LinearOperator:
@@ -49,10 +51,8 @@ class LowRankUpdate(pn.linops.LinearOperator):
         det = lambda: self._A.det() * self._C.det() * self._schur_complement.det()
 
         super().__init__(
-            self._A.shape,
-            dtype=np.result_type(
-                self._A.dtype, self._U.dtype, self._C.dtype, self._V.dtype
-            ),
+            self._AplusUCV.dtype,
+            dtype=self._AplusUCV.dtype,
             matmul=lambda x: self._AplusUCV @ x,
             rmatmul=lambda x: x @ self._AplusUCV,
             apply=self._AplusUCV.__call__,
@@ -67,3 +67,49 @@ class LowRankUpdate(pn.linops.LinearOperator):
     @cached_property
     def _schur_complement(self) -> pn.linops.LinearOperator:
         return self._C.inv() + self._V @ self._A.inv() @ self._U
+
+
+class LowRankMatrix(pn.linops.LinearOperator):
+    def __init__(
+        self,
+        U: pn.linops.LinearOperatorLike,
+    ):
+        self._U = pn.linops.aslinop(U)
+
+        self._linop = self._U @ self._U.T
+
+        super().__init__(
+            self._linop.shape,
+            self._linop.dtype,
+            matmul=self._linop.__matmul__,
+            rmatmul=self._linop.__rmatmul__,
+            apply=self._linop.__call__,
+            todense=self._linop.todense,
+            conjugate=self._linop.conjugate,
+            transpose=lambda: self,
+            adjoint=self._linop.conjugate,
+        )
+
+    @cached_property
+    def svd(self) -> pn.linops.LinearOperator:
+        Q1, R = scipy.linalg.qr(self._U.todense(), mode="economic")
+
+        Q2, sqrt_svals, _ = scipy.linalg.svd(R)
+
+        U_svd = pn.linops.aslinop(Q1) @ pn.linops.aslinop(Q2)
+        svals = sqrt_svals ** 2
+
+        return U_svd, svals, U_svd
+
+    @cached_property
+    def pinv(self) -> pn.linops.LinearOperator:
+        U, svals, _ = self.svd
+
+        pinv_svals = np.divide(
+            1.0,
+            svals,
+            where=svals > 0,
+            out=np.zeros_like(svals),
+        )
+
+        return LowRankMatrix(U @ pn.linops.Scaling(np.sqrt(pinv_svals)))
