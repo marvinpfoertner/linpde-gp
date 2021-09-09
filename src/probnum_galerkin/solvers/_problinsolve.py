@@ -64,9 +64,12 @@ def problinsolve(
     # Construct the solver
     solver = _probabilistic_linear_solver.ProbabilisticLinearSolver(
         prior,
-        policy=policies.KrylovPolicy(
+        policy=policies.CGPolicy(
             reorthogonalization_fn=reorthogonalization_fn,
         ),
+        # policy=policies.KrylovPolicy(
+        #     reorthogonalization_fn=reorthogonalization_fn,
+        # ),
         # policy=policies.RandomPolicy(
         #     rng, reorthogonalization_fn=reorthogonalization_fn
         # ),

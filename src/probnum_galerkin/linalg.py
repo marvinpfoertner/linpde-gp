@@ -154,8 +154,9 @@ def pairwise_inprods(
 def pivoted_cholesky(A: np.ndarray, k: int) -> np.ndarray:
     """
     TODO:
-    - Handle different memory types
+    - Handle different memory layouts
     - Implement for linear operators
+    - auto-terminate based on error estimate
     """
     N, _ = A.shape
 
