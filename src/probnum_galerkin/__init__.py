@@ -1,5 +1,6 @@
 from . import (
     bases,
+    diffops,
     domains,
     inference,
     linalg,
@@ -9,5 +10,6 @@ from . import (
     randprocs,
     solvers,
 )
+from ._compute_backend import Backend, set_backend
 
 __version__ = "0.0.1a1"
