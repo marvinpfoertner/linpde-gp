@@ -90,6 +90,29 @@ def plot_gaussian_process_samples(
 pn.randprocs.GaussianProcess.plot_samples = plot_gaussian_process_samples
 
 
+def plot_gaussian_pdf(
+    rv: pn.randvars.Normal,
+    ax: matplotlib.axes.Axes,
+    **kwargs,
+) -> matplotlib.lines.Line2D:
+    assert rv.ndim == 0 or rv.size == 1
+
+    mean = np.squeeze(rv.mean)
+    std = np.squeeze(rv.std)
+
+    plt_grid = np.linspace(mean - 3.0 * std, mean + 3.0 * std, 2 * (60 // 2) + 1)
+
+    line_2d, = ax.plot(
+        plt_grid,
+        rv.pdf(np.reshape(plt_grid, plt_grid.shape + rv.shape)),
+    )
+
+    return line_2d
+
+
+pn.randvars.Normal.plot = plot_gaussian_pdf
+
+
 def plot_local_curvature(
     ax: matplotlib.axes.Axes,
     xs,
