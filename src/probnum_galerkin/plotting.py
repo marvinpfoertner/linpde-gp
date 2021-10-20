@@ -102,9 +102,10 @@ def plot_gaussian_pdf(
 
     plt_grid = np.linspace(mean - 3.0 * std, mean + 3.0 * std, 2 * (60 // 2) + 1)
 
-    line_2d, = ax.plot(
+    (line_2d,) = ax.plot(
         plt_grid,
         rv.pdf(np.reshape(plt_grid, plt_grid.shape + rv.shape)),
+        **kwargs,
     )
 
     return line_2d
