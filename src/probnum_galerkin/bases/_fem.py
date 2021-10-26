@@ -76,15 +76,17 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
             return randprocs.Function(
                 self.coords2fn(coords.support),
                 input_dim=1,
-                output_dim=1,
+                output_dim=None,
                 dtype=coords.dtype,
             )
         elif isinstance(coords, pn.randvars.Normal):
+            mean_explicit_input_axis = self.coords2fn(coords.mean)
+
             return randprocs.LinearTransformGaussianProcess(
                 input_dim=1,
                 base_rv=coords,
                 linop_fn=self._observation_operator_fn,
-                mean=self.coords2fn(coords.mean),
+                mean=lambda x: mean_explicit_input_axis(x[:, 0]),
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")

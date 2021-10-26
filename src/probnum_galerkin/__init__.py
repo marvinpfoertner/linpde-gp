@@ -8,7 +8,6 @@ from . import (
     plotting,
     problems,
     randprocs,
-    solvers,
 )
 from ._compute_backend import Backend, set_backend
 

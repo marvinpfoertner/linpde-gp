@@ -3,7 +3,7 @@ from typing import Callable, Iterable, Optional
 import numpy as np
 import probnum as pn
 
-from .. import linalg
+from .. import _helpers as _linalg_helpers
 from . import (
     _probabilistic_linear_solver,
     belief_updates,
@@ -69,7 +69,7 @@ def bayescg(
     reorthogonalization_fn = None
 
     if reorthogonalize:
-        reorthogonalization_fn = linalg.modified_gram_schmidt
+        reorthogonalization_fn = _linalg_helpers.modified_gram_schmidt
 
     # Sentinel Callback
     if callback is None:

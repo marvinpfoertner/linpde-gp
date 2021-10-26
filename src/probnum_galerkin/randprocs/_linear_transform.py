@@ -2,7 +2,7 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import IntArgType
+from probnum.typing import ArrayLike, IntArgType
 
 
 class LinearTransformGaussianProcess(pn.randprocs.GaussianProcess):
@@ -19,7 +19,7 @@ class LinearTransformGaussianProcess(pn.randprocs.GaussianProcess):
         self._linop_fn = linop_fn
 
         if mean is None:
-            mean = lambda x: self._linop_fn(x) @ self._base_rv.mean
+            mean = lambda x: self._linop_fn(x[..., 0]) @ self._base_rv.mean
 
         super().__init__(
             mean=mean,
@@ -45,22 +45,25 @@ class LinearTransformGaussianProcess(pn.randprocs.GaussianProcess):
             if input_dim != 1:
                 raise NotImplementedError
 
-            super().__init__(input_dim=input_dim, output_dim=1)
+            super().__init__(input_dim=input_dim)
 
-        def __call__(
-            self, x0: np.ndarray, x1: Optional[np.ndarray] = None
+        def _evaluate(
+            self, x0: ArrayLike, x1: Optional[ArrayLike]
         ) -> Union[np.ndarray, np.float_]:
-            # Check and reshape inputs
-            x0, x1, kernshape = self._check_and_reshape_inputs(x0, x1)
+            linop_x0 = self._linop_fn(np.squeeze(x0, axis=-1))
+            linop_x1 = (
+                linop_x0 if x1 is None else self._linop_fn(np.squeeze(x1, axis=-1))
+            )
 
-            # Compute kernel matrix
-            linop_0 = self._linop_fn(np.squeeze(x0))
+            # TODO: This is inefficient, we need batches of linear operators for this
+            if isinstance(linop_x0, pn.linops.LinearOperator):
+                linop_x0 = linop_x0.todense()
 
-            if x1 is None:
-                linop_1 = linop_0
-            else:
-                linop_1 = self._linop_fn(np.squeeze(x1))
+            if isinstance(linop_x1, pn.linops.LinearOperator):
+                linop_x1 = linop_x1.todense()
 
-            kernmat = linop_0 @ self._base_rv.cov @ linop_1.T
-
-            return self._reshape_kernelmatrix(kernmat, newshape=kernshape)
+            return np.einsum(
+                "...i,...i",
+                linop_x0 @ self._base_rv.cov,
+                linop_x1,
+            )

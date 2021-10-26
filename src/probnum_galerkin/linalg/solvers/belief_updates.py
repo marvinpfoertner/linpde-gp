@@ -4,7 +4,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatArgType
 
-from .. import linops
+from ... import linops
 from . import beliefs
 
 
