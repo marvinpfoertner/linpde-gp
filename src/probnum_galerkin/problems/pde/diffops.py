@@ -1,7 +1,7 @@
 import jax
 from jax import numpy as jnp
 
-from .typing import JaxFunction
+from ...typing import JaxFunction
 
 
 def laplace(f: JaxFunction, argnum: int = 0) -> JaxFunction:
