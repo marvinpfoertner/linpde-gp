@@ -4,7 +4,7 @@ from typing import Callable, Tuple, Union
 import numpy as np
 import probnum as pn
 from probnum.typing import FloatArgType
-from probnum_galerkin import bases
+from linpde_gp import bases
 
 from .. import domains
 from . import _boundary_conditions

@@ -1,6 +1,6 @@
 import numpy as np
 import probnum as pn
-import probnum_galerkin
+import linpde_gp
 import pytest
 
 
@@ -27,7 +27,7 @@ def operator(dim: int, rank: int, rng: np.random.Generator) -> pn.linops.LinearO
     U = rng.uniform(low=0.0, high=1.0, size=(dim, rank))
     V = rng.uniform(low=0.0, high=1.0, size=(rank, dim))
 
-    return probnum_galerkin.linops.LowRankUpdate(A, U, C, V)
+    return linpde_gp.linops.LowRankUpdate(A, U, C, V)
 
 
 def test_inv(operator: pn.linops.LinearOperator):

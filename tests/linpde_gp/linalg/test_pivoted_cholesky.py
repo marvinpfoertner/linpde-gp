@@ -1,7 +1,7 @@
 import numpy as np
 import probnum as pn
 import probnum.problems.zoo.linalg
-import probnum_galerkin
+import linpde_gp
 import pytest
 
 
@@ -18,6 +18,6 @@ def A(dim: int) -> np.ndarray:
 
 
 def test_valid_matrix_square_root(dim: int, A: np.ndarray):
-    L = probnum_galerkin.linalg.pivoted_cholesky(A, k=dim)
+    L = linpde_gp.linalg.pivoted_cholesky(A, k=dim)
 
     np.testing.assert_almost_equal(L @ L.T, A)

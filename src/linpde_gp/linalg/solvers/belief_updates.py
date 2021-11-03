@@ -16,7 +16,7 @@ class LinearSolverBeliefUpdate(abc.ABC):
         belief: beliefs.LinearSystemBelief,
         action: np.ndarray,
         observation: np.floating,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> beliefs.LinearSystemBelief:
         pass
 
@@ -31,7 +31,7 @@ class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
         belief: beliefs.GaussianSolutionBelief,
         action: np.ndarray,
         observation: np.floating,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> beliefs.GaussianSolutionBelief:
         adj_obs_operator = problem.A @ action
 
@@ -53,7 +53,7 @@ class BayesCGBeliefUpdate(LinearSolverBeliefUpdate):
         belief: beliefs.BayesCGBelief,
         action: np.ndarray,
         observation: np.floating,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> beliefs.BayesCGBelief:
         matvec = problem.A @ action
         stepdir = solver_state.prior.cov_unscaled @ matvec

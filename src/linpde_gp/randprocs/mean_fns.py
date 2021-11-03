@@ -1,6 +1,6 @@
 import jax
 import numpy as np
-from probnum_galerkin._compute_backend import BackendDispatcher
+from linpde_gp._compute_backend import BackendDispatcher
 
 
 class JaxMean:

@@ -10,8 +10,8 @@ class StoppingCriterion(abc.ABC):
     def __call__(
         self,
         problem: pn.problems.LinearSystem,
-        belief: "probnum_galerkin.solvers.beliefs.LinearSystemBelief",
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        belief: "linpde_gp.solvers.beliefs.LinearSystemBelief",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> bool:
         pass
 
@@ -23,8 +23,8 @@ class MaxIterations(StoppingCriterion):
     def __call__(
         self,
         problem: pn.problems.LinearSystem,
-        belief: "probnum_galerkin.solvers.beliefs.LinearSystemBelief",
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        belief: "linpde_gp.solvers.beliefs.LinearSystemBelief",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> bool:
         return solver_state.iteration >= self._maxiter
 
@@ -37,8 +37,8 @@ class ResidualNorm(StoppingCriterion):
     def __call__(
         self,
         problem: pn.problems.LinearSystem,
-        belief: "probnum_galerkin.solvers.beliefs.LinearSystemBelief",
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        belief: "linpde_gp.solvers.beliefs.LinearSystemBelief",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> bool:
         # Compare residual to tolerances
         b_norm = np.linalg.norm(problem.b, ord=2)

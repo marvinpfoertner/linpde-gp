@@ -3,7 +3,7 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 import probnum as pn
-import probnum_galerkin
+import linpde_gp
 
 
 class Policy(abc.ABC):
@@ -12,7 +12,7 @@ class Policy(abc.ABC):
         self,
         problem: pn.problems.LinearSystem,
         belief: pn.randvars.Normal,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         pass
 
@@ -32,7 +32,7 @@ class CGPolicy(Policy):
         self,
         problem: pn.problems.LinearSystem,
         belief: pn.randvars.Normal,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         action = solver_state.residual.copy()
 
@@ -66,7 +66,7 @@ class CovariancePolicy(Policy):
         self,
         problem: pn.problems.LinearSystem,
         belief: pn.randvars.Normal,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         if solver_state.iteration == 0:
             return solver_state.residual
@@ -96,7 +96,7 @@ class KrylovPolicy(Policy):
         self,
         problem: pn.problems.LinearSystem,
         belief: pn.randvars.Normal,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ):
         # if solver_state.iteration == 0:
         #     return solver_state.residual
@@ -130,7 +130,7 @@ class RandomPolicy(Policy):
         self,
         problem: pn.problems.LinearSystem,
         belief: pn.randvars.Normal,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ):
         # if solver_state.iteration == 0:
         #     return solver_state.residual

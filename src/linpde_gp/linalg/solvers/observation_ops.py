@@ -10,7 +10,7 @@ class ObservationOp(abc.ABC):
         self,
         problem: pn.problems.LinearSystem,
         action: np.ndarray,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         pass
 
@@ -20,7 +20,7 @@ class ResidualMatVec(ObservationOp):
         self,
         problem: pn.problems.LinearSystem,
         action: np.ndarray,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         return np.inner(action, solver_state.residual)
 
@@ -30,6 +30,6 @@ class ResidualNormSquared(ObservationOp):
         self,
         problem: pn.problems.LinearSystem,
         action: np.ndarray,
-        solver_state: "probnum_galerkin.solvers.ProbabilisticLinearSolver.State",
+        solver_state: "linpde_gp.solvers.ProbabilisticLinearSolver.State",
     ) -> np.ndarray:
         return solver_state.residual_norm_squared
