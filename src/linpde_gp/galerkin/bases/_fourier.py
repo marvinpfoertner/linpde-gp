@@ -4,7 +4,8 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatArgType
 
-from .. import domains, randprocs
+from ... import randprocs
+from ...problems.pde import domains
 from . import _basis
 
 

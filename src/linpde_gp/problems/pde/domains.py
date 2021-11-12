@@ -87,8 +87,8 @@ class Interval(Domain, Sequence):
         yield self._lower_bound
         yield self._upper_bound
 
-    @property
-    def boundary(self) -> Sequence["Domain"]:
+    @functools.cached_property
+    def boundary(self) -> Sequence["Point"]:
         return (Point(self._lower_bound), Point(self._upper_bound))
 
     def __repr__(self) -> str:
@@ -108,7 +108,7 @@ class Point(Domain):
 
         super().__init__(shape=self._point.shape, dtype=self._point.dtype)
 
-    @property
+    @functools.cached_property
     def boundary(self) -> Sequence["Domain"]:
         return ()
 

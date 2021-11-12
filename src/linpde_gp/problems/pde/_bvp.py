@@ -1,5 +1,6 @@
 import dataclasses
-from typing import Callable, List, Optional, Union
+from collections.abc import Callable, Sequence
+from typing import Optional, Union
 
 import numpy as np
 import probnum as pn
@@ -17,7 +18,8 @@ class DirichletBoundaryCondition:
 
 @dataclasses.dataclass(frozen=True)
 class BoundaryValueProblem:
+    domain: domains.Domain
     diffop: JaxLinearOperator
     rhs: pn.randprocs.RandomProcess
-    boundary_conditions: List[DirichletBoundaryCondition]
-    solution: Optional[Callable[[ArrayLike], Union[np.floating]]] = None
+    boundary_conditions: Sequence[DirichletBoundaryCondition]
+    solution: Optional[Callable[[ArrayLike], Union[np.floating, np.ndarray]]] = None

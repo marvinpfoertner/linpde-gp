@@ -1,11 +1,13 @@
-from typing import Callable, Union
+from collections.abc import Callable, Sequence
+from typing import Union
 
 import numpy as np
 import probnum as pn
 import scipy.interpolate
 from probnum.typing import FloatArgType
 
-from .. import domains, randprocs
+from ... import randprocs
+from ...problems.pde import DirichletBoundaryCondition, domains
 from . import _basis
 
 
@@ -99,11 +101,14 @@ class FiniteElementBasis(_basis.Basis):
     def __init__(
         self,
         domain: domains.DomainLike,
+        boundary_conditions: Callable[Sequence[DirichletBoundaryCondition]],
         num_elements: int,
     ):
         super().__init__(size=num_elements + 2)
 
         self._domain = domains.asdomain(domain)
+        self._boundary_conditions = boundary_conditions
+
         self._grid = np.linspace(*self._domain, len(self))
 
         # TODO: Implement this as a `LinearOperator`
