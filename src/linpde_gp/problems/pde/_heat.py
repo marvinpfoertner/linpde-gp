@@ -3,6 +3,7 @@ from typing import Sequence
 
 import numpy as np
 import probnum as pn
+from numpy.lib.function_base import diff
 from probnum.typing import FloatArgType
 
 from . import diffops, domains
@@ -45,3 +46,24 @@ def poisson_1d_const_solution(l, r, rhs, u_l, u_r):
         return u_l + (aff_slope - (rhs / 2.0) * (x - r)) * (x - l)
 
     return u
+
+
+def heat_1d_bvp(
+    domain: domains.DomainLike,
+    initial_values,
+):
+    domain = domains.asdomain(domain)
+
+    assert isinstance(domain, domains.Box) and domain.shape[0] == 2
+
+    return BoundaryValueProblem(
+        domain=domain,
+        diffop=diffops.HeatOperator(),
+        rhs=lambda tx: 0,
+        boundary_conditions=(
+            DirichletBoundaryCondition(
+                domain.boundary[0],
+                values=initial_values,
+            ),
+        ),
+    )
