@@ -30,13 +30,14 @@ class LaplaceOperator:
 class HeatOperator:
     def __call__(self, f: JaxFunction, argnum: int = 0) -> JaxFunction:
         @jax.jit
-        def _f(t: jnp.ndarray, x: jnp.ndarray, *args, **kwargs) -> jnp.ndarray:
+        def _f(*args, **kwargs) -> jnp.ndarray:
+            t, x = args[argnum : argnum + 2]
             tx = jnp.concatenate((t[None], x), axis=0)
 
             return f(
                 *args[:argnum],
                 tx,
-                *args[argnum + 1 :],
+                *args[argnum + 2 :],
                 **kwargs,
             )
 
@@ -44,11 +45,10 @@ class HeatOperator:
         def _f_heat(*args, **kwargs) -> jnp.ndarray:
             tx = args[argnum]
             t, x = tx[0], tx[1:]
+            args = args[:argnum] + (t, x) + args[argnum + 1 :]
 
-            args = args[:argnum] + args[argnum + 1 :]
-
-            df_dt = jax.grad(_f, argnums=0)(t, x, *args, **kwargs)[0]
-            laplace_f = laplace(_f, argnum=1)(t, x, *args, **kwargs)
+            df_dt = jax.grad(_f, argnums=argnum)(*args, **kwargs)
+            laplace_f = laplace(_f, argnum=argnum + 1)(*args, **kwargs)
 
             return df_dt - laplace_f
 

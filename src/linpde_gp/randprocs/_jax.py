@@ -52,7 +52,7 @@ def condition_gp_on_observations_jax(
 
     cond_gp = pn.randprocs.GaussianProcess(
         mean=JaxMean(cond_mean, vectorize=True),
-        cov=JaxKernel(cond_cov, input_dim=1, vectorize=True),
+        cov=JaxKernel(cond_cov, input_dim=gp.input_dim, vectorize=True),
     )
 
     return cond_gp
