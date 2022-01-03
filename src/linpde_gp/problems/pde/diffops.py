@@ -41,16 +41,16 @@ class HeatOperator:
                 **kwargs,
             )
 
+        df_dt = jax.grad(_f, argnums=argnum)
+        laplace_f = laplace(_f, argnum=argnum + 1)
+
         @jax.jit
         def _f_heat(*args, **kwargs) -> jnp.ndarray:
             tx = args[argnum]
             t, x = tx[0], tx[1:]
             args = args[:argnum] + (t, x) + args[argnum + 1 :]
 
-            df_dt = jax.grad(_f, argnums=argnum)(*args, **kwargs)
-            laplace_f = laplace(_f, argnum=argnum + 1)(*args, **kwargs)
-
-            return df_dt - laplace_f
+            return df_dt(*args, **kwargs) - laplace_f(*args, **kwargs)
 
         return _f_heat
 
@@ -59,7 +59,10 @@ class HeatOperator:
         raise NotImplementedError()
 
 
-class SpatialGradient:
+class DirectionalDerivative:
+    def __init__(self, direction):
+        self._direction = jnp.asarray(direction)
+
     def __call__(self, f: JaxFunction, argnum: int = 0) -> JaxFunction:
         @jax.jit
         def _f(*args, **kwargs) -> jnp.ndarray:
@@ -73,12 +76,14 @@ class SpatialGradient:
                 **kwargs,
             )
 
+        f_spatial_grad = jax.grad(_f, argnums=argnum + 1)
+
         @jax.jit
-        def _f_spatial_grad(*args, **kwargs) -> jnp.ndarray:
+        def _f_dir_deriv(*args, **kwargs) -> jnp.ndarray:
             tx = args[argnum]
             t, x = tx[0], tx[1:]
             args = args[:argnum] + (t, x) + args[argnum + 1 :]
 
-            return jax.grad(_f, argnums=0)(*args, **kwargs)
+            return jnp.sum(self._direction * f_spatial_grad(*args, **kwargs))
 
-        return _f_spatial_grad
+        return _f_dir_deriv
