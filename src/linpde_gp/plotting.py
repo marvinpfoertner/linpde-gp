@@ -1,5 +1,7 @@
 from typing import List, Optional, Tuple
 
+import matplotlib
+import matplotlib.animation
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.lines
@@ -204,3 +206,27 @@ def plot_local_curvature(
         return means_line2d, fills
 
     return means_line2d, []
+
+
+@matplotlib.animation.writers.register("pdf")
+class PDFWriter(matplotlib.animation.AbstractMovieWriter):
+    @classmethod
+    def isAvailable(cls):
+        return True
+
+    def setup(self, fig: "Figure", outfile: str, dpi: Optional[float] = None) -> None:
+        super().setup(fig, outfile, dpi=dpi)
+
+        self._frame_idx = 0
+
+    def grab_frame(self, **savefig_kwargs):
+        self.fig.savefig(
+            str(self.outfile).format(self._frame_idx),
+            dpi=self.dpi,
+            **savefig_kwargs,
+        )
+
+        self._frame_idx += 1
+
+    def finish(self) -> None:
+        super().finish()
