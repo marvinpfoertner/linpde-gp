@@ -12,7 +12,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         self,
         prior: pn.randprocs.RandomProcess,
         representer_weights: Sequence[np.ndarray],
-        cross_covariances: Sequence[Optional[pn.kernels.Kernel]],
+        cross_covariances: Sequence[Optional[pn.randprocs.kernels.Kernel]],
         gram_matrices: Sequence[Sequence[np.ndarray]],
     ):
         self._prior = prior

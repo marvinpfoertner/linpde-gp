@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatArgType
+from probnum.typing import FloatLike
 
 from ... import randprocs
 from ...problems.pde import domains
@@ -29,7 +29,7 @@ class FourierBasis(_basis.Basis):
 
     def __getitem__(
         self, idx: Union[int, slice, np.ndarray]
-    ) -> Callable[[Union[FloatArgType, np.ndarray]], np.floating]:
+    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
         l, r = self._domain
 
         if isinstance(idx, slice):
@@ -45,7 +45,7 @@ class FourierBasis(_basis.Basis):
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
     ) -> Union[
-        Callable[[Union[FloatArgType, np.ndarray]], np.floating],
+        Callable[[Union[FloatLike, np.ndarray]], np.floating],
         pn.randprocs.RandomProcess,
     ]:
         if isinstance(coords, np.ndarray):

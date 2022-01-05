@@ -33,7 +33,7 @@ class LowRankUpdate(pn.linops.LinearOperator):
         if V is not None:
             V = pn.linops.aslinop(V)
 
-        self._V = V if V is not None else self._U.adjoint()
+        self._V = V if V is not None else self._U.transpose()
 
         UV_equal = V is None
 
@@ -57,9 +57,7 @@ class LowRankUpdate(pn.linops.LinearOperator):
             rmatmul=lambda x: x @ self._AplusUCV,
             apply=self._AplusUCV.__call__,
             todense=self._AplusUCV.todense,
-            conjugate=self._AplusUCV.conjugate,
             transpose=self._AplusUCV.transpose,
-            adjoint=self._AplusUCV.adjoint,
             inverse=inverse,
             det=det,
         )
@@ -85,9 +83,7 @@ class LowRankMatrix(pn.linops.LinearOperator):
             rmatmul=self._linop.__rmatmul__,
             apply=self._linop.__call__,
             todense=self._linop.todense,
-            conjugate=self._linop.conjugate,
             transpose=lambda: self,
-            adjoint=self._linop.conjugate,
         )
 
     @cached_property

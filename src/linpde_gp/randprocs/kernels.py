@@ -3,7 +3,7 @@ import numpy as np
 import probnum as pn
 
 
-class JaxKernel(pn.kernels.Kernel):
+class JaxKernel(pn.randprocs.kernels.Kernel):
     def __init__(self, k, input_dim: int, vectorize: bool = True):
         if vectorize:
             k = jax.numpy.vectorize(k, signature="(d),(d)->()")

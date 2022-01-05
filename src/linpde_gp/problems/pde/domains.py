@@ -9,11 +9,9 @@ from typing import Union
 import numpy as np
 import probnum as pn
 from numpy import typing as npt
-from probnum.typing import ArrayLike, FloatArgType, ShapeArgType, ShapeType
+from probnum.typing import ArrayLike, FloatLike, ShapeLike, ShapeType
 
-DomainLike = Union[
-    "Domain", tuple[FloatArgType, FloatArgType], list[FloatArgType], ArrayLike
-]
+DomainLike = Union["Domain", tuple[FloatLike, FloatLike], list[FloatLike], ArrayLike]
 
 
 def asdomain(arg: DomainLike) -> Domain:
@@ -26,7 +24,7 @@ def asdomain(arg: DomainLike) -> Domain:
 
 
 class Domain(abc.ABC):
-    def __init__(self, shape: ShapeArgType, dtype: npt.DTypeLike) -> None:
+    def __init__(self, shape: ShapeLike, dtype: npt.DTypeLike) -> None:
         self._shape = pn.utils.as_shape(shape)
         self._dtype = np.dtype(dtype)
 
@@ -130,8 +128,8 @@ class Box(Domain):
 class Interval(Domain, Sequence):
     def __init__(
         self,
-        lower_bound: FloatArgType,
-        upper_bound: FloatArgType,
+        lower_bound: FloatLike,
+        upper_bound: FloatLike,
         dtype: npt.DTypeLike = np.double,
     ) -> None:
         if not np.issubdtype(dtype, np.floating):

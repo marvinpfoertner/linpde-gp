@@ -6,11 +6,7 @@ import probnum as pn
 from . import belief_updates, beliefs, observation_ops, policies, stopping_criteria
 
 
-class ProbabilisticLinearSolver(
-    pn.ProbabilisticNumericalMethod[
-        pn.problems.LinearSystem, beliefs.LinearSystemBelief
-    ]
-):
+class ProbabilisticLinearSolver:
     def __init__(
         self,
         prior: beliefs.LinearSystemBelief,
@@ -19,8 +15,7 @@ class ProbabilisticLinearSolver(
         belief_update: belief_updates.LinearSolverBeliefUpdate,
         stopping_criteria: Optional[Iterable[stopping_criteria.StoppingCriterion]],
     ) -> None:
-        super().__init__(prior)
-
+        self._prior = prior
         self._policy = policy
         self._observation_op = observation_op
         self._belief_update = belief_update
@@ -37,7 +32,7 @@ class ProbabilisticLinearSolver(
     def solve_iter(
         self, problem: pn.problems.LinearSystem
     ) -> Iterator[Tuple[pn.randvars.Normal, "ProbabilisticLinearSolver.State", bool]]:
-        solver_state = ProbabilisticLinearSolver.State(problem, self.prior)
+        solver_state = ProbabilisticLinearSolver.State(problem, self._prior)
 
         while True:
             stop = any(

@@ -2,13 +2,13 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, IntArgType
+from probnum.typing import ArrayLike, IntLike
 
 
 class LinearTransformGaussianProcess(pn.randprocs.GaussianProcess):
     def __init__(
         self,
-        input_dim: IntArgType,
+        input_dim: IntLike,
         base_rv: pn.randvars.Normal,
         linop_fn: Callable[
             [np.ndarray], Union[np.ndarray, pn.linops.LinearOperatorLike]
@@ -30,10 +30,10 @@ class LinearTransformGaussianProcess(pn.randprocs.GaussianProcess):
             ),
         )
 
-    class Kernel(pn.kernels.Kernel):
+    class Kernel(pn.randprocs.kernels.Kernel):
         def __init__(
             self,
-            input_dim: IntArgType,
+            input_dim: IntLike,
             base_rv: pn.randvars.Normal,
             linop_fn: Callable[
                 [np.ndarray], Union[np.ndarray, pn.linops.LinearOperatorLike]

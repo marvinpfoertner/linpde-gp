@@ -3,8 +3,7 @@ from typing import Sequence
 
 import numpy as np
 import probnum as pn
-from numpy.lib.function_base import diff
-from probnum.typing import FloatArgType
+from probnum.typing import FloatLike
 
 from . import diffops, domains
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
@@ -42,7 +41,7 @@ def poisson_1d_bvp(
 def poisson_1d_const_solution(l, r, rhs, u_l, u_r):
     aff_slope = (u_r - u_l) / (r - l)
 
-    def u(x: FloatArgType) -> np.floating:
+    def u(x: FloatLike) -> np.floating:
         return u_l + (aff_slope - (rhs / 2.0) * (x - r)) * (x - l)
 
     return u

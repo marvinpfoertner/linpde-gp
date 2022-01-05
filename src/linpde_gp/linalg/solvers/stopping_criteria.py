@@ -2,7 +2,7 @@ import abc
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatArgType
+from probnum.typing import FloatLike
 
 
 class StoppingCriterion(abc.ABC):
@@ -30,7 +30,7 @@ class MaxIterations(StoppingCriterion):
 
 
 class ResidualNorm(StoppingCriterion):
-    def __init__(self, atol: FloatArgType = 1e-5, rtol: FloatArgType = 1e-5) -> None:
+    def __init__(self, atol: FloatLike = 1e-5, rtol: FloatLike = 1e-5) -> None:
         self.atol = pn.utils.as_numpy_scalar(atol)
         self.rtol = pn.utils.as_numpy_scalar(rtol)
 

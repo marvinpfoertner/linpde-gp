@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 import probnum as pn
 import scipy.interpolate
-from probnum.typing import FloatArgType
+from probnum.typing import FloatLike
 
 from ... import randprocs
 from ...problems.pde import DirichletBoundaryCondition, domains
@@ -39,7 +39,7 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
 
     def __getitem__(
         self, idx: int
-    ) -> Callable[[Union[FloatArgType, np.ndarray]], np.floating]:
+    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
@@ -58,7 +58,7 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
     ) -> Union[
-        Callable[[Union[FloatArgType, np.ndarray]], np.floating],
+        Callable[[Union[FloatLike, np.ndarray]], np.floating],
         pn.randprocs.RandomProcess,
     ]:
         if isinstance(coords, np.ndarray):
@@ -128,7 +128,7 @@ class FiniteElementBasis(_basis.Basis):
 
     def __getitem__(
         self, idx: int
-    ) -> Callable[[Union[FloatArgType, np.ndarray]], np.floating]:
+    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
@@ -151,7 +151,7 @@ class FiniteElementBasis(_basis.Basis):
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
     ) -> Union[
-        Callable[[Union[FloatArgType, np.ndarray]], np.floating],
+        Callable[[Union[FloatLike, np.ndarray]], np.floating],
         pn.randprocs.RandomProcess,
     ]:
         if isinstance(coords, np.ndarray):

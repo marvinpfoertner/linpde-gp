@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, DTypeArgType, IntArgType, ShapeArgType
+from probnum.typing import ArrayLike, DTypeLike, IntLike, ShapeLike
 
 _InputType = ArrayLike
 _OutputType = Union[np.floating, np.ndarray]
@@ -12,9 +12,9 @@ class Function(pn.randprocs.RandomProcess[_InputType, _OutputType]):
     def __init__(
         self,
         fn: Callable[[np.ndarray], _OutputType],
-        input_dim: IntArgType,
-        output_dim: IntArgType,
-        dtype: DTypeArgType,
+        input_dim: IntLike,
+        output_dim: IntLike,
+        dtype: DTypeLike,
     ):
         self._fn = fn
 
@@ -39,7 +39,7 @@ class Function(pn.randprocs.RandomProcess[_InputType, _OutputType]):
         self,
         rng: np.random.Generator,
         args: np.ndarray,
-        size: ShapeArgType,
+        size: ShapeLike,
     ) -> np.ndarray:
         return pn.randvars.Constant(support=self._fn(args)).sample(rng, size=size)
 

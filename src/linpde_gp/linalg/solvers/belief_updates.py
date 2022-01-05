@@ -2,7 +2,7 @@ import abc
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatArgType
+from probnum.typing import FloatLike
 
 from ... import linops
 from . import beliefs
@@ -22,7 +22,7 @@ class LinearSolverBeliefUpdate(abc.ABC):
 
 
 class GaussianInferenceBeliefUpdate(LinearSolverBeliefUpdate):
-    def __init__(self, noise_var: FloatArgType = 0.0) -> None:
+    def __init__(self, noise_var: FloatLike = 0.0) -> None:
         self._noise_var = noise_var
 
     def __call__(
