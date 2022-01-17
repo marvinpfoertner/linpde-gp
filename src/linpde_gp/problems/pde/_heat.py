@@ -38,6 +38,24 @@ def poisson_1d_bvp(
     )
 
 
+def poisson_bvp(
+    domain: domains.DomainLike,
+    rhs: pn.randprocs.RandomProcess,
+    boundary_values: pn.randprocs.RandomProcess,
+):
+    domain = domains.asdomain(domain)
+
+    return BoundaryValueProblem(
+        domain=domain,
+        diffop=diffops.LaplaceOperator(),
+        rhs=rhs,
+        boundary_conditions=tuple(
+            DirichletBoundaryCondition(boundary_part, boundary_values)
+            for boundary_part in domain.boundary
+        ),
+    )
+
+
 def poisson_1d_const_solution(l, r, rhs, u_l, u_r):
     aff_slope = (u_r - u_l) / (r - l)
 
