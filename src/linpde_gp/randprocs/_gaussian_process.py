@@ -117,7 +117,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             LkLadj_XX_cho = self._gram_matrix_cholesky
             Lk_Xx = self._cross_covariance(x1)
 
-            return k_xx + kLadj_xX @ jax.scipy.linalg.cho_solve(LkLadj_XX_cho, Lk_Xx)
+            return k_xx - kLadj_xX @ jax.scipy.linalg.cho_solve(LkLadj_XX_cho, Lk_Xx)
 
     def condition_on_observations(self, X, fX):
         k_X_Xprevs = tuple(
@@ -175,7 +175,7 @@ def _schur_update(A_cho, B, C, D, A_inv_u, v):
     [[A, B], @ [[x], = [[u],
      [C, D]]    [y]]    [v]]
 
-    given the Cholesky factor of A, B, C, D, A^{-1} u, and v.
+    given the Cholesky factor of A, the matrices B, C, and D, and the vectors A^{-1} u, and v.
     """
     A_inv_B = jax.scipy.linalg.cho_solve(A_cho, B)
 
