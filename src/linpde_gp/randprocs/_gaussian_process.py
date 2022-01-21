@@ -146,6 +146,27 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             representer_weights=new_representer_weights,
         )
 
+    def apply_jax_linop(self, linop):
+        return (
+            PosteriorGaussianProcess(
+                prior=self._prior.apply_jax_linop(linop)[0],
+                locations=self._locations,
+                measurements=self._measurements,
+                cross_covariances=[
+                    _jax.JaxKernel(
+                        linop(k_cross.jax, argnum=0),
+                        input_dim=self.input_dim,
+                        vectorize=True,
+                    )
+                    for k_cross in self._cross_covariances
+                ],
+                gram_matrices=self._gram_matrices,
+                representer_weights=self._representer_weights,
+            ),
+            None,
+            # TODO
+        )
+
 
 def _schur_update(A_cho, B, C, D, A_inv_u, v):
     """
