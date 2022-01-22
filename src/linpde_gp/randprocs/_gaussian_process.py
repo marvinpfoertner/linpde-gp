@@ -13,7 +13,7 @@ def condition_gp_on_observations(
     gp: pn.randprocs.GaussianProcess,
     X: np.ndarray,
     fX: np.ndarray,
-    noise_model: pn.randvars.Normal,
+    noise_model: Optional[pn.randvars.Normal] = None,
 ):
     mX = gp._meanfun(X)
     kXX = gp._covfun.jax(X[:, None, :], X[None, :, :])
