@@ -15,12 +15,10 @@ def condition_gp_on_observations(
     fX: np.ndarray,
     noise_model: pn.randvars.Normal,
 ):
-    measurement = fX
     mX = gp._meanfun(X)
     kXX = gp._covfun.jax(X[:, None, :], X[None, :, :])
 
     if noise_model is not None:
-        measurement -= noise_model.mean
         mX += noise_model.mean
         kXX += noise_model.cov
 
@@ -30,10 +28,11 @@ def condition_gp_on_observations(
 
     return PosteriorGaussianProcess(
         prior=gp,
-        locations=[X],
-        measurements=[measurement],
-        cross_covariances=[gp._covfun],
-        gram_matrices=[[kXX]],
+        locations=(X,),
+        measurements=(fX,),
+        noise_models=(noise_model,),
+        cross_covariances=(gp._covfun,),
+        gram_matrices=((kXX,),),
         representer_weights=representer_weights,
     )
 
@@ -47,6 +46,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         prior: pn.randprocs.RandomProcess,
         locations: Sequence[np.ndarray],
         measurements: Sequence[np.ndarray],
+        noise_models: Sequence[pn.randvars.Normal],
         cross_covariances: Sequence[pn.randprocs.kernels.Kernel],
         gram_matrices: Sequence[Sequence[np.ndarray]],
         representer_weights: np.ndarray,
@@ -55,6 +55,8 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
 
         self._locations = tuple(locations)
         self._measurements = tuple(measurements)
+
+        self._noise_models = noise_models
 
         self._cross_covariances = tuple(cross_covariances)
         self._cross_covariance = lambda x: np.hstack(
@@ -139,16 +141,11 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         fX,
         noise_model: Optional[pn.randvars.Normal] = None,
     ):
-        # Adapt measurement to noise model
-        measurement = fX
-
-        if noise_model is not None:
-            measurement = measurement - noise_model.mean
-
-        # Adapt measurement Gram matrix to noise model
+        mX = self._prior._meanfun(X)
         kXX = self._prior._covfun.jax(X[:, None, :], X[None, :, :])
 
         if noise_model is not None:
+            mX += noise_model.mean
             kXX += noise_model.cov
 
         # Construct the new row in the posterior Gram matrix
@@ -166,13 +163,14 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             C=C,
             D=kXX,
             A_inv_u=self._representer_weights,
-            v=(measurement - self._prior._meanfun(X)),
+            v=fX - mX,
         )
 
         return PosteriorGaussianProcess(
             self._prior,
             locations=self._locations + (X,),
-            measurements=self._measurements + (measurement,),
+            measurements=self._measurements + (fX,),
+            noise_models=self._noise_models + (noise_model,),
             cross_covariances=self._cross_covariances + (self._prior._covfun,),
             gram_matrices=self._gram_matrices + (new_gram_row,),
             representer_weights=new_representer_weights,
@@ -185,6 +183,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             prior=linop_prior,
             locations=self._locations,
             measurements=self._measurements,
+            noise_models=self._noise_models,
             cross_covariances=[
                 _jax.JaxKernel(
                     linop(k_cross.jax, argnum=0),
@@ -243,6 +242,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             self._prior,
             locations=self._locations + (X,),
             measurements=self._measurements + (LfX,),
+            noise_models=self._noise_models + (None,),
             cross_covariances=self._cross_covariances + (kLa,),
             gram_matrices=self._gram_matrices + (new_gram_row,),
             representer_weights=new_representer_weights,
