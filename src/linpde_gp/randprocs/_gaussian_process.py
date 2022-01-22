@@ -1,35 +1,47 @@
-from audioop import cross
 from collections.abc import Sequence
+from typing import Optional
 
 import jax
 import jax.numpy as np
 import probnum as pn
 import scipy.linalg
-from xxlimited import new
 
 from . import _jax
 
 
+def condition_gp_on_observations(
+    gp: pn.randprocs.GaussianProcess,
+    X: np.ndarray,
+    fX: np.ndarray,
+    noise_model: pn.randvars.Normal,
+):
+    measurement = fX
+    mX = gp._meanfun(X)
+    kXX = gp._covfun.jax(X[:, None, :], X[None, :, :])
+
+    if noise_model is not None:
+        measurement -= noise_model.mean
+        mX += noise_model.mean
+        kXX += noise_model.cov
+
+    representer_weights = jax.scipy.linalg.cho_solve(
+        jax.scipy.linalg.cho_factor(kXX), (fX - mX)
+    )
+
+    return PosteriorGaussianProcess(
+        prior=gp,
+        locations=[X],
+        measurements=[measurement],
+        cross_covariances=[gp._covfun],
+        gram_matrices=[[kXX]],
+        representer_weights=representer_weights,
+    )
+
+
+pn.randprocs.GaussianProcess.condition_on_observations = condition_gp_on_observations
+
+
 class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
-    @classmethod
-    def from_measurements(
-        cls, prior: pn.randprocs.GaussianProcess, X: np.ndarray, fX: np.ndarray
-    ):
-        mX = prior._meanfun(X)
-        kXX = prior._covfun.jax(X[:, None, :], X[None, :, :])
-        kXX_cho = jax.scipy.linalg.cho_factor(kXX)
-
-        representer_weights = jax.scipy.linalg.cho_solve(kXX_cho, (fX - mX))
-
-        return cls(
-            prior=prior,
-            locations=[X],
-            measurements=[fX],
-            cross_covariances=[prior._covfun],
-            gram_matrices=[[kXX]],
-            representer_weights=representer_weights,
-        )
-
     def __init__(
         self,
         prior: pn.randprocs.RandomProcess,
@@ -121,28 +133,46 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
 
             return k_xx - kLadj_xX @ jax.scipy.linalg.cho_solve(LkLadj_XX_cho, Lk_Xx)
 
-    def condition_on_observations(self, X, fX):
-        k_X_Xprevs = tuple(
+    def condition_on_observations(
+        self,
+        X,
+        fX,
+        noise_model: Optional[pn.randvars.Normal] = None,
+    ):
+        # Adapt measurement to noise model
+        measurement = fX
+
+        if noise_model is not None:
+            measurement = measurement - noise_model.mean
+
+        # Adapt measurement Gram matrix to noise model
+        kXX = self._prior._covfun.jax(X[:, None, :], X[None, :, :])
+
+        if noise_model is not None:
+            kXX += noise_model.cov
+
+        # Construct the new row in the posterior Gram matrix
+        new_gram_row = tuple(
             k_cross.jax(X[:, None, :], X_prev[None, :, :])
             for k_cross, X_prev in zip(self._cross_covariances, self._locations)
-        )
-        kXX = self._prior._covfun.jax(X[:, None, :], X[None, :, :])
-        new_gram_row = k_X_Xprevs + (kXX,)
+        ) + (kXX,)
 
-        C = np.hstack(k_X_Xprevs)
+        # Compute the representer weights from the previous representer weights using
+        # the Schur complement
+        C = np.hstack(new_gram_row[:-1])
         new_representer_weights = _schur_update(
             A_cho=self._gram_matrix_cholesky,
             B=C.T,
             C=C,
             D=kXX,
             A_inv_u=self._representer_weights,
-            v=(fX - self._prior._meanfun(X)),
+            v=(measurement - self._prior._meanfun(X)),
         )
 
         return PosteriorGaussianProcess(
             self._prior,
             locations=self._locations + (X,),
-            measurements=self._measurements + (fX,),
+            measurements=self._measurements + (measurement,),
             cross_covariances=self._cross_covariances + (self._prior._covfun,),
             gram_matrices=self._gram_matrices + (new_gram_row,),
             representer_weights=new_representer_weights,
