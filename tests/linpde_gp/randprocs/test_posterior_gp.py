@@ -119,7 +119,7 @@ def noise_model(
 
 
 @pytest.fixture
-def linop():
+def linop() -> linpde_gp.linfuncops.LinearFunctionOperator:
     return linpde_gp.problems.pde.diffops.LaplaceOperator()
 
 
@@ -135,7 +135,8 @@ def naive_posterior_gp(
 
 @pytest.fixture
 def naive_posterior_gp_linop(
-    naive_posterior_gp: pn.randprocs.GaussianProcess, linop
+    naive_posterior_gp: pn.randprocs.GaussianProcess,
+    linop: linpde_gp.linfuncops.LinearFunctionOperator,
 ) -> tuple[pn.randprocs.GaussianProcess, pn.randprocs.kernels.Kernel]:
     return apply_jax_linop_to_gp(naive_posterior_gp, linop)
 
@@ -155,7 +156,11 @@ def posterior_gp(
     return posterior_gp
 
 
-def test_posterior_gp(posterior_gp, naive_posterior_gp, X_test: np.ndarray):
+def test_posterior_gp(
+    posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
+    naive_posterior_gp: pn.randprocs.GaussianProcess,
+    X_test: np.ndarray,
+):
     iter_X_test = posterior_gp(X_test)
     naive_X_test = naive_posterior_gp(X_test)
 
@@ -166,14 +171,11 @@ def test_posterior_gp(posterior_gp, naive_posterior_gp, X_test: np.ndarray):
 
 def test_posterior_gp_linop(
     posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
-    linop,
-    naive_posterior_gp_linop: tuple[
-        pn.randprocs.GaussianProcess, pn.randprocs.kernels.Kernel
-    ],
+    linop: linpde_gp.linfuncops.LinearFunctionOperator,
+    naive_posterior_gp_linop: pn.randprocs.GaussianProcess,
     X_test: np.ndarray,
 ):
-    naive_posterior_gp_linop, naive_crosscov = naive_posterior_gp_linop
-    posterior_gp_linop, crosscov = posterior_gp.apply_jax_linop(linop)
+    posterior_gp_linop = linop(posterior_gp)
 
     iter_X_test = posterior_gp_linop(X_test)
     naive_X_test = naive_posterior_gp_linop(X_test)
@@ -226,7 +228,7 @@ def apply_jax_linop_to_gp(
     gp: pn.randprocs.GaussianProcess,
     linop: JaxLinearOperator,
     **linop_kwargs,
-) -> tuple[pn.randprocs.GaussianProcess, linpde_gp.randprocs.kernels.JaxKernel]:
+) -> pn.randprocs.GaussianProcess:
     mean = linop(gp._meanfun.jax, argnum=0, **linop_kwargs)
     crosscov = linop(gp._covfun.jax, argnum=1, **linop_kwargs)
     cov = linop(crosscov, argnum=0, **linop_kwargs)
@@ -237,8 +239,5 @@ def apply_jax_linop_to_gp(
             cov, input_dim=gp.input_dim, vectorize=True
         ),
     )
-    crosskernel = linpde_gp.randprocs.kernels.JaxKernel(
-        crosscov, input_dim=gp.input_dim, vectorize=True
-    )
 
-    return gp_linop, crosskernel
+    return gp_linop

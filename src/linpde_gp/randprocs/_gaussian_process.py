@@ -6,6 +6,7 @@ import jax.numpy as np
 import probnum as pn
 import scipy.linalg
 
+from .. import linfuncops
 from . import _jax
 
 
@@ -213,8 +214,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         return (linop_gp, crosscov)
 
     def condition_on_jax_linop_observations(self, linop, X, LfX):
-        predictive_gp, crosscov_predictive = self.apply_jax_linop(linop)
-        kLa = crosscov_predictive.prior_crosscov
+        predictive_gp = linop(self)
 
         # Generate the new row in the Gram matrix
         new_gram_row = [
@@ -238,15 +238,32 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             v=(LfX - predictive_gp._prior._meanfun(X)),
         )
 
+        new_cross_covariance = linop(self._prior._covfun, argnum=1)
+
         return PosteriorGaussianProcess(
             self._prior,
             locations=self._locations + (X,),
             measurements=self._measurements + (LfX,),
             noise_models=self._noise_models + (None,),
-            cross_covariances=self._cross_covariances + (kLa,),
+            cross_covariances=self._cross_covariances + (new_cross_covariance,),
             gram_matrices=self._gram_matrices + (new_gram_row,),
             representer_weights=new_representer_weights,
         )
+
+
+@linfuncops.LinearFunctionOperator.__call__.register
+def _(self, f: PosteriorGaussianProcess, **kwargs) -> PosteriorGaussianProcess:
+    linop_prior = self(f._prior)
+
+    return PosteriorGaussianProcess(
+        prior=linop_prior,
+        locations=f._locations,
+        measurements=f._measurements,
+        noise_models=f._noise_models,
+        cross_covariances=[self(k_cross, argnum=0) for k_cross in f._cross_covariances],
+        gram_matrices=f._gram_matrices,
+        representer_weights=f._representer_weights,
+    )
 
 
 def _schur_update(A_cho, B, C, D, A_inv_u, v):
