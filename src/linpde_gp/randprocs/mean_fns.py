@@ -1,17 +1,17 @@
-import jax
 import numpy as np
-from linpde_gp._compute_backend import BackendDispatcher
+from jax import numpy as jnp
 
 
 class JaxMean:
     def __init__(self, m, vectorize: bool = True):
         if vectorize:
-            m = jax.numpy.vectorize(m, signature="(d)->()")
+            m = jnp.vectorize(m, signature="(d)->()")
 
-        self._dispatcher = BackendDispatcher(
-            numpy_impl=lambda x: np.asarray(m(x)),
-            jax_impl=m,
-        )
+        self._m = m
 
-    def __call__(self, x):
-        return self._dispatcher(x)
+    def __call__(self, x: np.ndarray):
+        return np.array(self._m(x))
+
+    @property
+    def jax(self):
+        return self._m
