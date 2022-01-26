@@ -1,8 +1,8 @@
 import jax
 from jax import numpy as jnp
 
-from ... import linfuncops
-from ...typing import JaxFunction
+from .... import linfuncops
+from ....typing import JaxFunction
 
 
 class DirectionalDerivative(linfuncops.JaxLinearOperator):

@@ -30,7 +30,7 @@ class LaplaceOperator(linfuncops.JaxLinearOperator):
         super().__init__(L=laplace_jax)
 
     @functools.singledispatchmethod
-    def __call__(self, f, *, argnum=0, **kwargs):
+    def __call__(self, f, **kwargs):
         return super().__call__(f, **kwargs)
 
     @functools.singledispatchmethod
