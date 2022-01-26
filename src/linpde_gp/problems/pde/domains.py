@@ -49,6 +49,10 @@ class Domain(abc.ABC):
     def boundary(self) -> Sequence[Domain]:
         pass
 
+    @abc.abstractmethod
+    def __contains__(self, item: ArrayLike) -> bool:
+        pass
+
 
 class Box(Domain):
     def __init__(self, bounds: ArrayLike) -> None:
@@ -124,6 +128,14 @@ class Box(Domain):
             f"dtype={self.dtype}>"
         )
 
+    def __contains__(self, item: ArrayLike) -> bool:
+        arr = np.asarray(item, dtype=self.dtype)
+
+        if arr.shape != self.shape:
+            return False
+
+        return np.all((self._bounds[:, 0] <= arr) & (arr <= self._bounds[:, 1]))
+
 
 class Interval(Domain, Sequence):
     def __init__(
@@ -176,6 +188,14 @@ class Interval(Domain, Sequence):
     def __array__(self) -> np.ndarray:
         return np.hstack((self._lower_bound, self._upper_bound))
 
+    def __contains__(self, item: ArrayLike) -> bool:
+        arr = np.asarray(item, dtype=self.dtype)
+
+        if arr.shape != self.shape:
+            return False
+
+        return self._lower_bound <= arr <= self._upper_bound
+
 
 class Point(Domain):
     def __init__(self, point: ArrayLike) -> None:
@@ -202,3 +222,11 @@ class Point(Domain):
             raise NotImplementedError()
 
         return float(self._point)
+
+    def __contains__(self, item: ArrayLike) -> bool:
+        arr = np.asarray(item, dtype=self.dtype)
+
+        if arr.shape != self.shape:
+            return False
+
+        return np.all(self._point == arr)
