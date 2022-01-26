@@ -1,3 +1,4 @@
+import functools
 from typing import Optional
 
 import jax
@@ -44,7 +45,7 @@ class ExpQuad(JaxKernel):
 
         return self._output_scale * np.exp(-0.5 * square_dists)
 
-    @jax.jit(static_argnums=0)
+    @functools.partial(jax.jit, static_argnums=0)
     def _jax(self, x0: jnp.ndarray, x1: jnp.ndarray) -> jnp.ndarray:
         square_dists = jnp.sum((x0 - x1) / self._lengthscales, axis=-1)
 
