@@ -4,6 +4,8 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
+from .. import linfuncops
+
 
 class JaxMean:
     def __init__(self, m, vectorize: bool = True):
@@ -18,6 +20,16 @@ class JaxMean:
     @property
     def jax(self):
         return self._m
+
+
+@linfuncops.LinearFunctionOperator.__call__.register
+def _(self, f: JaxMean, *, argnum=0, **kwargs):
+    assert argnum == 0
+
+    return JaxMean(
+        self._L(f.jax, argnum=argnum, **kwargs),
+        vectorize=True,
+    )
 
 
 class Zero(JaxMean):
