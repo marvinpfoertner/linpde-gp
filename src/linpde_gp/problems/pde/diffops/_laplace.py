@@ -4,7 +4,6 @@ import functools
 from typing import TYPE_CHECKING
 
 import jax
-import numpy as np
 import probnum as pn
 from jax import numpy as jnp
 
@@ -15,19 +14,23 @@ if TYPE_CHECKING:
     import linpde_gp
 
 
-def laplace_jax(f: JaxFunction, argnum: int = 0) -> JaxFunction:
+def scaled_laplace_jax(
+    f: JaxFunction, *, argnum: int = 0, alpha: float = 1.0
+) -> JaxFunction:
     Hf = jax.jit(jax.hessian(f, argnum))
 
     @jax.jit
-    def _hessian_trace(*args, **kwargs):
-        return jnp.trace(jnp.atleast_2d(Hf(*args, **kwargs)))
+    def _scaled_hessian_trace(*args, **kwargs):
+        return alpha * jnp.trace(jnp.atleast_2d(Hf(*args, **kwargs)))
 
-    return _hessian_trace
+    return _scaled_hessian_trace
 
 
-class LaplaceOperator(linfuncops.JaxLinearOperator):
-    def __init__(self) -> None:
-        super().__init__(L=laplace_jax)
+class ScaledLaplaceOperator(linfuncops.JaxLinearOperator):
+    def __init__(self, alpha: float = 1.0) -> None:
+        self._alpha = alpha
+
+        super().__init__(L=functools.partial(scaled_laplace_jax, alpha=self._alpha))
 
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):

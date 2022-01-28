@@ -48,7 +48,7 @@ def k_jax(
 
 @pytest.fixture(scope="module")
 def L() -> linpde_gp.linfuncops.JaxLinearOperator:
-    return linpde_gp.problems.pde.diffops.LaplaceOperator()
+    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(alpha=-1.0)
 
 
 @pytest.fixture(scope="module")

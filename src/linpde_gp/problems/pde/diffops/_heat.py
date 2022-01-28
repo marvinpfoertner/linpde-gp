@@ -4,13 +4,12 @@ import functools
 from typing import TYPE_CHECKING
 
 import jax
-import numpy as np
 import probnum as pn
 from jax import numpy as jnp
 
 from .... import linfuncops
 from ....typing import JaxFunction
-from ._laplace import laplace_jax
+from ._laplace import scaled_laplace_jax
 
 if TYPE_CHECKING:
     import linpde_gp
@@ -30,7 +29,7 @@ def heat_jax(f: JaxFunction, argnum: int = 0) -> JaxFunction:
         )
 
     df_dt = jax.grad(_f, argnums=argnum)
-    laplace_f = laplace_jax(_f, argnum=argnum + 1)
+    laplace_f = scaled_laplace_jax(_f, argnum=argnum + 1)
 
     @jax.jit
     def _f_heat(*args, **kwargs) -> jnp.ndarray:

@@ -6,7 +6,7 @@ import numpy as np
 from jax import numpy as jnp
 from probnum.typing import ArrayLike
 
-from ...problems.pde.diffops import LaplaceOperator
+from ...problems.pde.diffops import ScaledLaplaceOperator
 from ._jax import JaxKernel
 
 
@@ -42,12 +42,15 @@ class ExpQuadLaplacianCross(JaxKernel):
         self,
         input_dim: int,
         argnum: int,
+        alpha: float,
         lengthscale: float = 1.0,
         output_scale: float = 1.0,
     ):
         assert argnum in (0, 1)
 
         self._argnum = argnum
+
+        self._alpha = alpha
 
         self._lengthscale = float(lengthscale)
         self._output_scale = float(output_scale)
@@ -62,7 +65,8 @@ class ExpQuadLaplacianCross(JaxKernel):
         d = self.input_dim
 
         return (
-            (self._output_scale / self._lengthscale) ** 2
+            self._alpha
+            * (self._output_scale / self._lengthscale) ** 2
             * (square_dists - d)
             * np.exp(-0.5 * square_dists)
         )
@@ -73,7 +77,7 @@ class ExpQuadLaplacianCross(JaxKernel):
         d = self.input_dim
 
         return (
-            self._sign
+            self._alpha
             * (self._output_scale / self._lengthscale) ** 2
             * (square_dists - d)
             * jnp.exp(-0.5 * square_dists)
@@ -84,9 +88,14 @@ class ExpQuadLaplacian(JaxKernel):
     def __init__(
         self,
         input_dim: int,
+        alpha0: float,
+        alpha1: float,
         lengthscale: float = 1.0,
         output_scale: float = 1.0,
     ):
+        self._alpha0 = alpha0
+        self._alpha1 = alpha1
+
         self._lengthscale = float(lengthscale)
         self._output_scale = float(output_scale)
 
@@ -100,7 +109,9 @@ class ExpQuadLaplacian(JaxKernel):
         d = self._input_dim
 
         return (
-            (self._output_scale / self._lengthscale ** 2) ** 2
+            self._alpha0
+            * self._alpha1
+            * (self._output_scale / self._lengthscale ** 2) ** 2
             * (square_dists ** 2 - 2 * (d + 2) * square_dists + d * (d + 2))
             * np.exp(-0.5 * square_dists)
         )
@@ -111,29 +122,41 @@ class ExpQuadLaplacian(JaxKernel):
         d = self._input_dim
 
         return (
-            (self._output_scale / self._lengthscale ** 2) ** 2
+            self._alpha0
+            * self._alpha1
+            * (self._output_scale / self._lengthscale ** 2) ** 2
             * (square_dists ** 2 - 2 * (d + 2) * square_dists + d * (d + 2))
             * jnp.exp(-0.5 * square_dists)
         )
 
 
-@LaplaceOperator.__call__.register
+@ScaledLaplaceOperator.__call__.register
 def _(self, f: ExpQuad, *, argnum: int = 0, **kwargs):
     return ExpQuadLaplacianCross(
         input_dim=f.input_dim,
         argnum=argnum,
+        alpha=self._alpha,
         lengthscale=f._lengthscales,
         output_scale=f._output_scale,
     )
 
 
-@LaplaceOperator.__call__.register
+@ScaledLaplaceOperator.__call__.register
 def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
     if argnum != f._argnum:
+        if argnum == 0:
+            alpha0 = self._alpha
+            alpha1 = f._alpha
+        else:
+            alpha0 = f._alpha
+            alpha1 = self._alpha
+
         return ExpQuadLaplacian(
             input_dim=f.input_dim,
+            alpha0=alpha0,
+            alpha1=alpha1,
             lengthscale=f._lengthscale,
             output_scale=f._output_scale,
         )
 
-    return super(LaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
+    return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
