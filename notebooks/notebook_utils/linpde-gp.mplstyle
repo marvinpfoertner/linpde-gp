@@ -1,11 +1,4 @@
 ## ***************************************************************************
-## * LaTeX                                                                   *
-## ***************************************************************************
-## For more information on LaTeX properties, see
-## https://matplotlib.org/tutorials/text/usetex.html
-text.usetex          : True
-
-## ***************************************************************************
 ## * AXES                                                                    *
 ## ***************************************************************************
 ## See http://matplotlib.org/api/axes_api.html#module-matplotlib.axes
@@ -16,7 +9,6 @@ axes.prop_cycle      : cycler('color', ['107D79', 'FF9933', '1F77B4', 'D62728', 
 ## * FIGURE                                                                  *
 ## ***************************************************************************
 ## See http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
-figure.figsize       : 8, 4.5     # figure size in inches
 figure.dpi           : 100        # figure dots per inch
 
 ## ***************************************************************************
