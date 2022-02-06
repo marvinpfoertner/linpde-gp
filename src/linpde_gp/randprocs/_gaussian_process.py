@@ -251,38 +251,49 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
 
         return (linop_gp, crosscov)
 
-    def condition_on_jax_linop_observations(self, linop, X, LfX):
-        predictive_gp = linop(self)
+    def condition_on_linop_observations(
+        self,
+        L: linfuncops.LinearFunctionOperator,
+        X: np.ndarray,
+        LfX: np.ndarray,
+        noise_model: Optional[pn.randvars.Normal] = None,
+    ):
+        predictive_gp = L(self)
+
+        LmX = predictive_gp._prior._meanfun(X)
+        LkLaXX = predictive_gp._prior._covfun.jax(X[:, None, :], X[None, :, :])
+
+        if noise_model is not None:
+            LmX += noise_model.mean
+            LkLaXX += noise_model.cov
 
         # Generate the new row in the Gram matrix
-        new_gram_row = [
+        new_gram_row = tuple(
             Lk_cross.jax(X[:, None, :], X_prev[None, :, :])
             for Lk_cross, X_prev in zip(
                 predictive_gp._cross_covariances, predictive_gp._locations
             )
-        ]
-        new_gram_row.append(
-            predictive_gp._prior._covfun.jax(X[:, None, :], X[None, :, :])
-        )
-        new_gram_row = tuple(new_gram_row)
+        ) + (LkLaXX,)
 
+        # Compute the representer weights from the previous representer weights using
+        # the Schur complement
         C = np.hstack(new_gram_row[:-1])
         new_representer_weights = _schur_update(
             A_cho=self._gram_matrix_cholesky,
             B=C.T,
             C=C,
-            D=new_gram_row[-1],
+            D=LkLaXX,
             A_inv_u=self._representer_weights,
-            v=(LfX - predictive_gp._prior._meanfun(X)),
+            v=LfX - LmX,
         )
 
-        new_cross_covariance = linop(self._prior._covfun, argnum=1)
+        new_cross_covariance = L(self._prior._covfun, argnum=1)
 
         return PosteriorGaussianProcess(
             self._prior,
             locations=self._locations + (X,),
             measurements=self._measurements + (LfX,),
-            noise_models=self._noise_models + (None,),
+            noise_models=self._noise_models + (noise_model,),
             cross_covariances=self._cross_covariances + (new_cross_covariance,),
             gram_matrices=self._gram_matrices + (new_gram_row,),
             representer_weights=new_representer_weights,
