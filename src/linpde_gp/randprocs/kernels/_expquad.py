@@ -28,7 +28,7 @@ class ExpQuad(JaxKernel):
 
         square_dists = np.sum(((x0 - x1) / self._lengthscales) ** 2, axis=-1)
 
-        return self._output_scale * np.exp(-0.5 * square_dists)
+        return self._output_scale ** 2 * np.exp(-0.5 * square_dists)
 
     @functools.partial(jax.jit, static_argnums=0)
     def _jax(self, x0: jnp.ndarray, x1: jnp.ndarray) -> jnp.ndarray:
