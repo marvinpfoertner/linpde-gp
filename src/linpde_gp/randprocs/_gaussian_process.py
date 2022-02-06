@@ -41,6 +41,44 @@ def condition_gp_on_observations(
 pn.randprocs.GaussianProcess.condition_on_observations = condition_gp_on_observations
 
 
+def condition_gp_on_linop_observations(
+    f: pn.randprocs.GaussianProcess,
+    L: linfuncops.LinearFunctionOperator,
+    X: np.ndarray,
+    LfX: np.ndarray,
+    noise_model: Optional[pn.randvars.Normal] = None,
+):
+    Lf = L(f)
+
+    LmX = Lf._meanfun(X)
+    LkLaXX = Lf._covfun.jax(X[:, None, :], X[None, :, :])
+
+    if noise_model is not None:
+        LmX += noise_model.mean
+        LkLaXX += noise_model.cov
+
+    representer_weights = jax.scipy.linalg.cho_solve(
+        jax.scipy.linalg.cho_factor(LkLaXX), (LfX - LmX)
+    )
+
+    kLa = L(f._covfun, argnum=1)
+
+    return PosteriorGaussianProcess(
+        prior=f,
+        locations=(X,),
+        measurements=(LfX,),
+        noise_models=(noise_model,),
+        cross_covariances=(kLa,),
+        gram_matrices=((LkLaXX,),),
+        representer_weights=representer_weights,
+    )
+
+
+pn.randprocs.GaussianProcess.condition_on_linop_observations = (
+    condition_gp_on_linop_observations
+)
+
+
 class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
     def __init__(
         self,
@@ -106,7 +144,7 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             super().__init__(m=self._call, vectorize=True)
 
         def _call(self, x):
-            mx = self._prior_mean(x)
+            mx = self._prior_mean.jax(x)
             kLadj_xX = self._cross_covariance(x)
 
             return mx + kLadj_xX @ self._representer_weights
