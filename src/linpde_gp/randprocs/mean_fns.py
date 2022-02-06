@@ -42,3 +42,10 @@ class Zero(JaxMean):
     @functools.partial(jax.jit, static_argnums=0)
     def _jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return jnp.zeros_like(x[..., 0])
+
+
+@linfuncops.LinearFunctionOperator.__call__.register
+def _(self, f: Zero, *, argnum=0, **kwargs):
+    assert argnum == 0
+
+    return Zero()
