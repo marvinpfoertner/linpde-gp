@@ -13,38 +13,22 @@ from ... import linfuncops
 from . import _jax
 
 
-class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
+class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
     @classmethod
     def from_observations(
         cls,
         prior: pn.randprocs.GaussianProcess,
         X: ArrayLike,
         Y: ArrayLike,
-        Y_err: Optional[pn.randvars.Normal] = None,
-    ):
-        return PosteriorGaussianProcess.from_linop_observations(
-            prior=prior,
-            L=None,  # measurement operator is evaluation at X
-            X=X,
-            Y=Y,
-            Y_err=Y_err,
-        )
-
-    @classmethod
-    def from_linop_observations(
-        cls,
-        prior: pn.randprocs.GaussianProcess,
-        L: Optional[linfuncops.LinearFunctionOperator],
-        X: ArrayLike,
-        Y: ArrayLike,
-        Y_err: Optional[pn.randvars.Normal] = None,
+        L: Optional[linfuncops.LinearFunctionOperator] = None,
+        b: Optional[pn.randvars.Normal] = None,
     ):
         X, Y, kLa, pred_mean_X, gram_XX = cls._preprocess_observations(
             prior=prior,
-            L=L,
             X=X,
             Y=Y,
-            Y_err=Y_err,
+            L=L,
+            b=b,
         )
 
         # Compute representer weights
@@ -54,9 +38,10 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
 
         return cls(
             prior=prior,
+            Ls=(L,),
+            bs=(b,),
             Xs=(X,),
             Ys=(Y,),
-            Y_errs=(Y_err,),
             kLas=(kLa,),
             gram_Xs_Xs_blocks=((gram_XX,),),
             gram_Xs_Xs_cho=gram_XX_cho,
@@ -66,9 +51,10 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
     def __init__(
         self,
         prior: pn.randprocs.GaussianProcess,
+        Ls: Sequence[Optional[linfuncops.LinearFunctionOperator]],
+        bs: Sequence[pn.randvars.Normal],
         Xs: Sequence[np.ndarray],
         Ys: Sequence[np.ndarray],
-        Y_errs: Sequence[pn.randvars.Normal],
         kLas: Sequence[pn.randprocs.kernels.Kernel],
         gram_Xs_Xs_blocks: Sequence[Sequence[np.ndarray]],
         gram_Xs_Xs_cho: tuple[np.ndarray, bool],
@@ -76,9 +62,11 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
     ):
         self._prior = prior
 
+        self._Ls = tuple(Ls)
+        self._bs = tuple(bs)
+
         self._Xs = tuple(Xs)
         self._Ys = tuple(Ys)
-        self._Y_errs = tuple(Y_errs)
 
         self._kLas = tuple(kLas)
         self._kLas_Xs: Callable[[np.ndarray], np.ndarray] = lambda x: np.concatenate(
@@ -96,13 +84,13 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         self._representer_weights = representer_weights
 
         super().__init__(
-            mean=PosteriorGaussianProcess.Mean(
+            mean=ConditionalGaussianProcess.Mean(
                 prior_mean=self._prior._meanfun,
                 kLas_Xs=self._kLas_Xs,
                 kLas_Xs_jax=self._kLas_Xs_jax,
                 representer_weights=self._representer_weights,
             ),
-            cov=PosteriorGaussianProcess.Kernel(
+            cov=ConditionalGaussianProcess.Kernel(
                 prior_kernel=self._prior._covfun,
                 kLas_Xs=self._kLas_Xs,
                 kLas_Xs_jax=self._kLas_Xs_jax,
@@ -200,32 +188,19 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             ]
         )
 
-    def condition_on_observations(
-        self,
-        X: ArrayLike,
-        Y: ArrayLike,
-        Y_err: Optional[pn.randvars.Normal] = None,
-    ):
-        return self.condition_on_linop_observations(
-            L=None,
-            X=X,
-            Y=Y,
-            Y_err=Y_err,
-        )
-
     def condition_on_linop_observations(
         self,
-        L: Optional[linfuncops.LinearFunctionOperator],
         X: ArrayLike,
         Y: ArrayLike,
-        Y_err: Optional[pn.randvars.Normal] = None,
+        L: Optional[linfuncops.LinearFunctionOperator] = None,
+        b: Optional[pn.randvars.Normal] = None,
     ):
         X, Y, kLa, pred_mean_X, gram_XX = self._preprocess_observations(
             prior=self._prior,
-            L=L,
             X=X,
             Y=Y,
-            Y_err=Y_err,
+            L=L,
+            b=b,
         )
 
         # Compute lower-left block in the new kernel gram matrix
@@ -251,11 +226,12 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
             ),
         )
 
-        return PosteriorGaussianProcess(
+        return ConditionalGaussianProcess(
             self._prior,
+            Ls=self._Ls + (L,),
+            bs=self._bs + (b,),
             Xs=self._Xs + (X,),
             Ys=self._Ys + (Y,),
-            Y_errs=self._Y_errs + (Y_err,),
             kLas=self._kLas + (kLa,),
             gram_Xs_Xs_blocks=self._gram_Xs_Xs_blocks + (gram_X_row_blocks,),
             gram_Xs_Xs_cho=gram_Xs_Xs_cho,
@@ -266,14 +242,13 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
     def _preprocess_observations(
         cls,
         prior: pn.randprocs.GaussianProcess,
-        L: Optional[linfuncops.LinearFunctionOperator],
         X: ArrayLike,
         Y: ArrayLike,
-        Y_err: Optional[Union[pn.randvars.Normal, pn.randvars.Constant]],
+        L: Optional[linfuncops.LinearFunctionOperator],
+        b: Optional[Union[pn.randvars.Normal, pn.randvars.Constant]],
     ) -> tuple[
         np.ndarray,
         np.ndarray,
-        pn.randprocs.GaussianProcess,
         pn.randprocs.kernels.Kernel,
         np.ndarray,
         np.ndarray,
@@ -301,38 +276,41 @@ class PosteriorGaussianProcess(pn.randprocs.GaussianProcess):
         pred_mean_X = Lf._meanfun(X)
         gram_XX = Lf._covfun(X[:, None, :], X[None, :, :])
 
-        if Y_err is not None:
-            assert isinstance(Y_err, (pn.randvars.Constant, pn.randvars.Normal))
-            assert Y_err.shape == Y.shape
+        if b is not None:
+            assert isinstance(b, (pn.randvars.Constant, pn.randvars.Normal))
+            assert b.shape == Y.shape
 
-            pred_mean_X += Y_err.mean.reshape((-1,), order="C")
+            pred_mean_X += b.mean.reshape((-1,), order="C")
             # This assumes that the covariance matrix is raveled in C-order
-            gram_XX += Y_err.cov
+            gram_XX += b.cov
 
         return X, Y, kLa, pred_mean_X, gram_XX
 
 
 pn.randprocs.GaussianProcess.condition_on_observations = (
-    lambda *args, **kwargs: PosteriorGaussianProcess.from_observations(*args, **kwargs)
+    lambda *args, **kwargs: ConditionalGaussianProcess.from_observations(
+        *args, **kwargs
+    )
 )
 
 
 pn.randprocs.GaussianProcess.condition_on_linop_observations = (
-    lambda *args, **kwargs: PosteriorGaussianProcess.from_linop_observations(
+    lambda *args, **kwargs: ConditionalGaussianProcess.from_linop_observations(
         *args, **kwargs
     )
 )
 
 
 @linfuncops.LinearFunctionOperator.__call__.register
-def _(self, f: PosteriorGaussianProcess, **kwargs) -> PosteriorGaussianProcess:
+def _(self, f: ConditionalGaussianProcess, **kwargs) -> ConditionalGaussianProcess:
     linop_prior = self(f._prior)
 
-    return PosteriorGaussianProcess(
+    return ConditionalGaussianProcess(
         prior=linop_prior,
+        Ls=f._Ls,
+        bs=f._bs,
         Xs=f._Xs,
         Ys=f._Ys,
-        Y_errs=f._Y_errs,
         kLas=[self(k_cross, argnum=0) for k_cross in f._kLas],
         gram_Xs_Xs_blocks=f._gram_Xs_Xs_blocks,
         gram_Xs_Xs_cho=f._gram_Xs_Xs_cho,
