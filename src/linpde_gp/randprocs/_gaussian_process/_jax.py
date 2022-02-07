@@ -2,9 +2,9 @@ import jax
 import numpy as np
 import probnum as pn
 
-from ..typing import JaxLinearOperator
-from .kernels import JaxKernel
-from .mean_fns import JaxMean
+from ...typing import JaxLinearOperator
+from ..kernels import JaxKernel
+from ..mean_fns import JaxMean
 
 
 def apply_jax_linop_to_gp(

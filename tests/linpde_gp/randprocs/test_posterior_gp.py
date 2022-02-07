@@ -58,7 +58,7 @@ def Xs(num_points: int) -> np.ndarray:
 
 
 @pytest.fixture
-def X_test() -> np.ndarray:
+def Xs_test() -> np.ndarray:
     return np.linspace(-1.0, 1.0, 50)[:, None]
 
 
@@ -68,7 +68,7 @@ def Ys(Xs: np.ndarray) -> np.ndarray:
 
 
 @pytest.fixture
-def X_batches(Xs: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
+def Xs_batched(Xs: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
     return np.array_split(
         Xs,
         np.cumsum(batch_sizes)[:-1],
@@ -77,7 +77,7 @@ def X_batches(Xs: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
 
 
 @pytest.fixture
-def Y_batches(Ys: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
+def Ys_batched(Ys: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
     return np.array_split(
         Ys,
         np.cumsum(batch_sizes)[:-1],
@@ -86,7 +86,7 @@ def Y_batches(Ys: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
 
 
 @pytest.fixture
-def batch_noise_models(batch_sizes: tuple[int]) -> tuple[pn.randvars.Normal]:
+def Y_errs_batched(batch_sizes: tuple[int]) -> tuple[pn.randvars.Normal]:
     return (
         pn.randvars.Normal(np.ones(batch_sizes[0]), 0.6 ** 2 * np.eye(batch_sizes[0])),
         None,
@@ -96,14 +96,14 @@ def batch_noise_models(batch_sizes: tuple[int]) -> tuple[pn.randvars.Normal]:
 
 
 @pytest.fixture
-def noise_model(
-    batch_noise_models: tuple[pn.randvars.Normal], batch_sizes: tuple[int]
+def Ys_err(
+    Y_errs_batched: tuple[pn.randvars.Normal], batch_sizes: tuple[int]
 ) -> pn.randvars.Normal:
     return pn.randvars.Normal(
         mean=np.concatenate(
             [
                 batch_noise.mean if batch_noise is not None else np.zeros(batch_size)
-                for batch_noise, batch_size in zip(batch_noise_models, batch_sizes)
+                for batch_noise, batch_size in zip(Y_errs_batched, batch_sizes)
             ],
             axis=0,
         ),
@@ -112,15 +112,15 @@ def noise_model(
                 batch_noise.cov
                 if batch_noise is not None
                 else np.zeros((batch_size, batch_size))
-                for batch_noise, batch_size in zip(batch_noise_models, batch_sizes)
+                for batch_noise, batch_size in zip(Y_errs_batched, batch_sizes)
             )
         ),
     )
 
 
 @pytest.fixture
-def linop() -> linpde_gp.linfuncops.LinearFunctionOperator:
-    return linpde_gp.problems.pde.diffops.LaplaceOperator()
+def L() -> linpde_gp.linfuncops.LinearFunctionOperator:
+    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator()
 
 
 @pytest.fixture
@@ -128,30 +128,30 @@ def naive_posterior_gp(
     prior: pn.randprocs.GaussianProcess,
     Xs: np.ndarray,
     Ys: np.ndarray,
-    noise_model: pn.randvars.Normal,
+    Ys_err: pn.randvars.Normal,
 ) -> pn.randprocs.GaussianProcess:
-    return condition_gp_on_observations(prior, Xs, Ys, noise=noise_model)
+    return condition_gp_on_observations(prior, Xs, Ys, noise=Ys_err)
 
 
 @pytest.fixture
 def naive_posterior_gp_linop(
     naive_posterior_gp: pn.randprocs.GaussianProcess,
-    linop: linpde_gp.linfuncops.LinearFunctionOperator,
+    L: linpde_gp.linfuncops.LinearFunctionOperator,
 ) -> tuple[pn.randprocs.GaussianProcess, pn.randprocs.kernels.Kernel]:
-    return apply_jax_linop_to_gp(naive_posterior_gp, linop)
+    return apply_jax_linop_to_gp(naive_posterior_gp, L)
 
 
 @pytest.fixture
 def posterior_gp(
     prior: pn.randprocs.GaussianProcess,
-    X_batches: tuple[np.ndarray],
-    Y_batches: tuple[np.ndarray],
-    batch_noise_models: tuple[pn.randvars.Normal],
+    Xs_batched: tuple[np.ndarray],
+    Ys_batched: tuple[np.ndarray],
+    Y_errs_batched: tuple[pn.randvars.Normal],
 ) -> linpde_gp.randprocs.PosteriorGaussianProcess:
     posterior_gp = prior
 
-    for X, Y, noise in zip(X_batches, Y_batches, batch_noise_models):
-        posterior_gp = posterior_gp.condition_on_observations(X, Y, noise)
+    for X, Y, Y_err in zip(Xs_batched, Ys_batched, Y_errs_batched):
+        posterior_gp = posterior_gp.condition_on_observations(X, Y, Y_err)
 
     return posterior_gp
 
@@ -159,10 +159,10 @@ def posterior_gp(
 def test_posterior_gp(
     posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
     naive_posterior_gp: pn.randprocs.GaussianProcess,
-    X_test: np.ndarray,
+    Xs_test: np.ndarray,
 ):
-    iter_X_test = posterior_gp(X_test)
-    naive_X_test = naive_posterior_gp(X_test)
+    iter_X_test = posterior_gp(Xs_test)
+    naive_X_test = naive_posterior_gp(Xs_test)
 
     np.testing.assert_allclose(iter_X_test.mean, naive_X_test.mean)
     np.testing.assert_allclose(iter_X_test.var, naive_X_test.var)
@@ -171,16 +171,18 @@ def test_posterior_gp(
 
 def test_posterior_gp_linop(
     posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
-    linop: linpde_gp.linfuncops.LinearFunctionOperator,
+    L: linpde_gp.linfuncops.LinearFunctionOperator,
     naive_posterior_gp_linop: pn.randprocs.GaussianProcess,
-    X_test: np.ndarray,
+    Xs_test: np.ndarray,
 ):
-    posterior_gp_linop = linop(posterior_gp)
+    posterior_gp_linop = L(posterior_gp)
 
-    iter_X_test = posterior_gp_linop(X_test)
-    naive_X_test = naive_posterior_gp_linop(X_test)
+    iter_X_test = posterior_gp_linop(Xs_test)
+    naive_X_test = naive_posterior_gp_linop(Xs_test)
 
     np.testing.assert_allclose(iter_X_test.mean, naive_X_test.mean)
+    np.testing.assert_allclose(iter_X_test.var, naive_X_test.var)
+    np.testing.assert_allclose(iter_X_test.cov, naive_X_test.cov)
 
 
 # Naive GP conditioning and transformation
@@ -226,12 +228,12 @@ def condition_gp_on_observations(
 
 def apply_jax_linop_to_gp(
     gp: pn.randprocs.GaussianProcess,
-    linop: JaxLinearOperator,
+    L: JaxLinearOperator,
     **linop_kwargs,
 ) -> pn.randprocs.GaussianProcess:
-    mean = linop(gp._meanfun.jax, argnum=0, **linop_kwargs)
-    crosscov = linop(gp._covfun.jax, argnum=1, **linop_kwargs)
-    cov = linop(crosscov, argnum=0, **linop_kwargs)
+    mean = L(gp._meanfun.jax, argnum=0, **linop_kwargs)
+    crosscov = L(gp._covfun.jax, argnum=1, **linop_kwargs)
+    cov = L(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
         mean=linpde_gp.randprocs.mean_fns.JaxMean(mean, vectorize=True),

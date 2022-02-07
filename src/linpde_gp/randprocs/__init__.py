@@ -1,4 +1,3 @@
-from . import _jax, kernels, mean_fns
+from . import kernels, mean_fns
 from ._function import Function
-from ._gaussian_process import PosteriorGaussianProcess
-from ._linear_transform import LinearTransformGaussianProcess
+from ._gaussian_process import LinearTransformGaussianProcess, PosteriorGaussianProcess
