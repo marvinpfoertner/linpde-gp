@@ -67,7 +67,7 @@ class Config:
         self._savefig_default_extensions = tuple(extensions)
 
     @property
-    def tueplot_bundle(self) -> Optional[callable]:
+    def tueplots_bundle(self) -> Optional[callable]:
         from ._targets import _tueplots_bundles
 
         return _tueplots_bundles.get(self.target)
