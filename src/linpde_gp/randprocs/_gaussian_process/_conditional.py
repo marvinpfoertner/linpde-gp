@@ -188,7 +188,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             ]
         )
 
-    def condition_on_linop_observations(
+    def condition_on_observations(
         self,
         X: ArrayLike,
         Y: ArrayLike,
