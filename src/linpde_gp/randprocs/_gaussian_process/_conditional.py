@@ -1,16 +1,17 @@
-import functools
 from collections.abc import Callable, Sequence
+import functools
 from typing import Optional, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-import probnum as pn
-import scipy.linalg
 from numpy.typing import ArrayLike
+import scipy.linalg
 
+import probnum as pn
+
+from .. import kernels
 from ... import linfuncops
-from . import _jax
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
@@ -60,6 +61,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         gram_Xs_Xs_cho: tuple[np.ndarray, bool],
         representer_weights: np.ndarray,
     ):
+        if prior.output_shape != ():
+            raise ValueError("Currently, we only support scalar conditioning")
+
         self._prior = prior
 
         self._Ls = tuple(Ls)
@@ -69,8 +73,12 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         self._Ys = tuple(Ys)
 
         self._kLas = tuple(kLas)
+        # TODO: These two should be combined in a `JaxFunction`
         self._kLas_Xs: Callable[[np.ndarray], np.ndarray] = lambda x: np.concatenate(
-            [kLa(x[..., None, :], X) for kLa, X in zip(self._kLas, self._Xs)],
+            [
+                kLa(np.expand_dims(x, axis=-self._prior._input_ndim - 1), X)
+                for kLa, X in zip(self._kLas, self._Xs)
+            ],
             axis=-1,
         )
         self._kLas_Xs_jax: Callable[[jnp.ndarray], jnp.ndarray] = jnp.vectorize(
@@ -85,23 +93,23 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         super().__init__(
             mean=ConditionalGaussianProcess.Mean(
-                prior_mean=self._prior._meanfun,
+                prior_mean=self._prior.mean,
                 kLas_Xs=self._kLas_Xs,
                 kLas_Xs_jax=self._kLas_Xs_jax,
                 representer_weights=self._representer_weights,
             ),
             cov=ConditionalGaussianProcess.Kernel(
-                prior_kernel=self._prior._covfun,
+                prior_kernel=self._prior.cov,
                 kLas_Xs=self._kLas_Xs,
                 kLas_Xs_jax=self._kLas_Xs_jax,
                 gram_Xs_Xs_cho=self._gram_Xs_Xs_cho,
             ),
         )
 
-    class Mean(_jax.JaxMean):
+    class Mean(linfuncops.JaxFunction):
         def __init__(
             self,
-            prior_mean: _jax.JaxMean,
+            prior_mean: linfuncops.JaxFunction,
             kLas_Xs: Callable[[np.ndarray], np.ndarray],
             kLas_Xs_jax: Callable[[jnp.ndarray], jnp.ndarray],
             representer_weights: np.ndarray,
@@ -113,25 +121,28 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
             self._representer_weights = representer_weights
 
-            super().__init__(m=self._jax, vectorize=True)
+            super().__init__(
+                input_shape=self._prior_mean.input_shape,
+                output_shape=self._prior_mean.output_shape,
+            )
 
-        def __call__(self, x: np.ndarray) -> np.ndarray:
+        def _evaluate(self, x: np.ndarray) -> np.ndarray:
             m_x = self._prior_mean(x)
             kLas_x_Xs = self._kLas_Xs(x)
 
             return m_x + kLas_x_Xs @ self._representer_weights
 
         @functools.partial(jax.jit, static_argnums=0)
-        def _jax(self, x: jnp.ndarray) -> jnp.ndarray:
+        def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
             m_x = self._prior_mean.jax(x)
             kLas_x_Xs = self._kLas_Xs_jax(x)
 
             return m_x + kLas_x_Xs @ self._representer_weights
 
-    class Kernel(_jax.JaxKernel):
+    class Kernel(kernels.JaxKernel):
         def __init__(
             self,
-            prior_kernel: _jax.JaxKernel,
+            prior_kernel: kernels.JaxKernel,
             kLas_Xs: Callable[[np.ndarray], np.ndarray],
             kLas_Xs_jax: Callable[[jnp.ndarray], jnp.ndarray],
             gram_Xs_Xs_cho: np.ndarray,
@@ -144,12 +155,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             self._gram_Xs_Xs_cho = gram_Xs_Xs_cho
 
             super().__init__(
-                self._jax,
-                input_dim=self._prior_kernel.input_dim,
-                vectorize=True,
+                input_shape=self._prior_kernel.input_shape,
+                shape=self._prior_kernel.shape,
             )
 
-        def _evaluate(self, x0: np.ndarray, x1: np.ndarray) -> np.ndarray:
+        def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
             k_xx = self._prior_kernel(x0, x1)
             kLas_x_Xs = self._kLas_Xs(x0)
             Lks_Xs_x = self._kLas_Xs(x1) if x1 is not None else kLas_x_Xs
@@ -165,10 +175,12 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         @functools.partial(jax.jit, static_argnums=0)
-        def _jax(self, x0: jnp.ndarray, x1: jnp.ndarray) -> jnp.ndarray:
+        def _evaluate_jax(
+            self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]
+        ) -> jnp.ndarray:
             k_xx = self._prior_kernel.jax(x0, x1)
             kLas_x_Xs = self._kLas_Xs_jax(x0)
-            Lks_Xs_x = self._kLas_Xs_jax(x1)
+            Lks_Xs_x = self._kLas_Xs_jax(x1) if x1 is not None else kLas_x_Xs
 
             return k_xx - kLas_x_Xs @ jax.scipy.linalg.cho_solve(
                 self._gram_Xs_Xs_cho, Lks_Xs_x
@@ -205,9 +217,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         # Compute lower-left block in the new kernel gram matrix
         gram_X_Xs_blocks = tuple(
-            kLa_prev(X[:, None, :], X_prev[None, :, :])
+            kLa_prev(X[:, None], X_prev[None, :])
             if L is None
-            else L(kLa_prev, argnum=0)(X[:, None, :], X_prev[None, :, :])
+            else L(kLa_prev, argnum=0)(X[:, None], X_prev[None, :])
             for kLa_prev, X_prev in zip(self._kLas, self._Xs)
         )
         gram_X_Xs = np.concatenate(gram_X_Xs_blocks, axis=-1)
@@ -257,24 +269,26 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         X = np.asarray(X)
         Y = np.asarray(Y)
 
-        assert prior.output_dim is None  # TODO: Support vector-valued GPs
-        assert X.ndim >= 1 and X.shape[-1] == prior.input_dim
-        assert Y.shape == X.shape[:-1]  # TODO: Support vector-valued linfuncops
+        assert prior.output_shape == ()  # TODO: Support vector-valued GPs
+        assert (
+            X.ndim >= 1 and X.shape[X.ndim - prior._input_ndim :] == prior.input_shape
+        )
+        assert Y.shape == X.shape[: X.ndim - prior._input_ndim] + prior.output_shape
 
-        X = X.reshape((-1, prior.input_dim), order="C")
+        X = X.reshape((-1,) + prior.input_shape, order="C")
         Y = Y.reshape((-1,), order="C")
 
         # Apply measurement operator to prior
         if L is None:
             Lf = prior
-            kLa = prior._covfun
+            kLa = prior.cov
         else:
             Lf = L(prior)
-            kLa = L(prior._covfun, argnum=1)
+            kLa = L(prior.cov, argnum=1)
 
         # Compute predictive mean and kernel Gram matrix
-        pred_mean_X = Lf._meanfun(X)
-        gram_XX = Lf._covfun(X[:, None, :], X[None, :, :])
+        pred_mean_X = Lf.mean(X)
+        gram_XX = Lf.cov(X[:, None], X[None, :])
 
         if b is not None:
             assert isinstance(b, (pn.randvars.Constant, pn.randvars.Normal))
@@ -289,13 +303,6 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
 pn.randprocs.GaussianProcess.condition_on_observations = (
     lambda *args, **kwargs: ConditionalGaussianProcess.from_observations(
-        *args, **kwargs
-    )
-)
-
-
-pn.randprocs.GaussianProcess.condition_on_linop_observations = (
-    lambda *args, **kwargs: ConditionalGaussianProcess.from_linop_observations(
         *args, **kwargs
     )
 )

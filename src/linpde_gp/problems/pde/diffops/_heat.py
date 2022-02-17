@@ -4,18 +4,18 @@ import functools
 from typing import TYPE_CHECKING
 
 import jax
-import probnum as pn
 from jax import numpy as jnp
 
+import probnum as pn
+
 from .... import linfuncops
-from ....typing import JaxFunction
 from ._laplace import scaled_laplace_jax
 
 if TYPE_CHECKING:
     import linpde_gp
 
 
-def heat_jax(f: JaxFunction, argnum: int = 0) -> JaxFunction:
+def heat_jax(f: linfuncops.JaxFunction, argnum: int = 0) -> linfuncops.JaxFunction:
     @jax.jit
     def _f(*args, **kwargs) -> jnp.ndarray:
         t, x = args[argnum : argnum + 2]

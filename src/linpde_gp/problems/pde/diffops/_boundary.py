@@ -2,7 +2,6 @@ import jax
 from jax import numpy as jnp
 
 from .... import linfuncops
-from ....typing import JaxFunction
 
 
 class DirectionalDerivative(linfuncops.JaxLinearOperator):
@@ -11,7 +10,9 @@ class DirectionalDerivative(linfuncops.JaxLinearOperator):
 
         super().__init__(L=self._impl)
 
-    def _impl(self, f: JaxFunction, argnum: int = 0) -> JaxFunction:
+    def _impl(
+        self, f: linfuncops.JaxFunction, argnum: int = 0
+    ) -> linfuncops.JaxFunction:
         @jax.jit
         def _f(*args, **kwargs) -> jnp.ndarray:
             t, x = args[argnum : argnum + 2]

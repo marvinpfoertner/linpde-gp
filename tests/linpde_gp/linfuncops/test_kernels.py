@@ -1,8 +1,9 @@
 import jax
-import linpde_gp
 import numpy as np
-import probnum as pn
 import pytest
+
+import linpde_gp
+import probnum as pn
 
 jax.config.update("jax_enable_x64", True)
 
@@ -29,7 +30,7 @@ def k(
     output_scale: float,
 ) -> linpde_gp.randprocs.kernels.JaxKernel:
     return linpde_gp.randprocs.kernels.ExpQuad(
-        input_dim=input_dim,
+        input_shape=(input_dim,),
         lengthscales=lengthscale,
         output_scale=output_scale,
     )
@@ -39,9 +40,9 @@ def k(
 def k_jax(
     k: linpde_gp.randprocs.kernels.JaxKernel,
 ) -> linpde_gp.randprocs.kernels.JaxKernel:
-    return linpde_gp.randprocs.kernels.JaxKernel(
+    return linpde_gp.randprocs.kernels.JaxLambdaKernel(
         k=k.jax,
-        input_dim=k.input_dim,
+        input_shape=k.input_shape,
         vectorize=False,
     )
 

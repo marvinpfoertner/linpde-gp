@@ -6,8 +6,9 @@ import matplotlib.axes
 import matplotlib.collections
 import matplotlib.lines
 import numpy as np
-import probnum as pn
 import scipy.stats
+
+import probnum as pn
 
 
 def plot_gaussian_process(
@@ -30,8 +31,8 @@ def plot_gaussian_process(
     matplotlib.collections.PolyCollection,
     List[matplotlib.lines.Line2D],
 ]:
-    mean = gp.mean(xs[:, None])
-    std = gp.std(xs[:, None])
+    mean = gp.mean(xs)
+    std = gp.std(xs)
 
     std_factor = -scipy.stats.norm.ppf((1.0 - cred_int) / 2.0)
 
@@ -78,7 +79,7 @@ def plot_gaussian_process_samples(
     num_samples: int = 1,
     **kwargs,
 ) -> List[matplotlib.lines.Line2D]:
-    samples = gp.sample(rng, xs[:, None], size=(num_samples,))
+    samples = gp.sample(rng, xs, size=(num_samples,))
 
     samples_line2d = ax.plot(
         np.broadcast_to(xs[:, None], (xs.shape[0], num_samples)),
@@ -145,6 +146,13 @@ def plot_local_curvature(
     else:
         df_xs = np.atleast_1d(df_xs)
 
+    N = xs.shape[0]
+
+    assert xs.shape == (N,)
+    assert f_xs.shape == (N,)
+    assert df_xs.shape == (N,)
+    assert ddf_xs.shape == (N,)
+
     # Create plotting grid
     gridsize = 2 * (gridsize // 2) + 1
 
@@ -161,7 +169,7 @@ def plot_local_curvature(
         taylor_poly_grid += df_x * centered_grid
         taylor_poly_grid = (
             taylor_poly_grid + ddf_x[None] / 2.0 @ centered_grid[None, :] ** 2
-        )
+        )  # workaround for += ddf_x / 2.0 * centered_grid ** 2
 
         means.append(taylor_poly_grid.mean)
         stds.append(taylor_poly_grid.std)

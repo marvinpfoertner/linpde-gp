@@ -1,13 +1,12 @@
 from typing import Optional
 
 import jax
-import linpde_gp
 import numpy as np
-import probnum as pn
 import pytest
 import scipy.linalg
-from jax import numpy as jnp
-from linpde_gp.typing import JaxLinearOperator
+
+import linpde_gp
+import probnum as pn
 
 jax.config.update("jax_enable_x64", True)
 
@@ -19,25 +18,12 @@ def input_dim(request) -> int:
 
 @pytest.fixture
 def prior(input_dim: int) -> pn.randprocs.GaussianProcess:
-    lengthscale = 0.25
-    output_scale = 2.0
-
-    @jax.jit
-    def prior_mean(x):
-        return jnp.full_like(x[..., 0], 0.0)
-
-    @jax.jit
-    def prior_cov(x0, x1):
-        sqnorms = jnp.sum((x0 - x1) ** 2, axis=-1)
-
-        return output_scale ** 2 * jnp.exp(-(1.0 / (2.0 * lengthscale ** 2)) * sqnorms)
-
     return pn.randprocs.GaussianProcess(
-        mean=linpde_gp.randprocs.mean_fns.JaxMean(prior_mean, vectorize=False),
-        cov=linpde_gp.randprocs.kernels.JaxKernel(
-            prior_cov,
-            input_dim=input_dim,
-            vectorize=True,
+        mean=linpde_gp.randprocs.mean_fns.Zero(input_shape=(input_dim,)),
+        cov=linpde_gp.randprocs.kernels.ExpQuad(
+            input_shape=(input_dim,),
+            lengthscales=0.25,
+            output_scale=2.0,
         ),
     )
 
@@ -147,17 +133,17 @@ def posterior_gp(
     Xs_batched: tuple[np.ndarray],
     Ys_batched: tuple[np.ndarray],
     Y_errs_batched: tuple[pn.randvars.Normal],
-) -> linpde_gp.randprocs.PosteriorGaussianProcess:
+) -> linpde_gp.randprocs.ConditionalGaussianProcess:
     posterior_gp = prior
 
     for X, Y, Y_err in zip(Xs_batched, Ys_batched, Y_errs_batched):
-        posterior_gp = posterior_gp.condition_on_observations(X, Y, Y_err)
+        posterior_gp = posterior_gp.condition_on_observations(X, Y, b=Y_err)
 
     return posterior_gp
 
 
 def test_posterior_gp(
-    posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
+    posterior_gp: linpde_gp.randprocs.ConditionalGaussianProcess,
     naive_posterior_gp: pn.randprocs.GaussianProcess,
     Xs_test: np.ndarray,
 ):
@@ -170,7 +156,7 @@ def test_posterior_gp(
 
 
 def test_posterior_gp_linop(
-    posterior_gp: linpde_gp.randprocs.PosteriorGaussianProcess,
+    posterior_gp: linpde_gp.randprocs.ConditionalGaussianProcess,
     L: linpde_gp.linfuncops.LinearFunctionOperator,
     naive_posterior_gp_linop: pn.randprocs.GaussianProcess,
     Xs_test: np.ndarray,
@@ -192,8 +178,8 @@ def condition_gp_on_observations(
     fX: np.ndarray,
     noise: Optional[pn.randvars.Normal] = None,
 ) -> pn.randprocs.GaussianProcess:
-    pred_mean = gp._meanfun(X)
-    gram = gp._covfun(X[:, None, :], X[None, :, :])
+    pred_mean = gp.mean(X)
+    gram = gp.cov(X[:, None], X[None, :])
 
     if noise is not None:
         pred_mean += noise.mean
@@ -205,21 +191,23 @@ def condition_gp_on_observations(
 
     @jax.jit
     def cond_mean(x):
-        mx = gp._meanfun.jax(x)
-        kxX = gp._covfun.jax(x, X)
+        mx = gp.mean.jax(x)
+        kxX = gp.cov.jax(x, X)
         return mx + kxX @ representer_weights
 
     @jax.jit
     def cond_cov(x0, x1):
-        kxx = gp._covfun.jax(x0, x1)
-        kxX = gp._covfun.jax(x0, X)
-        kXx = gp._covfun.jax(X, x1)
+        kxx = gp.cov.jax(x0, x1)
+        kxX = gp.cov.jax(x0, X)
+        kXx = gp.cov.jax(X, x1)
         return kxx - kxX @ jax.scipy.linalg.cho_solve(gram_cho, kXx)
 
     cond_gp = pn.randprocs.GaussianProcess(
-        mean=linpde_gp.randprocs.mean_fns.JaxMean(cond_mean, vectorize=True),
-        cov=linpde_gp.randprocs.kernels.JaxKernel(
-            cond_cov, input_dim=gp.input_dim, vectorize=True
+        mean=linpde_gp.linfuncops.JaxLambdaFunction(
+            cond_mean, input_shape=gp.input_shape, vectorize=True
+        ),
+        cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(
+            cond_cov, input_shape=gp.input_shape, vectorize=True
         ),
     )
 
@@ -228,17 +216,19 @@ def condition_gp_on_observations(
 
 def apply_jax_linop_to_gp(
     gp: pn.randprocs.GaussianProcess,
-    L: JaxLinearOperator,
+    L: linpde_gp.linfuncops.JaxLinearOperator,
     **linop_kwargs,
 ) -> pn.randprocs.GaussianProcess:
-    mean = L(gp._meanfun.jax, argnum=0, **linop_kwargs)
-    crosscov = L(gp._covfun.jax, argnum=1, **linop_kwargs)
+    mean = L(gp.mean.jax, argnum=0, **linop_kwargs)
+    crosscov = L(gp.cov.jax, argnum=1, **linop_kwargs)
     cov = L(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
-        mean=linpde_gp.randprocs.mean_fns.JaxMean(mean, vectorize=True),
-        cov=linpde_gp.randprocs.kernels.JaxKernel(
-            cov, input_dim=gp.input_dim, vectorize=True
+        mean=linpde_gp.linfuncops.JaxLambdaFunction(
+            mean, input_shape=gp.input_shape, vectorize=True
+        ),
+        cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(
+            cov, input_shape=gp.input_shape, vectorize=True
         ),
     )
 

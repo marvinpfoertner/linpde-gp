@@ -1,12 +1,13 @@
 from typing import Callable, Union
 
 import numpy as np
+
 import probnum as pn
 from probnum.typing import FloatLike
 
+from . import _basis
 from ... import randprocs
 from ...problems.pde import domains
-from . import _basis
 
 
 class FourierBasis(_basis.Basis):
@@ -39,7 +40,7 @@ class FourierBasis(_basis.Basis):
                 idx.step,
             )
 
-        return lambda x: np.sin((idx + 1) * np.pi * (x - l) / (r - l))
+        return lambda x: np.sin((idx + 1) * np.pi * (x[..., None] - l) / (r - l))
 
     def coords2fn(
         self,
@@ -49,23 +50,23 @@ class FourierBasis(_basis.Basis):
         pn.randprocs.RandomProcess,
     ]:
         if isinstance(coords, np.ndarray):
-            return lambda x: self[:](x[:, None]) @ coords
+            return lambda x: self[:](x) @ coords
 
         # Interpret as random variable
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.Function(
+            return randprocs.DeterministicProcess(
                 self.coords2fn(coords.support),
-                input_dim=1,
-                output_dim=1,
+                input_shape=(),
+                output_shape=(),
                 dtype=coords.dtype,
             )
         elif isinstance(coords, pn.randvars.Normal):
-            return randprocs.LinearTransformGaussianProcess(
-                input_dim=1,
-                base_rv=coords,
-                linop_fn=lambda x: self[:](x[:, None]),
+            return randprocs.ParametricGaussianProcess(
+                input_shape=1,
+                weights=coords,
+                feature_fn=self[:],
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")

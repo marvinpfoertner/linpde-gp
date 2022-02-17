@@ -2,13 +2,14 @@ from collections.abc import Callable, Sequence
 from typing import Union
 
 import numpy as np
-import probnum as pn
 import scipy.interpolate
+
+import probnum as pn
 from probnum.typing import FloatLike
 
+from . import _basis
 from ... import randprocs
 from ...problems.pde import DirichletBoundaryCondition, domains
-from . import _basis
 
 
 class ZeroBoundaryFiniteElementBasis(_basis.Basis):
@@ -75,20 +76,22 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.Function(
+            return randprocs.DeterministicProcess(
                 self.coords2fn(coords.support),
-                input_dim=1,
-                output_dim=None,
+                input_shape=(),
+                output_shape=(),
                 dtype=coords.dtype,
             )
         elif isinstance(coords, pn.randvars.Normal):
-            mean_explicit_input_axis = self.coords2fn(coords.mean)
-
-            return randprocs.LinearTransformGaussianProcess(
-                input_dim=1,
-                base_rv=coords,
-                linop_fn=self._observation_operator_fn,
-                mean=lambda x: mean_explicit_input_axis(x[:, 0]),
+            return randprocs.ParametricGaussianProcess(
+                input_shape=(),
+                weights=coords,
+                feature_fn=self._observation_operator_fn,
+                mean=pn.LambdaFunction(
+                    self.coords2fn(coords.mean),
+                    input_shape=(),
+                    output_shape=(),
+                ),
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")
@@ -101,7 +104,7 @@ class FiniteElementBasis(_basis.Basis):
     def __init__(
         self,
         domain: domains.DomainLike,
-        boundary_conditions: Callable[Sequence[DirichletBoundaryCondition]],
+        boundary_conditions: Sequence[DirichletBoundaryCondition],
         num_elements: int,
     ):
         super().__init__(size=num_elements + 2)
@@ -168,18 +171,22 @@ class FiniteElementBasis(_basis.Basis):
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.Function(
+            return randprocs.DeterministicProcess(
                 self.coords2fn(coords.support),
-                input_dim=1,
-                output_dim=1,
+                input_shape=(),
+                output_shape=(),
                 dtype=coords.dtype,
             )
         elif isinstance(coords, pn.randvars.Normal):
-            return randprocs.LinearTransformGaussianProcess(
-                input_dim=1,
-                base_rv=coords,
-                linop_fn=self._observation_operator_fn,
-                mean=self.coords2fn(coords.mean),
+            return randprocs.ParametricGaussianProcess(
+                input_shape=(),
+                weights=coords,
+                feature_fn=self._observation_operator_fn,
+                mean=pn.LambdaFunction(
+                    self.coords2fn(coords.mean),
+                    input_shape=(),
+                    output_shape=(),
+                ),
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")

@@ -4,19 +4,19 @@ import functools
 from typing import TYPE_CHECKING
 
 import jax
-import probnum as pn
 from jax import numpy as jnp
 
+import probnum as pn
+
 from .... import linfuncops
-from ....typing import JaxFunction
 
 if TYPE_CHECKING:
     import linpde_gp
 
 
 def scaled_laplace_jax(
-    f: JaxFunction, *, argnum: int = 0, alpha: float = 1.0
-) -> JaxFunction:
+    f: linfuncops.JaxFunction, *, argnum: int = 0, alpha: float = 1.0
+) -> linfuncops.JaxFunction:
     Hf = jax.jit(jax.hessian(f, argnum))
 
     @jax.jit
