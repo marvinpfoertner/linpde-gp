@@ -29,4 +29,4 @@ def savefig(
         else:
             fname_ext = f"{filename}.{extension}"
 
-        fig.savefig(config.notebook_results_path / fname_ext, **savefig_kwargs)
+        fig.savefig(config.experiment_results_path / fname_ext, **savefig_kwargs)

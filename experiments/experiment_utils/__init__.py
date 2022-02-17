@@ -1,6 +1,6 @@
+from collections.abc import Iterable
 import dataclasses
 import pathlib
-from collections.abc import Iterable
 from typing import Optional
 
 from . import _setup  # pylint: disable=unused-import
@@ -8,14 +8,14 @@ from . import _setup  # pylint: disable=unused-import
 
 @dataclasses.dataclass()
 class Config:
-    notebook_name: str = None
+    experiment_name: str = None
 
     debug_mode: bool = False
 
     _target: str = None
 
     _results_path: pathlib.Path = None
-    _notebook_results_path: pathlib.Path = None
+    _experiment_results_path: pathlib.Path = None
 
     _savefig_default_extensions = (".pdf",)
 
@@ -30,7 +30,7 @@ class Config:
     @property
     def results_path(self) -> pathlib.Path:
         if self._results_path is None:
-            self._results_path = pathlib.Path(__file__).parents[2] / "results"
+            self._results_path = pathlib.Path(__file__).parents[3] / "results"
             self._results_path.mkdir(exist_ok=True)
 
             if self.debug_mode:
@@ -44,19 +44,18 @@ class Config:
         return self._results_path
 
     @property
-    def notebook_results_path(self) -> pathlib.Path:
-        if self._notebook_results_path is None:
-            if self.notebook_name is None:
+    def experiment_results_path(self) -> pathlib.Path:
+        if self._experiment_results_path is None:
+            if self.experiment_name is None:
                 raise ValueError(
-                    "Must set `config.notebook_name` in order to use `notebook_utils`!"
+                    "Must set `config.experiment_name` in order to use "
+                    "`experiment_utils`!"
                 )
 
-            self._notebook_results_path = (
-                self.results_path / "notebooks" / self.notebook_name
-            )
-            self._notebook_results_path.mkdir(parents=True, exist_ok=True)
+            self._experiment_results_path = self.results_path / self.experiment_name
+            self._experiment_results_path.mkdir(parents=True, exist_ok=True)
 
-        return self._notebook_results_path
+        return self._experiment_results_path
 
     @property
     def savefig_default_extensions(self) -> tuple[str]:
