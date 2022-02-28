@@ -18,12 +18,14 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
         if x1 is not None:
             x1 = jnp.asarray(x1)
 
-        batch_shape = jnp.broadcast_shapes(x0.shape, x1.shape)
-        batch_shape = batch_shape[: len(batch_shape) - self._input_ndim]
+        # Shape checking
+        broadcast_batch_shape = self._check_shapes(
+            x0.shape, x1.shape if x1 is not None else None
+        )
 
         k_x0_x1 = self._evaluate_jax(x0, x1)
 
-        assert k_x0_x1.shape == self.shape + batch_shape
+        assert k_x0_x1.shape == broadcast_batch_shape + self.output_shape
 
         return k_x0_x1
 
@@ -46,10 +48,10 @@ class JaxLambdaKernel(JaxKernel):
         self,
         k: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray],
         input_shape: ShapeLike,
-        shape: ShapeLike = (),
+        output_shape: ShapeLike = (),
         vectorize: bool = True,
     ):
-        super().__init__(input_shape=input_shape, shape=shape)
+        super().__init__(input_shape=input_shape, output_shape=output_shape)
 
         if vectorize:
             k = jnp.vectorize(

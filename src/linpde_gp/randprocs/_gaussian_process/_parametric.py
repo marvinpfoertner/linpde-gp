@@ -60,7 +60,7 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
                 [np.ndarray], Union[np.ndarray, pn.linops.LinearOperator]
             ],
         ):
-            super().__init__(input_shape=input_shape, shape=())
+            super().__init__(input_shape=input_shape, output_shape=())
 
             self._weights = weights
             self._feature_fn = feature_fn

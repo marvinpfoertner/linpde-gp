@@ -156,7 +156,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
             super().__init__(
                 input_shape=self._prior_kernel.input_shape,
-                shape=self._prior_kernel.shape,
+                output_shape=self._prior_kernel.output_shape,
             )
 
         def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:

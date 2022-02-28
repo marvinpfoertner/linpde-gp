@@ -18,7 +18,7 @@ class ExpQuad(JaxKernel):
         lengthscales: ArrayLike = 1.0,
         output_scale: float = 1.0,
     ):
-        super().__init__(input_shape, shape=())
+        super().__init__(input_shape, output_shape=())
 
         self._lengthscales = np.asarray(lengthscales, dtype=np.double)
         self._output_scale = np.asarray(output_scale, dtype=np.double)
@@ -79,7 +79,7 @@ class ExpQuadLaplacianCross(JaxKernel):
         lengthscale: float = 1.0,
         output_scale: float = 1.0,
     ):
-        super().__init__(input_shape, shape=())
+        super().__init__(input_shape, output_shape=())
 
         assert argnum in (0, 1)
 
@@ -164,7 +164,7 @@ class ExpQuadLaplacian(JaxKernel):
         lengthscale: float = 1.0,
         output_scale: float = 1.0,
     ):
-        super().__init__(input_shape, shape=())
+        super().__init__(input_shape, output_shape=())
 
         self._alpha0 = alpha0
         self._alpha1 = alpha1
