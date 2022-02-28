@@ -17,10 +17,28 @@ def apply_jax_linop_to_gp(
     cov = linop(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
-        mean=JaxLambdaFunction(mean, input_shape=gp.input_shape, vectorize=True),
-        cov=JaxLambdaKernel(cov, input_shape=gp.input_shape, vectorize=True),
+        mean=JaxLambdaFunction(
+            mean,
+            input_shape=linop.output_domain_shape,
+            output_shape=linop.output_codomain_shape,
+            vectorize=True,
+        ),
+        cov=JaxLambdaKernel(
+            cov,
+            input_shape=linop.input_domain_shape,
+            output_shape=2 * linop.output_codomain_shape,
+            vectorize=True,
+        ),
     )
-    crosskernel = JaxLambdaKernel(crosscov, input_shape=gp.input_shape, vectorize=True)
+
+    crosskernel = JaxLambdaKernel(
+        crosscov,
+        input_shape=gp.input_shape,
+        # TODO: We need a second input_shape here, which should be set to
+        # second_input_shape=linop.input_domain_shape,
+        output_shape=gp.output_shape + linop.output_codomain_shape,
+        vectorize=True,
+    )
 
     return gp_linop, crosskernel
 

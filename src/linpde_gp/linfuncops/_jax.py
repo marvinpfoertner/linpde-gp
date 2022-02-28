@@ -69,10 +69,15 @@ class JaxLambdaFunction(JaxFunction):
 
 
 class JaxLinearOperator(_linfuncop.LinearFunctionOperator):
-    def __init__(self, L) -> None:
-        self._L = L
+    def __init__(
+        self,
+        L,
+        input_shapes: tuple[ShapeLike, ShapeLike],
+        output_shapes: tuple[ShapeLike, ShapeLike],
+    ) -> None:
+        super().__init__(input_shapes=input_shapes, output_shapes=output_shapes)
 
-        super().__init__()
+        self._L = L
 
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):

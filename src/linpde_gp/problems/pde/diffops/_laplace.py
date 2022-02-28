@@ -7,6 +7,7 @@ import jax
 from jax import numpy as jnp
 
 import probnum as pn
+from probnum.typing import ShapeLike
 
 from .... import linfuncops
 
@@ -27,10 +28,14 @@ def scaled_laplace_jax(
 
 
 class ScaledLaplaceOperator(linfuncops.JaxLinearOperator):
-    def __init__(self, alpha: float = 1.0) -> None:
+    def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
         self._alpha = alpha
 
-        super().__init__(L=functools.partial(scaled_laplace_jax, alpha=self._alpha))
+        super().__init__(
+            L=functools.partial(scaled_laplace_jax, alpha=self._alpha),
+            input_shapes=(domain_shape, ()),
+            output_shapes=(domain_shape, ()),
+        )
 
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):

@@ -2,6 +2,7 @@ import numbers
 from typing import Sequence
 
 import numpy as np
+
 import probnum as pn
 from probnum.typing import FloatLike
 
@@ -24,7 +25,7 @@ def poisson_1d_bvp(
 
     return BoundaryValueProblem(
         domain=domain,
-        diffop=diffops.ScaledLaplaceOperator(alpha=-1.0),
+        diffop=diffops.ScaledLaplaceOperator(domain_shape=domain.shape, alpha=-1.0),
         rhs=rhs,
         boundary_conditions=(
             DirichletBoundaryCondition(
@@ -47,7 +48,7 @@ def poisson_bvp(
 
     return BoundaryValueProblem(
         domain=domain,
-        diffop=diffops.ScaledLaplaceOperator(alpha=-1.0),
+        diffop=diffops.ScaledLaplaceOperator(domain_shape=domain.shape, alpha=-1.0),
         rhs=rhs,
         boundary_conditions=tuple(
             DirichletBoundaryCondition(boundary_part, boundary_values)
@@ -75,7 +76,7 @@ def heat_1d_bvp(
 
     return BoundaryValueProblem(
         domain=domain,
-        diffop=diffops.HeatOperator(),
+        diffop=diffops.HeatOperator(domain_shape=domain.shape),
         rhs=lambda tx: 0,
         boundary_conditions=(
             DirichletBoundaryCondition(

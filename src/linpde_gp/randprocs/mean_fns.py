@@ -23,6 +23,6 @@ class Zero(linfuncops.JaxFunction):
 @linfuncops.LinearFunctionOperator.__call__.register
 def _(self, f: Zero, **kwargs):
     return Zero(
-        input_shape=f.input_shape,  # TODO: This should be an attribute of `self`
-        output_shape=f.output_shape,  # TODO: This should be an attribute of `self`
+        input_shape=self.output_domain_shape,
+        output_shape=self.output_codomain_shape,
     )

@@ -7,6 +7,7 @@ import jax
 from jax import numpy as jnp
 
 import probnum as pn
+from probnum.typing import ShapeLike
 
 from .... import linfuncops
 from ._laplace import scaled_laplace_jax
@@ -43,8 +44,12 @@ def heat_jax(f: linfuncops.JaxFunction, argnum: int = 0) -> linfuncops.JaxFuncti
 
 
 class HeatOperator(linfuncops.JaxLinearOperator):
-    def __init__(self) -> None:
-        super().__init__(L=heat_jax)
+    def __init__(self, domain_shape: ShapeLike) -> None:
+        super().__init__(
+            L=heat_jax,
+            input_shapes=(domain_shape, ()),
+            output_shapes=(domain_shape, ()),
+        )
 
     @functools.singledispatchmethod
     def project(self, basis: linpde_gp.bases.Basis) -> pn.linops.LinearOperator:
