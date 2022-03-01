@@ -93,7 +93,7 @@ class LowRankMatrix(pn.linops.LinearOperator):
         Q2, sqrt_svals, _ = scipy.linalg.svd(R)
 
         U_svd = pn.linops.aslinop(Q1) @ pn.linops.aslinop(Q2)
-        svals = sqrt_svals ** 2
+        svals = sqrt_svals**2
 
         return U_svd, svals, U_svd
 

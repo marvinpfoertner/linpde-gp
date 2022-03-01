@@ -183,7 +183,7 @@ def pivoted_cholesky(A: np.ndarray, k: int) -> np.ndarray:
         buf[1:] -= L[perm[(m + 1) :], :m] @ L[perm[m], :m]
         buf[1:] /= buf[0]
 
-        perm_diag[m:] -= buf ** 2
+        perm_diag[m:] -= buf**2
 
         L[perm[m:], m] = buf
 

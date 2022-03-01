@@ -26,7 +26,7 @@ class ExpQuad(JaxKernel):
         if x1 is None:
             return np.full_like(
                 x0,
-                self._output_scale ** 2,
+                self._output_scale**2,
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
@@ -37,14 +37,14 @@ class ExpQuad(JaxKernel):
 
             square_dists = np.sum(square_dists, axis=-1)
 
-        return self._output_scale ** 2 * np.exp(-0.5 * square_dists)
+        return self._output_scale**2 * np.exp(-0.5 * square_dists)
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if x1 is None:
             return jnp.full_like(
                 x0,
-                self._output_scale ** 2,
+                self._output_scale**2,
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
@@ -55,7 +55,7 @@ class ExpQuad(JaxKernel):
 
             square_dists = jnp.sum(square_dists, axis=-1)
 
-        return self._output_scale ** 2 * jnp.exp(-0.5 * square_dists)
+        return self._output_scale**2 * jnp.exp(-0.5 * square_dists)
 
 
 @ScaledLaplaceOperator.__call__.register
@@ -175,7 +175,7 @@ class ExpQuadLaplacian(JaxKernel):
         new_output_scale = (
             self._alpha0
             * self._alpha1
-            * (self._output_scale / self._lengthscale ** 2) ** 2
+            * (self._output_scale / self._lengthscale**2) ** 2
         )
         d = 1 if self.input_shape == () else self.input_shape[0]
 
@@ -195,7 +195,7 @@ class ExpQuadLaplacian(JaxKernel):
 
         return (
             new_output_scale
-            * (square_dists ** 2 - 2 * (d + 2) * square_dists + d * (d + 2))
+            * (square_dists**2 - 2 * (d + 2) * square_dists + d * (d + 2))
             * np.exp(-0.5 * square_dists)
         )
 
@@ -204,7 +204,7 @@ class ExpQuadLaplacian(JaxKernel):
         new_output_scale = (
             self._alpha0
             * self._alpha1
-            * (self._output_scale / self._lengthscale ** 2) ** 2
+            * (self._output_scale / self._lengthscale**2) ** 2
         )
         d = 1 if self.input_shape == () else self.input_shape[0]
 
@@ -224,6 +224,6 @@ class ExpQuadLaplacian(JaxKernel):
 
         return (
             new_output_scale
-            * (square_dists ** 2 - 2 * (d + 2) * square_dists + d * (d + 2))
+            * (square_dists**2 - 2 * (d + 2) * square_dists + d * (d + 2))
             * jnp.exp(-0.5 * square_dists)
         )
