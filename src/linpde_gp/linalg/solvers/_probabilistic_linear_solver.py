@@ -3,8 +3,7 @@ from typing import Iterable, Iterator, Optional, Tuple
 import numpy as np
 import probnum as pn
 
-from . import (belief_updates, beliefs, observation_ops, policies,
-               stopping_criteria,)
+from . import belief_updates, beliefs, observation_ops, policies, stopping_criteria
 
 
 class ProbabilisticLinearSolver:
