@@ -3,7 +3,6 @@ import dataclasses
 from typing import Optional, Union
 
 import numpy as np
-
 import probnum as pn
 from probnum.typing import ArrayLike
 

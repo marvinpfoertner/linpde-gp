@@ -3,15 +3,9 @@ from typing import Callable, Optional
 import numpy as np
 import probnum as pn
 
+from . import (_probabilistic_linear_solver, belief_updates, beliefs,
+               observation_ops, policies, stopping_criteria,)
 from .. import _helpers as _linalg_helpers
-from . import (
-    _probabilistic_linear_solver,
-    belief_updates,
-    beliefs,
-    observation_ops,
-    policies,
-    stopping_criteria,
-)
 
 
 def problinsolve(

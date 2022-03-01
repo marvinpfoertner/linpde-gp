@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
-
 import probnum as pn
 from probnum.typing import ShapeLike
 

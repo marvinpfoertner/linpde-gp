@@ -1,7 +1,6 @@
 import numpy as np
-import scipy.sparse
-
 import probnum as pn
+import scipy.sparse
 
 from . import bases
 from ..problems.pde.diffops import ScaledLaplaceOperator

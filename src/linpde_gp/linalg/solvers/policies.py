@@ -3,6 +3,7 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 import probnum as pn
+
 import linpde_gp
 
 

@@ -4,8 +4,8 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatLike
 
-from ... import linops
 from . import beliefs
+from ... import linops
 
 
 class LinearSolverBeliefUpdate(abc.ABC):

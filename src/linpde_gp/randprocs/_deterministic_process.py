@@ -1,7 +1,6 @@
 from typing import Callable
 
 import numpy as np
-
 import probnum as pn
 from probnum.typing import ArrayLike, DTypeLike, ShapeLike
 

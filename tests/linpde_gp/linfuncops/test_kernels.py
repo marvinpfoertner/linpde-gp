@@ -1,9 +1,9 @@
 import jax
 import numpy as np
+from probnum.typing import ShapeType
 import pytest
 
 import linpde_gp
-from probnum.typing import ShapeType
 
 jax.config.update("jax_enable_x64", True)
 

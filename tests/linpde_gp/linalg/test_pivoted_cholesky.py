@@ -1,8 +1,9 @@
 import numpy as np
 import probnum as pn
 import probnum.problems.zoo.linalg
-import linpde_gp
 import pytest
+
+import linpde_gp
 
 
 @pytest.fixture

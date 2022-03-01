@@ -1,6 +1,5 @@
 import jax
 import numpy as np
-
 import probnum as pn
 
 from ...linfuncops import JaxLambdaFunction, JaxLinearOperator

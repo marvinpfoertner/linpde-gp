@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Iterator, Sequence
 import functools
 import operator
-from collections.abc import Iterator, Sequence
 from typing import Union
 
 import numpy as np
-import probnum as pn
 from numpy import typing as npt
+import probnum as pn
 from probnum.typing import ArrayLike, FloatLike, ShapeLike, ShapeType
 
 DomainLike = Union["Domain", tuple[FloatLike, FloatLike], list[FloatLike], ArrayLike]

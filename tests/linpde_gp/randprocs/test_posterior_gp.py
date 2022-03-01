@@ -3,12 +3,12 @@ from typing import Optional
 
 import jax
 import numpy as np
+import probnum as pn
+from probnum.typing import ShapeType
 import pytest
 import scipy.linalg
 
 import linpde_gp
-import probnum as pn
-from probnum.typing import ShapeType
 
 jax.config.update("jax_enable_x64", True)
 

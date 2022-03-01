@@ -2,7 +2,6 @@ import numbers
 from typing import Sequence
 
 import numpy as np
-
 import probnum as pn
 from probnum.typing import FloatLike
 

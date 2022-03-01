@@ -6,9 +6,8 @@ import matplotlib.axes
 import matplotlib.collections
 import matplotlib.lines
 import numpy as np
-import scipy.stats
-
 import probnum as pn
+import scipy.stats
 
 
 def plot_gaussian_process(

@@ -4,7 +4,6 @@ from typing import Optional
 import jax
 from jax import numpy as jnp
 import numpy as np
-
 from probnum.typing import ArrayLike, ShapeLike
 
 from ...problems.pde.diffops import ScaledLaplaceOperator

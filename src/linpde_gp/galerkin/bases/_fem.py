@@ -2,10 +2,9 @@ from collections.abc import Callable, Sequence
 from typing import Union
 
 import numpy as np
-import scipy.interpolate
-
 import probnum as pn
 from probnum.typing import FloatLike
+import scipy.interpolate
 
 from . import _basis
 from ... import randprocs

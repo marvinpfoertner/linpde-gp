@@ -1,7 +1,8 @@
 import numpy as np
 import probnum as pn
-import linpde_gp
 import pytest
+
+import linpde_gp
 
 
 @pytest.fixture

@@ -6,9 +6,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from numpy.typing import ArrayLike
-import scipy.linalg
-
 import probnum as pn
+import scipy.linalg
 
 from .. import kernels
 from ... import linfuncops

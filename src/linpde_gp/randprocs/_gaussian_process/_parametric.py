@@ -2,7 +2,6 @@ from ast import Param
 from typing import Callable, Optional, Union
 
 import numpy as np
-
 import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
 
