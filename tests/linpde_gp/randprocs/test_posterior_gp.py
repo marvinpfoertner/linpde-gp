@@ -1,3 +1,4 @@
+from turtle import Shape
 from typing import Optional
 
 import jax
@@ -7,21 +8,27 @@ import scipy.linalg
 
 import linpde_gp
 import probnum as pn
+from probnum.typing import ShapeType
 
 jax.config.update("jax_enable_x64", True)
 
 
-@pytest.fixture(params=[1])
+@pytest.fixture(params=[1], scope="module")
 def input_dim(request) -> int:
     return request.param
 
 
+@pytest.fixture(scope="module")
+def input_shape(input_dim: int) -> ShapeType:
+    return (input_dim,)
+
+
 @pytest.fixture
-def prior(input_dim: int) -> pn.randprocs.GaussianProcess:
+def prior(input_shape: ShapeType) -> pn.randprocs.GaussianProcess:
     return pn.randprocs.GaussianProcess(
-        mean=linpde_gp.randprocs.mean_fns.Zero(input_shape=(input_dim,)),
+        mean=linpde_gp.randprocs.mean_fns.Zero(input_shape=input_shape),
         cov=linpde_gp.randprocs.kernels.ExpQuad(
-            input_shape=(input_dim,),
+            input_shape=input_shape,
             lengthscales=0.25,
             output_scale=2.0,
         ),
@@ -105,8 +112,10 @@ def Ys_err(
 
 
 @pytest.fixture
-def L() -> linpde_gp.linfuncops.LinearFunctionOperator:
-    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator()
+def L(input_shape: ShapeType) -> linpde_gp.linfuncops.LinearFunctionOperator:
+    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(
+        domain_shape=input_shape
+    )
 
 
 @pytest.fixture
