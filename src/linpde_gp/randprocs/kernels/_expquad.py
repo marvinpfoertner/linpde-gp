@@ -1,10 +1,11 @@
 import functools
-from typing import Optional
+from typing import Optional, Union
 
 import jax
 from jax import numpy as jnp
 import numpy as np
-from probnum.typing import ArrayLike, ShapeLike
+import probnum as pn
+from probnum.typing import ArrayLike, ShapeLike, ShapeType
 
 from ...problems.pde.diffops import ScaledLaplaceOperator
 from ._jax import JaxKernel
@@ -14,48 +15,75 @@ class ExpQuad(JaxKernel):
     def __init__(
         self,
         input_shape: ShapeLike,
-        lengthscales: ArrayLike = 1.0,
+        lengthscales: Union[ArrayLike, pn.linops.LinearOperatorLike] = 1.0,
         output_scale: float = 1.0,
     ):
         super().__init__(input_shape, output_shape=())
 
-        self._lengthscales = np.asarray(lengthscales, dtype=np.double)
+        if np.ndim(lengthscales) == 0:
+            self._lengthscales = np.asarray(lengthscales, dtype=np.double)
+        elif np.ndim(lengthscales) == 1:
+            self._lengthscales = np.asarray(lengthscales, dtype=np.double)
+
+            if self._lengthscales.shape != self.input_shape:
+                raise ValueError()
+        else:
+            assert np.ndim(lengthscales) == 2
+
+            self._lengthscales = pn.linops.aslinop(lengthscales)
+
+            if self._lengthscales.shape != 2 * self.input_shape:
+                raise ValueError()
+
         self._output_scale = np.asarray(output_scale, dtype=np.double)
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
         if x1 is None:
             return np.full_like(
                 x0,
-                self._output_scale**2,
+                self._output_scale ** 2,
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscales) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+        else:
+            square_dists_Lambda_sq_inv = self._lengthscales.inv()(x0 - x1, axis=-1)
 
-        if self._input_ndim > 0:
-            assert self._input_ndim == 1
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
 
-            square_dists = np.sum(square_dists, axis=-1)
+        if self.input_ndim > 0:
+            assert self.input_ndim == 1
 
-        return self._output_scale**2 * np.exp(-0.5 * square_dists)
+            square_dists_Lambda_sq_inv = np.sum(square_dists_Lambda_sq_inv, axis=-1)
+
+        return self._output_scale ** 2 * np.exp(-0.5 * square_dists_Lambda_sq_inv)
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if x1 is None:
             return jnp.full_like(
                 x0,
-                self._output_scale**2,
+                self._output_scale ** 2,
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscales) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+        else:
+            # TODO: Remove the `.todense` here, once `LinearOperator`s support Jax
+            lambda_inv = self._lengthscales.inv().todense()
+
+            square_dists_Lambda_sq_inv = (lambda_inv @ (x0 - x1)[..., None])[..., 0]
+
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
 
         if self._input_ndim > 0:
             assert self._input_ndim == 1
 
-            square_dists = jnp.sum(square_dists, axis=-1)
+            square_dists_Lambda_sq_inv = jnp.sum(square_dists_Lambda_sq_inv, axis=-1)
 
-        return self._output_scale**2 * jnp.exp(-0.5 * square_dists)
+        return self._output_scale ** 2 * jnp.exp(-0.5 * square_dists_Lambda_sq_inv)
 
 
 @ScaledLaplaceOperator.__call__.register
@@ -64,7 +92,7 @@ def _(self, f: ExpQuad, *, argnum: int = 0, **kwargs):
         input_shape=f.input_shape,
         argnum=argnum,
         alpha=self._alpha,
-        lengthscale=f._lengthscales,
+        lengthscales=f._lengthscales,
         output_scale=f._output_scale,
     )
 
@@ -72,11 +100,11 @@ def _(self, f: ExpQuad, *, argnum: int = 0, **kwargs):
 class ExpQuadLaplacianCross(JaxKernel):
     def __init__(
         self,
-        input_shape: ShapeLike,
+        input_shape: ShapeType,
         argnum: int,
         alpha: float,
-        lengthscale: float = 1.0,
-        output_scale: float = 1.0,
+        lengthscales: Union[np.ndarray, pn.linops.LinearOperator],
+        output_scale: np.ndarray,
     ):
         super().__init__(input_shape, output_shape=())
 
@@ -86,51 +114,90 @@ class ExpQuadLaplacianCross(JaxKernel):
 
         self._alpha = alpha
 
-        self._lengthscale = float(lengthscale)
-        self._output_scale = float(output_scale)
+        self._lengthscales = lengthscales
+        self._output_scale = output_scale
+
+    @functools.cached_property
+    def _trace_Lambda_sq_inv(self):
+        if self._lengthscales.ndim == 0:
+            d = 1 if self.input_shape == () else self.input_shape[0]
+
+            return d / self._lengthscales ** 2
+        elif self._lengthscales.ndim == 1:
+            return np.sum(1 / self._lengthscales ** 2)
+
+        return (self._lengthscales.inv().T @ self._lengthscales.inv()).trace()
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        new_output_scale = self._alpha * (self._output_scale / self._lengthscale) ** 2
-
-        d = 1 if self.input_shape == () else self.input_shape[0]
-
         if x1 is None:
             return np.full_like(
                 x0,
-                new_output_scale * (-d),
+                self._alpha * self._output_scale ** 2 * (-self._trace_Lambda_sq_inv),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscale) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+            square_dists_Lambda_4_inv = square_dists_Lambda_sq_inv / self._lengthscales
+        else:
+            square_dists_Lambda_sq_inv = self._lengthscales.inv()(x0 - x1, axis=-1)
+            square_dists_Lambda_4_inv = self._lengthscales.inv().T(
+                square_dists_Lambda_sq_inv, axis=-1
+            )
+
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
+        square_dists_Lambda_4_inv = square_dists_Lambda_4_inv ** 2
 
         if self._input_ndim > 0:
             assert self._input_ndim == 1
 
-            square_dists = np.sum(square_dists, axis=-1)
+            square_dists_Lambda_sq_inv = np.sum(square_dists_Lambda_sq_inv, axis=-1)
+            square_dists_Lambda_4_inv = np.sum(square_dists_Lambda_4_inv, axis=-1)
 
-        return new_output_scale * (square_dists - d) * np.exp(-0.5 * square_dists)
+        return (
+            self._alpha
+            * self._output_scale ** 2
+            * (square_dists_Lambda_4_inv - self._trace_Lambda_sq_inv)
+            * np.exp(-0.5 * square_dists_Lambda_sq_inv)
+        )
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        new_output_scale = self._alpha * (self._output_scale / self._lengthscale) ** 2
-
-        d = 1 if self.input_shape == () else self.input_shape[0]
-
         if x1 is None:
             return jnp.full_like(
                 x0,
-                new_output_scale * (-d),
+                self._alpha * self._output_scale ** 2 * (-self._trace_Lambda_sq_inv),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscale) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+            square_dists_Lambda_4_inv = square_dists_Lambda_sq_inv / self._lengthscales
+        else:
+            # TODO: Remove the `.todense` here, once `LinearOperator`s support Jax
+            lambda_inv = self._lengthscales.inv().todense()
+
+            square_dists_Lambda_sq_inv = lambda_inv @ (x0 - x1)[..., None]
+            square_dists_Lambda_4_inv = lambda_inv.T @ square_dists_Lambda_sq_inv
+
+            square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv[..., 0]
+            square_dists_Lambda_4_inv = square_dists_Lambda_4_inv[..., 0]
+
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
+        square_dists_Lambda_4_inv = square_dists_Lambda_4_inv ** 2
 
         if self._input_ndim > 0:
             assert self._input_ndim == 1
 
-            square_dists = jnp.sum(square_dists, axis=-1)
+            square_dists_Lambda_sq_inv = np.sum(square_dists_Lambda_sq_inv, axis=-1)
+            square_dists_Lambda_4_inv = np.sum(square_dists_Lambda_4_inv, axis=-1)
 
-        return new_output_scale * (square_dists - d) * jnp.exp(-0.5 * square_dists)
+        return (
+            self._alpha
+            * self._output_scale ** 2
+            * (square_dists_Lambda_4_inv - self._trace_Lambda_sq_inv)
+            * jnp.exp(-0.5 * square_dists_Lambda_sq_inv)
+        )
 
 
 @ScaledLaplaceOperator.__call__.register
@@ -147,7 +214,7 @@ def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
             input_shape=f.input_shape,
             alpha0=alpha0,
             alpha1=alpha1,
-            lengthscale=f._lengthscale,
+            lengthscales=f._lengthscales,
             output_scale=f._output_scale,
         )
 
@@ -157,73 +224,138 @@ def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
 class ExpQuadLaplacian(JaxKernel):
     def __init__(
         self,
-        input_shape: int,
+        input_shape: ShapeType,
         alpha0: float,
         alpha1: float,
-        lengthscale: float = 1.0,
-        output_scale: float = 1.0,
+        lengthscales: Union[np.ndarray, pn.linops.LinearOperator],
+        output_scale: np.ndarray,
     ):
         super().__init__(input_shape, output_shape=())
 
         self._alpha0 = alpha0
         self._alpha1 = alpha1
 
-        self._lengthscale = float(lengthscale)
-        self._output_scale = float(output_scale)
+        self._lengthscales = lengthscales
+        self._output_scale = output_scale
+
+    @functools.cached_property
+    def _trace_Lambda_sq_inv(self):
+        if self._lengthscales.ndim == 0:
+            d = 1 if self.input_shape == () else self.input_shape[0]
+
+            return d / self._lengthscales ** 2
+        elif self._lengthscales.ndim == 1:
+            return np.sum(1 / self._lengthscales ** 2)
+
+        return (self._lengthscales.inv().T @ self._lengthscales.inv()).trace()
+
+    @functools.cached_property
+    def _trace_Lambda_4_inv(self):
+        if self._lengthscales.ndim == 0:
+            d = 1 if self.input_shape == () else self.input_shape[0]
+
+            return d / self._lengthscales ** 4
+        elif self._lengthscales.ndim == 1:
+            return np.sum(1 / self._lengthscales ** 4)
+
+        return (
+            self._lengthscales.inv().T
+            @ self._lengthscales.inv()
+            @ self._lengthscales.inv().T
+            @ self._lengthscales.inv()
+        ).trace()
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        new_output_scale = (
-            self._alpha0
-            * self._alpha1
-            * (self._output_scale / self._lengthscale**2) ** 2
-        )
-        d = 1 if self.input_shape == () else self.input_shape[0]
-
         if x1 is None:
             return np.full_like(
                 x0,
-                new_output_scale * d * (d + 2),
+                self._alpha0
+                * self._alpha1
+                * self._output_scale ** 2
+                * (self._trace_Lambda_sq_inv ** 2 + 2 * self._trace_Lambda_4_inv),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscale) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+            square_dists_Lambda_4_inv = square_dists_Lambda_sq_inv / self._lengthscales
+            square_dists_Lambda_6_inv = square_dists_Lambda_4_inv / self._lengthscales
+        else:
+            square_dists_Lambda_sq_inv = self._lengthscales.inv()(x0 - x1, axis=-1)
+            square_dists_Lambda_4_inv = self._lengthscales.inv().T(
+                square_dists_Lambda_sq_inv, axis=-1
+            )
+            square_dists_Lambda_6_inv = self._lengthscales.inv()(
+                square_dists_Lambda_4_inv, axis=-1
+            )
+
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
+        square_dists_Lambda_4_inv = square_dists_Lambda_4_inv ** 2
+        square_dists_Lambda_6_inv = square_dists_Lambda_6_inv ** 2
 
         if self._input_ndim > 0:
             assert self._input_ndim == 1
 
-            square_dists = np.sum(square_dists, axis=-1)
+            square_dists_Lambda_sq_inv = np.sum(square_dists_Lambda_sq_inv, axis=-1)
+            square_dists_Lambda_4_inv = np.sum(square_dists_Lambda_4_inv, axis=-1)
+            square_dists_Lambda_6_inv = np.sum(square_dists_Lambda_6_inv, axis=-1)
 
         return (
-            new_output_scale
-            * (square_dists**2 - 2 * (d + 2) * square_dists + d * (d + 2))
-            * np.exp(-0.5 * square_dists)
+            self._alpha0
+            * self._alpha1
+            * self._output_scale ** 2
+            * (
+                (square_dists_Lambda_4_inv - self._trace_Lambda_sq_inv) ** 2
+                - 4 * square_dists_Lambda_6_inv
+                + 2 * self._trace_Lambda_4_inv
+            )
+            * np.exp(-0.5 * square_dists_Lambda_sq_inv)
         )
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        new_output_scale = (
-            self._alpha0
-            * self._alpha1
-            * (self._output_scale / self._lengthscale**2) ** 2
-        )
-        d = 1 if self.input_shape == () else self.input_shape[0]
-
         if x1 is None:
-            return jnp.full_like(
+            return np.full_like(
                 x0,
-                new_output_scale * d * (d + 2),
+                self._alpha0
+                * self._alpha1
+                * self._output_scale ** 2
+                * (self._trace_Lambda_sq_inv ** 2 + 2 * self._trace_Lambda_4_inv),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
 
-        square_dists = ((x0 - x1) / self._lengthscale) ** 2
+        if self._lengthscales.ndim <= 1:
+            square_dists_Lambda_sq_inv = (x0 - x1) / self._lengthscales
+            square_dists_Lambda_4_inv = square_dists_Lambda_sq_inv / self._lengthscales
+            square_dists_Lambda_6_inv = square_dists_Lambda_4_inv / self._lengthscales
+        else:
+            square_dists_Lambda_sq_inv = self._lengthscales.inv()(x0 - x1, axis=-1)
+            square_dists_Lambda_4_inv = self._lengthscales.inv().T(
+                square_dists_Lambda_sq_inv, axis=-1
+            )
+            square_dists_Lambda_6_inv = self._lengthscales.inv()(
+                square_dists_Lambda_4_inv, axis=-1
+            )
+
+        square_dists_Lambda_sq_inv = square_dists_Lambda_sq_inv ** 2
+        square_dists_Lambda_4_inv = square_dists_Lambda_4_inv ** 2
+        square_dists_Lambda_6_inv = square_dists_Lambda_6_inv ** 2
 
         if self._input_ndim > 0:
             assert self._input_ndim == 1
 
-            square_dists = jnp.sum(square_dists, axis=-1)
+            square_dists_Lambda_sq_inv = np.sum(square_dists_Lambda_sq_inv, axis=-1)
+            square_dists_Lambda_4_inv = np.sum(square_dists_Lambda_4_inv, axis=-1)
+            square_dists_Lambda_6_inv = np.sum(square_dists_Lambda_6_inv, axis=-1)
 
         return (
-            new_output_scale
-            * (square_dists**2 - 2 * (d + 2) * square_dists + d * (d + 2))
-            * jnp.exp(-0.5 * square_dists)
+            self._alpha0
+            * self._alpha1
+            * self._output_scale ** 2
+            * (
+                (square_dists_Lambda_4_inv - self._trace_Lambda_sq_inv) ** 2
+                - 4 * square_dists_Lambda_6_inv
+                + 2 * self._trace_Lambda_4_inv
+            )
+            * np.exp(-0.5 * square_dists_Lambda_sq_inv)
         )
