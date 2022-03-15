@@ -1,3 +1,5 @@
+import functools
+
 import jax
 import numpy as np
 import probnum as pn
@@ -15,6 +17,10 @@ class DirectionalDerivative(linfuncops.JaxLinearOperator):
             input_shapes=(self._direction.shape, ()),
             output_shapes=(self._direction.shape, ()),
         )
+
+    @functools.singledispatchmethod
+    def __call__(self, f, **kwargs):
+        return super().__call__(f, **kwargs)
 
     def _jax_fallback(
         self, f: linfuncops.JaxFunction, argnum: int = 0
@@ -41,6 +47,10 @@ class PartialDerivative(DirectionalDerivative):
 
         super().__init__(direction)
 
+    @functools.singledispatchmethod
+    def __call__(self, f, **kwargs):
+        return super().__call__(f, **kwargs)
+
 
 class TimeDerivative(PartialDerivative):
     def __init__(self, domain_shape: ShapeLike) -> None:
@@ -52,3 +62,7 @@ class TimeDerivative(PartialDerivative):
             domain_shape,
             domain_index=() if domain_shape == () else (0,),
         )
+
+    @functools.singledispatchmethod
+    def __call__(self, f, **kwargs):
+        return super().__call__(f, **kwargs)

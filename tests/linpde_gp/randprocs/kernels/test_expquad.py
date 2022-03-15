@@ -80,11 +80,33 @@ def k(
     )
 
 
-@pytest_cases.fixture(scope="module")
-def L(input_shape: ShapeType) -> linpde_gp.linfuncops.JaxLinearOperator:
+def case_linfuncop_scaled_laplace(
+    input_shape: ShapeType,
+) -> linpde_gp.linfuncops.JaxLinearOperator:
     return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(
         domain_shape=input_shape, alpha=-1.0
     )
+
+
+def case_linfuncop_directional_derivative(
+    input_shape: ShapeType,
+) -> linpde_gp.linfuncops.JaxLinearOperator:
+    return linpde_gp.problems.pde.diffops.TimeDerivative(
+        domain_shape=input_shape,
+    )
+
+
+@pytest_cases.fixture(scope="module")
+@pytest_cases.parametrize_with_cases(
+    "linfuncop",
+    cases=pytest_cases.THIS_MODULE,
+    glob="linfuncop_*",
+    scope="module",
+)
+def L(
+    linfuncop: linpde_gp.linfuncops.LinearFunctionOperator,
+) -> linpde_gp.linfuncops.JaxLinearOperator:
+    return linfuncop
 
 
 @pytest_cases.fixture(scope="module")

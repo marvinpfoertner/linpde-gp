@@ -5,7 +5,7 @@ import jax
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, ShapeLike, ShapeType
+from probnum.typing import ArrayLike, ShapeLike
 
 from ._jax import JaxKernel
 
