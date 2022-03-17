@@ -1,5 +1,6 @@
 import abc
 from collections.abc import Callable
+import functools
 from typing import Optional
 
 from jax import numpy as jnp
@@ -31,6 +32,10 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
     @abc.abstractmethod
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         pass
+
+    @functools.singledispatchmethod
+    def __add__(self, other) -> pn.randprocs.kernels.Kernel:
+        raise NotImplementedError()
 
 
 @linfuncops.JaxLinearOperator.__call__.register
