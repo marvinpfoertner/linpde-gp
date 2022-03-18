@@ -7,7 +7,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ShapeType
 
-from ....problems.pde.diffops import ScaledLaplaceOperator
+from ....problems.pde.diffops import ScaledLaplaceOperator, ScaledSpatialLaplacian
 from .._expquad import ExpQuad
 from .._jax import JaxKernel
 
@@ -277,6 +277,145 @@ def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
             alpha1 = self._alpha
 
         return ExpQuadLaplacian(
+            input_shape=f.input_shape,
+            alpha0=alpha0,
+            alpha1=alpha1,
+            lengthscales=f._lengthscales,
+            output_scale=f._output_scale,
+        )
+
+    return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
+
+
+class ExpQuadSpatialLaplacianCross(JaxKernel):
+    def __init__(
+        self,
+        input_shape: ShapeType,
+        argnum: int,
+        alpha: float,
+        lengthscales: Union[np.ndarray, pn.linops.LinearOperator],
+        output_scale: np.ndarray,
+    ):
+        super().__init__(input_shape, output_shape=())
+
+        (D,) = self._input_shape
+        assert D > 1
+
+        assert argnum in (0, 1)
+
+        self._argnum = argnum
+
+        self._alpha = alpha
+
+        self._lengthscales = lengthscales
+        self._output_scale = output_scale
+
+        self._expquad_time = ExpQuad(
+            input_shape=(),
+            lengthscales=self._lengthscales
+            if self._lengthscales.ndim == 0
+            else self._lengthscales[0],
+            output_scale=self._output_scale,
+        )
+        self._laplacian_expquad_space = ExpQuadLaplacianCross(
+            input_shape=(D - 1,),
+            argnum=self._argnum,
+            alpha=self._alpha,
+            lengthscales=self._lengthscales
+            if self._lengthscales.ndim == 0
+            else self._lengthscales[1:],
+            output_scale=1.0,
+        )
+
+    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        return self._expquad_time(
+            x0[..., 0], None if x1 is None else x1[..., 0]
+        ) * self._laplacian_expquad_space(
+            x0[..., 1:], None if x1 is None else x1[..., 1:]
+        )
+
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        return self._expquad_time.jax(
+            x0[..., 0], None if x1 is None else x1[..., 0]
+        ) * self._laplacian_expquad_space.jax(
+            x0[..., 1:], None if x1 is None else x1[..., 1:]
+        )
+
+
+@ScaledSpatialLaplacian.__call__.register
+def _(self, f: ExpQuad, *, argnum: int = 0, **kwargs):
+    return ExpQuadSpatialLaplacianCross(
+        input_shape=f.input_shape,
+        argnum=argnum,
+        alpha=self._alpha,
+        lengthscales=f._lengthscales,
+        output_scale=f._output_scale,
+    )
+
+
+class ExpQuadSpatialLaplacianBoth(JaxKernel):
+    def __init__(
+        self,
+        input_shape: ShapeType,
+        alpha0: float,
+        alpha1: float,
+        lengthscales: Union[np.ndarray, pn.linops.LinearOperator],
+        output_scale: np.ndarray,
+    ):
+        super().__init__(input_shape, output_shape=())
+
+        (D,) = self._input_shape
+        assert D > 1
+
+        self._alpha0 = alpha0
+        self._alpha1 = alpha1
+
+        self._lengthscales = lengthscales
+        self._output_scale = output_scale
+
+        self._expquad_time = ExpQuad(
+            input_shape=(),
+            lengthscales=self._lengthscales
+            if self._lengthscales.ndim == 0
+            else self._lengthscales[0],
+            output_scale=self._output_scale,
+        )
+        self._laplacian_expquad_space = ExpQuadLaplacian(
+            input_shape=(D - 1,),
+            alpha0=self._alpha0,
+            alpha1=self._alpha1,
+            lengthscales=self._lengthscales
+            if self._lengthscales.ndim == 0
+            else self._lengthscales[1:],
+            output_scale=1.0,
+        )
+
+    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        return self._expquad_time(
+            x0[..., 0], None if x1 is None else x1[..., 0]
+        ) * self._laplacian_expquad_space(
+            x0[..., 1:], None if x1 is None else x1[..., 1:]
+        )
+
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        return self._expquad_time.jax(
+            x0[..., 0], None if x1 is None else x1[..., 0]
+        ) * self._laplacian_expquad_space.jax(
+            x0[..., 1:], None if x1 is None else x1[..., 1:]
+        )
+
+
+@ScaledSpatialLaplacian.__call__.register
+def _(self, f: ExpQuadSpatialLaplacianCross, *, argnum: int = 0, **kwargs):
+    if argnum != f._argnum:
+        if argnum == 0:
+            alpha0 = self._alpha
+            alpha1 = f._alpha
+        else:
+            alpha0 = f._alpha
+            alpha1 = self._alpha
+
+        return ExpQuadSpatialLaplacianBoth(
             input_shape=f.input_shape,
             alpha0=alpha0,
             alpha1=alpha1,
