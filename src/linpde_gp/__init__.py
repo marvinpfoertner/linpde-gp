@@ -1,4 +1,4 @@
-from . import linops, linfuncops, randprocs  # isort: skip
+from . import linops, function, linfuncops, randprocs  # isort: skip
 
 from . import galerkin, linalg, plotting, problems, randvars
 

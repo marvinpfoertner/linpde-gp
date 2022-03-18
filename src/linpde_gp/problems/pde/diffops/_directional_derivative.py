@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import functools
 
 import jax
@@ -13,18 +14,15 @@ class DirectionalDerivative(linfuncops.JaxLinearOperator):
         self._direction = np.asarray(direction)
 
         super().__init__(
-            L=self._jax_fallback,
             input_shapes=(self._direction.shape, ()),
             output_shapes=(self._direction.shape, ()),
         )
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
-    def _jax_fallback(
-        self, f: linfuncops.JaxFunction, argnum: int = 0
-    ) -> linfuncops.JaxFunction:
+    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
         @jax.jit
         def _f_dir_deriv(*args):
             f_arg = lambda arg: f(*args[:argnum], arg, *args[argnum + 1 :])
@@ -48,7 +46,7 @@ class PartialDerivative(DirectionalDerivative):
         super().__init__(direction)
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
 
@@ -64,5 +62,5 @@ class TimeDerivative(PartialDerivative):
         )
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)

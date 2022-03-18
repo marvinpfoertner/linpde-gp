@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import functools
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     import linpde_gp
 
 
-def heat_jax(f: linfuncops.JaxFunction, argnum: int = 0) -> linfuncops.JaxFunction:
+def heat_jax(f: Callable, /, *, argnum: int = 0) -> Callable:
     @jax.jit
     def _f(*args, **kwargs) -> jnp.ndarray:
         t, x = args[argnum : argnum + 2]

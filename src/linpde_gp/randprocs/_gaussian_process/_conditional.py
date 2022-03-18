@@ -10,7 +10,7 @@ import probnum as pn
 import scipy.linalg
 
 from .. import kernels
-from ... import linfuncops
+from ... import function, linfuncops
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
@@ -105,10 +105,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             ),
         )
 
-    class Mean(linfuncops.JaxFunction):
+    class Mean(function.JaxFunction):
         def __init__(
             self,
-            prior_mean: linfuncops.JaxFunction,
+            prior_mean: function.JaxFunction,
             kLas_Xs: Callable[[np.ndarray], np.ndarray],
             kLas_Xs_jax: Callable[[jnp.ndarray], jnp.ndarray],
             representer_weights: np.ndarray,
@@ -308,19 +308,21 @@ pn.randprocs.GaussianProcess.condition_on_observations = (
 
 
 @linfuncops.LinearFunctionOperator.__call__.register
-def _(self, f: ConditionalGaussianProcess, **kwargs) -> ConditionalGaussianProcess:
-    linop_prior = self(f._prior)
+def _(
+    self, conditional_gp: ConditionalGaussianProcess, /
+) -> ConditionalGaussianProcess:
+    linop_prior = self(conditional_gp._prior)
 
     return ConditionalGaussianProcess(
         prior=linop_prior,
-        Ls=f._Ls,
-        bs=f._bs,
-        Xs=f._Xs,
-        Ys=f._Ys,
-        kLas=[self(k_cross, argnum=0) for k_cross in f._kLas],
-        gram_Xs_Xs_blocks=f._gram_Xs_Xs_blocks,
-        gram_Xs_Xs_cho=f._gram_Xs_Xs_cho,
-        representer_weights=f._representer_weights,
+        Ls=conditional_gp._Ls,
+        bs=conditional_gp._bs,
+        Xs=conditional_gp._Xs,
+        Ys=conditional_gp._Ys,
+        kLas=[self(k_cross, argnum=0) for k_cross in conditional_gp._kLas],
+        gram_Xs_Xs_blocks=conditional_gp._gram_Xs_Xs_blocks,
+        gram_Xs_Xs_cho=conditional_gp._gram_Xs_Xs_cho,
+        representer_weights=conditional_gp._representer_weights,
     )
 
 

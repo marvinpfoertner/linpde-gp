@@ -82,12 +82,12 @@ class ExpQuadDirectionalDerivativeCross(JaxKernel):
 
 
 @diffops.DirectionalDerivative.__call__.register
-def _(self, f: ExpQuad, *, argnum: int = 0, **kwargs):
+def _(self, k: ExpQuad, /, *, argnum: int = 0):
     return ExpQuadDirectionalDerivativeCross(
         input_shape=self.output_domain_shape,
         argnum=argnum,
-        lengthscales=f._lengthscales,
-        output_scale=f._output_scale,
+        lengthscales=k._lengthscales,
+        output_scale=k._output_scale,
         direction=self._direction,
     )
 
@@ -186,22 +186,22 @@ class ExpQuadDirectionalDerivativeBoth(JaxKernel):
 
 
 @diffops.DirectionalDerivative.__call__.register
-def _(self, f: ExpQuadDirectionalDerivativeCross, *, argnum: int = 0, **kwargs):
-    if f._argnum == 1 and argnum == 0:
+def _(self, k: ExpQuadDirectionalDerivativeCross, /, *, argnum: int = 0):
+    if k._argnum == 1 and argnum == 0:
         direction0 = self._direction
-        direction1 = f._direction
-    elif f._argnum == 0 and argnum == 1:
-        direction0 = f._direction
+        direction1 = k._direction
+    elif k._argnum == 0 and argnum == 1:
+        direction0 = k._direction
         direction1 = self._direction
     else:
         return super(diffops.DirectionalDerivative, self).__call__(
-            f, argnum=argnum, **kwargs
+            k, argnum=argnum, **kwargs
         )
 
     return ExpQuadDirectionalDerivativeBoth(
         input_shape=self.output_domain_shape,
-        lengthscales=f._expquad_lengthscales,
-        output_scale=f._expquad_output_scale,
+        lengthscales=k._expquad_lengthscales,
+        output_scale=k._expquad_output_scale,
         direction0=direction0,
         direction1=direction1,
     )

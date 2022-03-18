@@ -47,8 +47,3 @@ class JaxSumKernel(JaxKernel):
                 expanded_summands.append(summand)
 
         return tuple(expanded_summands)
-
-
-@JaxKernel.__add__.register
-def _(self, other: JaxKernel) -> JaxKernel:
-    return JaxSumKernel(self, other)

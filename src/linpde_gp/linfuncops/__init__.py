@@ -1,2 +1,2 @@
-from ._jax import JaxFunction, JaxLambdaFunction, JaxLinearOperator
+from ._jax import JaxLambdaLinearOperator, JaxLinearOperator
 from ._linfuncop import LinearFunctionOperator

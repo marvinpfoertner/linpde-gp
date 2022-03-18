@@ -2,7 +2,8 @@ import jax
 import numpy as np
 import probnum as pn
 
-from ...linfuncops import JaxLambdaFunction, JaxLinearOperator
+from ...function import JaxLambdaFunction
+from ...linfuncops import JaxLinearOperator
 from ..kernels import JaxKernel, JaxLambdaKernel
 
 

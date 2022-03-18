@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import functools
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def scaled_laplace_jax(
-    f: linfuncops.JaxFunction, *, argnum: int = 0, alpha: float = 1.0
+    f: linfuncops.JaxFunction, /, *, argnum: int = 0, alpha: float = 1.0
 ) -> linfuncops.JaxFunction:
     Hf = jax.jit(jax.hessian(f, argnum))
 
@@ -31,14 +32,16 @@ class ScaledLaplaceOperator(linfuncops.JaxLinearOperator):
         self._alpha = alpha
 
         super().__init__(
-            L=functools.partial(scaled_laplace_jax, alpha=self._alpha),
             input_shapes=(domain_shape, ()),
             output_shapes=(domain_shape, ()),
         )
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
+
+    def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
+        return scaled_laplace_jax(f, alpha=self._alpha, **kwargs)
 
     @functools.singledispatchmethod
     def project(self, basis: linpde_gp.bases.Basis) -> pn.linops.LinearOperator:
@@ -54,13 +57,12 @@ class ScaledSpatialLaplacian(linfuncops.JaxLinearOperator):
         self._alpha = alpha
 
         super().__init__(
-            L=self._jax_fallback,
             input_shapes=(domain_shape, ()),
             output_shapes=(domain_shape, ()),
         )
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
     def _jax_fallback(self, f, argnum: int = 0):

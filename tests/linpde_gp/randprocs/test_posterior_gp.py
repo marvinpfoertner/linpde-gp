@@ -1,12 +1,12 @@
-from turtle import Shape
 from typing import Optional
 
 import jax
 import numpy as np
 import probnum as pn
 from probnum.typing import ShapeType
-import pytest
 import scipy.linalg
+
+import pytest
 
 import linpde_gp
 
@@ -212,7 +212,7 @@ def condition_gp_on_observations(
         return kxx - kxX @ jax.scipy.linalg.cho_solve(gram_cho, kXx)
 
     cond_gp = pn.randprocs.GaussianProcess(
-        mean=linpde_gp.linfuncops.JaxLambdaFunction(
+        mean=linpde_gp.function.JaxLambdaFunction(
             cond_mean, input_shape=gp.input_shape, vectorize=True
         ),
         cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(
@@ -233,7 +233,7 @@ def apply_jax_linop_to_gp(
     cov = L(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
-        mean=linpde_gp.linfuncops.JaxLambdaFunction(
+        mean=linpde_gp.function.JaxLambdaFunction(
             mean, input_shape=gp.input_shape, vectorize=True
         ),
         cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(

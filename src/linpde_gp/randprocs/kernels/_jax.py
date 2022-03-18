@@ -34,16 +34,19 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         pass
 
-    @functools.singledispatchmethod
-    def __add__(self, other) -> pn.randprocs.kernels.Kernel:
-        raise NotImplementedError()
+    def __add__(
+        self, other: pn.randprocs.kernels.Kernel
+    ) -> pn.randprocs.kernels.Kernel:
+        from ._jax_arithmetic import JaxSumKernel
+
+        return JaxSumKernel(self, other)
 
 
 @linfuncops.JaxLinearOperator.__call__.register
-def _(self, f: JaxKernel, *, argnum=0, **kwargs):
+def _(self, k: JaxKernel, /, *, argnum=0):
     return JaxLambdaKernel(
-        self._L(f.jax, argnum=argnum, **kwargs),
-        input_shape=f.input_shape,
+        self._jax_fallback(k.jax, argnum=argnum),
+        input_shape=k.input_shape,
         vectorize=True,
     )
 

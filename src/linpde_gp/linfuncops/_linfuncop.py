@@ -37,5 +37,5 @@ class LinearFunctionOperator:
         return self._output_codomain_shape
 
     @functools.singledispatchmethod
-    def __call__(self, f, **kwargs):
+    def __call__(self, f, /, **kwargs):
         raise NotImplementedError()
