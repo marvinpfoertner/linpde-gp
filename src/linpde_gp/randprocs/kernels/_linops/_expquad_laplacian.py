@@ -7,9 +7,14 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ShapeType
 
-from ....problems.pde.diffops import ScaledLaplaceOperator, ScaledSpatialLaplacian
+from ....problems.pde.diffops import (
+    DirectionalDerivative,
+    ScaledLaplaceOperator,
+    ScaledSpatialLaplacian,
+)
 from .._expquad import ExpQuad
 from .._jax import JaxKernel
+from ._expquad_directional_derivative import ExpQuadDirectionalDerivativeCross
 
 
 class ExpQuadLaplacianCross(JaxKernel):
@@ -287,6 +292,132 @@ def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
     return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
 
 
+class ExpQuadDirectionalDerivativeLaplacian(JaxKernel):
+    def __init__(
+        self,
+        expquad_laplacian: ExpQuadLaplacianCross,
+        direction: np.ndarray,
+    ):
+        self._expquad_laplacian = expquad_laplacian
+        self._expquad = ExpQuad(
+            input_shape=self._expquad_laplacian.input_shape,
+            lengthscales=self._expquad_laplacian._lengthscales,
+            output_scale=self._expquad_laplacian._output_scale,
+        )
+
+        super().__init__(
+            self._expquad_laplacian.input_shape,
+            output_shape=self._expquad_laplacian.output_shape,
+        )
+
+        self._direction = direction
+
+        self._sign = 1.0 if self._expquad_laplacian._argnum == 1 else -1.0
+
+    @functools.cached_property
+    def _direction_Lambda_sq_inv(self) -> np.ndarray:
+        return self._direction / self._expquad._lengthscales ** 2
+
+    @functools.cached_property
+    def _direction_Lambda_4_inv(self) -> np.ndarray:
+        return self._direction_Lambda_sq_inv / self._expquad._lengthscales ** 2
+
+    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        if x1 is None:
+            return np.zeros_like(
+                x0,
+                shape=x0.shape[: x0.ndim - self._input_ndim],
+            )
+
+        k_x0_x1 = self._expquad(x0, x1)
+        laplacian_k_x0_x1 = self._expquad_laplacian(x0, x1)
+
+        diffs = x0 - x1
+
+        direction_diffs_inprod_Lambda_sq_inv = self._direction_Lambda_sq_inv * diffs
+        direction_diffs_inprod_Lambda_4_inv = self._direction_Lambda_4_inv * diffs
+
+        if self._input_ndim > 0:
+            assert self._input_ndim == 1
+
+            direction_diffs_inprod_Lambda_sq_inv = np.sum(
+                direction_diffs_inprod_Lambda_sq_inv, axis=-1
+            )
+            direction_diffs_inprod_Lambda_4_inv = np.sum(
+                direction_diffs_inprod_Lambda_4_inv, axis=-1
+            )
+
+        return self._sign * (
+            2
+            * self._expquad_laplacian._alpha
+            * direction_diffs_inprod_Lambda_4_inv
+            * k_x0_x1
+            - direction_diffs_inprod_Lambda_sq_inv * laplacian_k_x0_x1
+        )
+
+    @functools.partial(jax.jit, static_argnums=0)
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        if x1 is None:
+            return jnp.zeros_like(
+                x0,
+                shape=x0.shape[: x0.ndim - self._input_ndim],
+            )
+
+        k_x0_x1 = self._expquad.jax(x0, x1)
+        laplacian_k_x0_x1 = self._expquad_laplacian.jax(x0, x1)
+
+        diffs = x0 - x1
+
+        direction_diffs_inprod_Lambda_sq_inv = self._direction_Lambda_sq_inv * diffs
+        direction_diffs_inprod_Lambda_4_inv = self._direction_Lambda_4_inv * diffs
+
+        if self._input_ndim > 0:
+            assert self._input_ndim == 1
+
+            direction_diffs_inprod_Lambda_sq_inv = jnp.sum(
+                direction_diffs_inprod_Lambda_sq_inv, axis=-1
+            )
+            direction_diffs_inprod_Lambda_4_inv = jnp.sum(
+                direction_diffs_inprod_Lambda_4_inv, axis=-1
+            )
+
+        return self._sign * (
+            2
+            * self._expquad_laplacian._alpha
+            * direction_diffs_inprod_Lambda_4_inv
+            * k_x0_x1
+            + direction_diffs_inprod_Lambda_sq_inv * laplacian_k_x0_x1
+        )
+
+
+@ScaledLaplaceOperator.__call__.register
+def _(self, f: ExpQuadDirectionalDerivativeCross, *, argnum: int = 0, **kwargs):
+    if f._argnum != argnum:
+        return ExpQuadDirectionalDerivativeLaplacian(
+            expquad_laplacian=ExpQuadLaplacianCross(
+                input_shape=f.input_shape,
+                argnum=argnum,
+                alpha=self._alpha,
+                lengthscales=f._expquad_lengthscales,
+                output_scale=f._expquad_output_scale,
+            ),
+            direction=f._direction,
+        )
+
+    return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
+
+
+@DirectionalDerivative.__call__.register
+def _(self, f: ExpQuadLaplacianCross, *, argnum: int = 0, **kwargs):
+    if f._argnum != argnum:
+        return ExpQuadDirectionalDerivativeLaplacian(
+            expquad_laplacian=f,
+            direction=self._direction,
+        )
+
+    return super(DirectionalDerivative, self).__call__(f, argnum=argnum, **kwargs)
+
+
 class ExpQuadSpatialLaplacianCross(JaxKernel):
     def __init__(
         self,
@@ -424,3 +555,98 @@ def _(self, f: ExpQuadSpatialLaplacianCross, *, argnum: int = 0, **kwargs):
         )
 
     return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
+
+
+class ExpQuadDirectionalDerivativeSpatialLaplacian(JaxKernel):
+    def __init__(
+        self,
+        input_shape: ShapeType,
+        lengthscales: np.ndarray,
+        output_scale: np.ndarray,
+        direction: np.ndarray,
+        alpha: float,
+        reverse: bool = False,
+    ):
+        super().__init__(input_shape, output_shape=())
+
+        (D,) = self._input_shape
+        assert D > 1
+
+        self._k0 = ExpQuad(
+            input_shape=(),
+            lengthscales=lengthscales[0],
+            output_scale=output_scale,
+        )
+
+        self._k_rest = ExpQuad(
+            input_shape=(D - 1,),
+            lengthscales=lengthscales[1:],
+            output_scale=output_scale,
+        )
+
+        self._k_temporal = ExpQuadDirectionalDerivativeCross(
+            input_shape=(),
+            argnum=1 if reverse else 0,
+            lengthscales=lengthscales[..., 0],
+            output_scale=1.0,
+            direction=direction[0],
+        )
+
+        self._k_spatial = ExpQuadDirectionalDerivativeLaplacian(
+            expquad_laplacian=ExpQuadLaplacianCross(
+                input_shape=(D - 1,),
+                argnum=0 if reverse else 1,
+                alpha=alpha,
+                lengthscales=lengthscales[..., 1:],
+                output_scale=1.0,
+            ),
+            direction=direction[1:],
+        )
+
+    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        return (
+            self._k_temporal(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_rest(x0[..., 1:], None if x1 is None else x1[..., 1:])
+        ) + (
+            self._k0(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_spatial(x0[..., 1:], None if x1 is None else x1[..., 1:])
+        )
+
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        return (
+            self._k_temporal.jax(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_rest.jax(x0[..., 1:], None if x1 is None else x1[..., 1:])
+        ) + (
+            self._k0.jax(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_spatial.jax(x0[..., 1:], None if x1 is None else x1[..., 1:])
+        )
+
+
+@ScaledSpatialLaplacian.__call__.register
+def _(self, f: ExpQuadDirectionalDerivativeCross, *, argnum: int = 0, **kwargs):
+    if f._argnum != argnum:
+        return ExpQuadDirectionalDerivativeSpatialLaplacian(
+            input_shape=f.input_shape,
+            lengthscales=f._expquad_lengthscales,
+            output_scale=f._expquad_output_scale,
+            direction=f._direction,
+            alpha=self._alpha,
+            reverse=(argnum == 0),
+        )
+
+    return super(ScaledLaplaceOperator, self).__call__(f, argnum=argnum, **kwargs)
+
+
+@DirectionalDerivative.__call__.register
+def _(self, f: ExpQuadSpatialLaplacianCross, *, argnum: int = 0, **kwargs):
+    if f._argnum != argnum:
+        return ExpQuadDirectionalDerivativeSpatialLaplacian(
+            input_shape=f.input_shape,
+            lengthscales=f._lengthscales,
+            output_scale=f._output_scale,
+            direction=self._direction,
+            alpha=f._alpha,
+            reverse=(argnum == 1),
+        )
+
+    return super(DirectionalDerivative, self).__call__(f, argnum=argnum, **kwargs)
