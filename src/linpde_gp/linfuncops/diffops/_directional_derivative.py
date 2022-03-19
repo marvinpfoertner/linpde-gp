@@ -18,6 +18,10 @@ class DirectionalDerivative(JaxLinearOperator):
             output_shapes=(self._direction.shape, ()),
         )
 
+    @property
+    def direction(self) -> np.ndarray:
+        return self._direction
+
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
