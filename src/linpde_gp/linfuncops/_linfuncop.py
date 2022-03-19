@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 
 import probnum as pn
@@ -39,3 +41,8 @@ class LinearFunctionOperator:
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         raise NotImplementedError()
+
+    def __add__(self, other: LinearFunctionOperator) -> LinearFunctionOperator:
+        from ._arithmetic import SumLinearFunctionOperator
+
+        return SumLinearFunctionOperator(self, other)
