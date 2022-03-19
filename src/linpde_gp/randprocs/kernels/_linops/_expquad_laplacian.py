@@ -572,32 +572,36 @@ class ExpQuadDirectionalDerivativeSpatialLaplacian(JaxKernel):
         (D,) = self._input_shape
         assert D > 1
 
-        self._k0 = ExpQuad(
-            input_shape=(),
-            lengthscales=lengthscales[0],
-            output_scale=output_scale,
-        )
-
-        self._k_rest = ExpQuad(
-            input_shape=(D - 1,),
-            lengthscales=lengthscales[1:],
-            output_scale=output_scale,
-        )
-
-        self._k_temporal = ExpQuadDirectionalDerivativeCross(
+        self._k_temporal_directional_derivative = ExpQuadDirectionalDerivativeCross(
             input_shape=(),
             argnum=1 if reverse else 0,
-            lengthscales=lengthscales[..., 0],
+            lengthscales=lengthscales[0] if lengthscales.ndim > 0 else lengthscales,
             output_scale=1.0,
             direction=direction[0],
         )
 
-        self._k_spatial = ExpQuadDirectionalDerivativeLaplacian(
+        self._k_spatial_laplacian = ExpQuadLaplacianCross(
+            input_shape=(D - 1,),
+            argnum=1 if reverse else 0,
+            alpha=alpha,
+            lengthscales=lengthscales[1:] if lengthscales.ndim > 0 else lengthscales,
+            output_scale=output_scale,
+        )
+
+        self._k_temporal = ExpQuad(
+            input_shape=(),
+            lengthscales=lengthscales[0] if lengthscales.ndim > 0 else lengthscales,
+            output_scale=output_scale,
+        )
+
+        self._k_spatial_cross = ExpQuadDirectionalDerivativeLaplacian(
             expquad_laplacian=ExpQuadLaplacianCross(
                 input_shape=(D - 1,),
                 argnum=0 if reverse else 1,
                 alpha=alpha,
-                lengthscales=lengthscales[..., 1:],
+                lengthscales=(
+                    lengthscales[1:] if lengthscales.ndim > 0 else lengthscales
+                ),
                 output_scale=1.0,
             ),
             direction=direction[1:],
@@ -605,20 +609,30 @@ class ExpQuadDirectionalDerivativeSpatialLaplacian(JaxKernel):
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
         return (
-            self._k_temporal(x0[..., 0], None if x1 is None else x1[..., 0])
-            * self._k_rest(x0[..., 1:], None if x1 is None else x1[..., 1:])
+            self._k_temporal_directional_derivative(
+                x0[..., 0], None if x1 is None else x1[..., 0]
+            )
+            * self._k_spatial_laplacian(
+                x0[..., 1:], None if x1 is None else x1[..., 1:]
+            )
         ) + (
-            self._k0(x0[..., 0], None if x1 is None else x1[..., 0])
-            * self._k_spatial(x0[..., 1:], None if x1 is None else x1[..., 1:])
+            self._k_temporal(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_spatial_cross(x0[..., 1:], None if x1 is None else x1[..., 1:])
         )
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         return (
-            self._k_temporal.jax(x0[..., 0], None if x1 is None else x1[..., 0])
-            * self._k_rest.jax(x0[..., 1:], None if x1 is None else x1[..., 1:])
+            self._k_temporal_directional_derivative.jax(
+                x0[..., 0], None if x1 is None else x1[..., 0]
+            )
+            * self._k_spatial_laplacian.jax(
+                x0[..., 1:], None if x1 is None else x1[..., 1:]
+            )
         ) + (
-            self._k0.jax(x0[..., 0], None if x1 is None else x1[..., 0])
-            * self._k_spatial.jax(x0[..., 1:], None if x1 is None else x1[..., 1:])
+            self._k_temporal.jax(x0[..., 0], None if x1 is None else x1[..., 0])
+            * self._k_spatial_cross.jax(
+                x0[..., 1:], None if x1 is None else x1[..., 1:]
+            )
         )
 
 
