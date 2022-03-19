@@ -57,51 +57,14 @@ def L(
     return diffop
 
 
-@pytest_cases.fixture(scope="module")
-def Lk_jax(
-    k_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
-) -> linpde_gp.randprocs.kernels.JaxKernel:
-    return L(k_jax, argnum=0)
-
-
-@pytest_cases.fixture(scope="module")
-def kLa_jax(
-    k_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
-) -> linpde_gp.randprocs.kernels.JaxKernel:
-    return L(k_jax, argnum=1)
-
-
-@pytest_cases.fixture(scope="module")
-def LkLa_jax(
-    kLa_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
-) -> linpde_gp.randprocs.kernels.JaxKernel:
-    return L(kLa_jax, argnum=0)
-
-
-def test_Lk(
-    k: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
-    Lk_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    X: np.ndarray,
-):
-    Lk = L(k, argnum=0)
-
-    np.testing.assert_allclose(
-        Lk(X[:, None], X[None, :]),
-        Lk_jax(X[:, None], X[None, :]),
-    )
-
-
 def test_kLa(
     k: linpde_gp.randprocs.kernels.JaxKernel,
+    k_jax: linpde_gp.randprocs.kernels.JaxKernel,
     L: linpde_gp.linfuncops.JaxLinearOperator,
-    kLa_jax: linpde_gp.randprocs.kernels.JaxKernel,
     X: np.ndarray,
 ):
     kLa = L(k, argnum=1)
+    kLa_jax = L(k_jax, argnum=1)
 
     np.testing.assert_allclose(
         kLa(X[:, None], X[None, :]),
@@ -109,13 +72,29 @@ def test_kLa(
     )
 
 
+def test_Lk(
+    k: linpde_gp.randprocs.kernels.JaxKernel,
+    k_jax: linpde_gp.randprocs.kernels.JaxKernel,
+    L: linpde_gp.linfuncops.JaxLinearOperator,
+    X: np.ndarray,
+):
+    Lk = L(k, argnum=0)
+    Lk_jax = L(k_jax, argnum=0)
+
+    np.testing.assert_allclose(
+        Lk(X[:, None], X[None, :]),
+        Lk_jax(X[:, None], X[None, :]),
+    )
+
+
 def test_LkLa(
     k: linpde_gp.randprocs.kernels.JaxKernel,
+    k_jax: linpde_gp.randprocs.kernels.JaxKernel,
     L: linpde_gp.linfuncops.JaxLinearOperator,
-    LkLa_jax: linpde_gp.randprocs.kernels.JaxKernel,
     X: np.ndarray,
 ):
     LkLa = L(L(k, argnum=1), argnum=0)
+    LkLa_jax = L(L(k_jax, argnum=1), argnum=0)
 
     np.testing.assert_allclose(
         LkLa(X[:, None], X[None, :]),
