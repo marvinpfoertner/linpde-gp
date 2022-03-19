@@ -10,7 +10,8 @@ import probnum as pn
 from probnum.typing import ShapeLike
 
 from .... import linfuncops
-from ._laplace import scaled_laplace_jax
+from ._directional_derivative import TimeDerivative
+from ._laplace import ScaledSpatialLaplacian, scaled_laplace_jax
 
 if TYPE_CHECKING:
     import linpde_gp
@@ -43,14 +44,15 @@ def heat_jax(f: Callable, /, *, argnum: int = 0) -> Callable:
     return _f_heat
 
 
-class HeatOperator(linfuncops.JaxLinearOperator):
-    def __init__(self, domain_shape: ShapeLike) -> None:
+class HeatOperator(linfuncops.SumLinearFunctionOperator):
+    def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
+        self._alpha = float(alpha)
+
         super().__init__(
-            L=heat_jax,
-            input_shapes=(domain_shape, ()),
-            output_shapes=(domain_shape, ()),
+            TimeDerivative(domain_shape),
+            ScaledSpatialLaplacian(domain_shape, alpha=-self._alpha),
         )
 
     @functools.singledispatchmethod
-    def project(self, basis: linpde_gp.bases.Basis) -> pn.linops.LinearOperator:
-        raise NotImplementedError()
+    def __call__(self, f, /, **kwargs):
+        return super().__call__(f, **kwargs)
