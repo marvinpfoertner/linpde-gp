@@ -7,11 +7,12 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ShapeType
 
-from ....problems.pde.diffops import (
+from linpde_gp.linfuncops.diffops import (
     DirectionalDerivative,
     ScaledLaplaceOperator,
     ScaledSpatialLaplacian,
 )
+
 from .._expquad import ExpQuad
 from .._jax import JaxKernel
 from ._expquad_directional_derivative import ExpQuadDirectionalDerivativeCross

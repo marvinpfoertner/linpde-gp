@@ -5,7 +5,9 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatLike
 
-from . import diffops, domains
+from linpde_gp.linfuncops import diffops
+
+from . import domains
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 
 

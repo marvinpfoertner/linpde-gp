@@ -2,8 +2,9 @@ import numpy as np
 import probnum as pn
 import scipy.sparse
 
+from linpde_gp.linfuncops.diffops import ScaledLaplaceOperator
+
 from . import bases
-from ..problems.pde.diffops import ScaledLaplaceOperator
 
 
 @ScaledLaplaceOperator.project.register

@@ -7,27 +7,24 @@ import pytest
 import pytest_cases
 
 import linpde_gp
+from linpde_gp.linfuncops import diffops
 
 
 def case_diffop_scaled_laplace(
     input_shape: ShapeType,
 ) -> linpde_gp.linfuncops.JaxLinearOperator:
-    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(
-        domain_shape=input_shape, alpha=-1.0
-    )
+    return diffops.ScaledLaplaceOperator(domain_shape=input_shape, alpha=-1.0)
 
 
 def case_diffop_scaled_spatial_laplacian(
     input_shape: ShapeType,
-) -> Union[linpde_gp.problems.pde.diffops.ScaledSpatialLaplacian, NotImplementedError]:
+) -> Union[diffops.ScaledSpatialLaplacian, NotImplementedError]:
     if input_shape == () or input_shape == (1,):
         return NotImplementedError(
             "`ScaledSpatialLaplacian` needs at least two dimensional input vectors"
         )
 
-    return linpde_gp.problems.pde.diffops.ScaledSpatialLaplacian(
-        domain_shape=input_shape, alpha=-3.1
-    )
+    return diffops.ScaledSpatialLaplacian(domain_shape=input_shape, alpha=-3.1)
 
 
 def case_diffop_directional_derivative(
@@ -38,7 +35,7 @@ def case_diffop_directional_derivative(
     direction = rng.standard_normal(size=input_shape)
     direction /= np.sqrt(np.sum(direction ** 2))
 
-    return linpde_gp.problems.pde.diffops.DirectionalDerivative(direction)
+    return diffops.DirectionalDerivative(direction)
 
 
 @pytest_cases.fixture(scope="module")

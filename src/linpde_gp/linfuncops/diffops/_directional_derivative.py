@@ -6,10 +6,10 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
 
-from .... import linfuncops
+from .._jax import JaxLinearOperator
 
 
-class DirectionalDerivative(linfuncops.JaxLinearOperator):
+class DirectionalDerivative(JaxLinearOperator):
     def __init__(self, direction: ArrayLike):
         self._direction = np.asarray(direction)
 

@@ -5,7 +5,8 @@ from jax import numpy as jnp
 import numpy as np
 from probnum.typing import ShapeType
 
-from ....problems.pde import diffops
+from linpde_gp.linfuncops import diffops
+
 from .._expquad import ExpQuad
 from .._jax import JaxKernel
 

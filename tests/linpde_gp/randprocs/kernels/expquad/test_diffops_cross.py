@@ -1,6 +1,5 @@
 from typing import Union
 
-from black import diff
 import numpy as np
 from probnum.typing import ShapeType
 
@@ -8,6 +7,7 @@ import pytest
 import pytest_cases
 
 import linpde_gp
+from linpde_gp.linfuncops import diffops
 
 JaxLinearOperatorPair = tuple[
     linpde_gp.linfuncops.JaxLinearOperator, linpde_gp.linfuncops.JaxLinearOperator
@@ -23,8 +23,8 @@ def case_diffops_directional_derivative_laplacian(
     direction /= np.sqrt(np.sum(direction ** 2))
 
     return (
-        linpde_gp.problems.pde.diffops.DirectionalDerivative(direction),
-        linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(input_shape, alpha=-1.3),
+        diffops.DirectionalDerivative(direction),
+        diffops.ScaledLaplaceOperator(input_shape, alpha=-1.3),
     )
 
 
@@ -42,9 +42,8 @@ def case_diffops_directional_derivative_spatial_laplacian(
     direction /= np.sqrt(np.sum(direction ** 2))
 
     return (
-        # linpde_gp.problems.pde.diffops.DirectionalDerivative(direction),
-        linpde_gp.problems.pde.diffops.TimeDerivative(input_shape),
-        linpde_gp.problems.pde.diffops.ScaledSpatialLaplacian(input_shape, alpha=-2.1),
+        diffops.DirectionalDerivative(direction),
+        diffops.ScaledSpatialLaplacian(input_shape, alpha=-2.1),
     )
 
 
@@ -79,12 +78,12 @@ def case_permutation1(_diffops_permutation0):
     glob="permutation*",
     scope="module",
 )
-def diffops(diffop_permutation):
+def diffop_pair(diffop_permutation):
     return diffop_permutation
 
 
-def test_L0_k_L1adj(k, k_jax, diffops, X):
-    L0, L1 = diffops
+def test_L0_k_L1adj(k, k_jax, diffop_pair, X):
+    L0, L1 = diffop_pair
 
     L0_k_L1adj = L0(L1(k, argnum=1), argnum=0)
     L0_k_L1adj_jax = L0(L1(k_jax, argnum=1), argnum=0)

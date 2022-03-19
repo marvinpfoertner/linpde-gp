@@ -113,9 +113,7 @@ def Ys_err(
 
 @pytest.fixture
 def L(input_shape: ShapeType) -> linpde_gp.linfuncops.LinearFunctionOperator:
-    return linpde_gp.problems.pde.diffops.ScaledLaplaceOperator(
-        domain_shape=input_shape
-    )
+    return linpde_gp.linfuncops.diffops.ScaledLaplaceOperator(domain_shape=input_shape)
 
 
 @pytest.fixture
