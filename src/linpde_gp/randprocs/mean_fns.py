@@ -20,6 +20,14 @@ class Zero(function.JaxFunction):
         )
 
 
+@function.JaxLambdaFunction.__add__.register
+def _(self, other: Zero):
+    assert other.input_shape == self.input_shape
+    assert other.output_shape == self.output_shape
+
+    return self
+
+
 @linfuncops.LinearFunctionOperator.__call__.register
 def _(self, f: Zero, /):
     return Zero(

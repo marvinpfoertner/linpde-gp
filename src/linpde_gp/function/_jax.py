@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Callable
+import functools
 
 from jax import numpy as jnp
 import numpy as np
@@ -34,6 +37,12 @@ class JaxFunction(pn.Function):
     @abc.abstractmethod
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return super()._evaluate(x)
+
+    @functools.singledispatchmethod
+    def __add__(self, other: JaxFunction) -> JaxFunction:
+        from ._jax_arithmetic import JaxSumFunction
+
+        return JaxSumFunction(self, other)
 
 
 class JaxLambdaFunction(JaxFunction):
