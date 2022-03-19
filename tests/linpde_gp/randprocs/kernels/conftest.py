@@ -46,12 +46,6 @@ def output_scale(output_scale: float) -> float:
 
 @pytest_cases.fixture(scope="package")
 def X(input_shape: ShapeType) -> np.ndarray:
-    input_dim = 1 if input_shape == () else input_shape[0]
+    rng = np.random.default_rng(198748)
 
-    return np.stack(
-        np.meshgrid(
-            *(np.linspace(-2.0, 2.0, 30 // input_dim) for _ in range(input_dim)),
-            indexing="ij",
-        ),
-        axis=-1,
-    ).reshape((-1,) + input_shape)
+    return rng.normal(scale=2.0, size=(100,) + input_shape)
