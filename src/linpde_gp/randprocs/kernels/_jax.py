@@ -1,6 +1,5 @@
 import abc
 from collections.abc import Callable
-import functools
 from typing import Optional
 
 from jax import numpy as jnp
@@ -40,6 +39,12 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
         from ._jax_arithmetic import JaxSumKernel
 
         return JaxSumKernel(self, other)
+
+    def _batched_sum(self, a: np.ndarray, **sum_kwargs) -> np.ndarray:
+        return np.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
+
+    def _batched_sum_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
+        return jnp.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
 
 
 @linfuncops.JaxLinearOperator.__call__.register

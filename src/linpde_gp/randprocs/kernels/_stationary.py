@@ -23,4 +23,4 @@ class StationaryMixin:
         if lengthscales is not None:
             diffs /= lengthscales
 
-        return np.sum(diffs ** 2, axis=tuple(range(-self.input_ndim, 0)))
+        return self._batched_sum(diffs ** 2)
