@@ -6,6 +6,7 @@ from typing import Optional
 from jax import numpy as jnp
 import numpy as np
 
+from ... import linfuncops
 from ._jax import JaxKernel
 
 
@@ -47,3 +48,8 @@ class JaxSumKernel(JaxKernel):
                 expanded_summands.append(summand)
 
         return tuple(expanded_summands)
+
+
+@linfuncops.LinearFunctionOperator.__call__.register
+def _(self, k: JaxSumKernel, /, *, argnum: int = 0) -> JaxSumKernel:
+    return JaxSumKernel(*(self(summand, argnum=argnum) for summand in k._summands))

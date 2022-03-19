@@ -44,11 +44,14 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
 
 @linfuncops.JaxLinearOperator.__call__.register
 def _(self, k: JaxKernel, /, *, argnum=0):
-    return JaxLambdaKernel(
-        self._jax_fallback(k.jax, argnum=argnum),
-        input_shape=k.input_shape,
-        vectorize=True,
-    )
+    try:
+        return super(linfuncops.JaxLinearOperator, self).__call__(k, argnum=argnum)
+    except NotImplementedError:
+        return JaxLambdaKernel(
+            self._jax_fallback(k.jax, argnum=argnum),
+            input_shape=self.output_domain_shape,
+            vectorize=True,
+        )
 
 
 class JaxLambdaKernel(JaxKernel):
