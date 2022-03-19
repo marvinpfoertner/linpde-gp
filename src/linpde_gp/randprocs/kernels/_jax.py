@@ -96,19 +96,12 @@ class JaxStationaryMixin(StationaryMixin):
         if x1 is None:
             return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
-                shape=x0.shape[: x0.ndim - self._input_ndim],
+                shape=x0.shape[: x0.ndim - self.input_ndim] + self.output_shape,
             )
 
-        dists_sq = x0 - x1
+        diffs = x0 - x1
 
         if lengthscales is not None:
-            dists_sq /= lengthscales
+            diffs /= lengthscales
 
-        dists_sq = dists_sq ** 2
-
-        if self.input_ndim > 0:
-            assert self.input_ndim == 1
-
-            dists_sq = jnp.sum(dists_sq, axis=-1)
-
-        return dists_sq
+        return jnp.sum(diffs ** 2, axis=tuple(range(-self.input_ndim, 0)))
