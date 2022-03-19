@@ -19,7 +19,7 @@ def case_diffop_scaled_laplace(
 def case_diffop_scaled_spatial_laplacian(
     input_shape: ShapeType,
 ) -> Union[diffops.SpatialLaplacian, NotImplementedError]:
-    if input_shape == () or input_shape == (1,):
+    if input_shape in ((), (1,)):
         return NotImplementedError(
             "`SpatialLaplacian` needs at least two dimensional input vectors"
         )
@@ -40,28 +40,28 @@ def case_diffop_directional_derivative(
 
 @pytest_cases.fixture(scope="module")
 @pytest_cases.parametrize_with_cases(
-    "diffop",
+    "diffop_",
     cases=pytest_cases.THIS_MODULE,
     glob="diffop_*",
     scope="module",
 )
-def L(
-    diffop: linpde_gp.linfuncops.LinearFunctionOperator,
+def diffop(
+    diffop_: linpde_gp.linfuncops.LinearFunctionOperator,
 ) -> linpde_gp.linfuncops.JaxLinearOperator:
-    if isinstance(diffop, NotImplementedError):
-        pytest.skip(diffop.args[0])
+    if isinstance(diffop_, NotImplementedError):
+        pytest.skip(diffop_.args[0])
 
-    return diffop
+    return diffop_
 
 
 def test_kLa(
     k: linpde_gp.randprocs.kernels.JaxKernel,
     k_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.JaxLinearOperator,
     X: np.ndarray,
 ):
-    kLa = L(k, argnum=1)
-    kLa_jax = L(k_jax, argnum=1)
+    kLa = diffop(k, argnum=1)
+    kLa_jax = diffop(k_jax, argnum=1)
 
     np.testing.assert_allclose(
         kLa(X[:, None], X[None, :]),
@@ -72,11 +72,11 @@ def test_kLa(
 def test_Lk(
     k: linpde_gp.randprocs.kernels.JaxKernel,
     k_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.JaxLinearOperator,
     X: np.ndarray,
 ):
-    Lk = L(k, argnum=0)
-    Lk_jax = L(k_jax, argnum=0)
+    Lk = diffop(k, argnum=0)
+    Lk_jax = diffop(k_jax, argnum=0)
 
     np.testing.assert_allclose(
         Lk(X[:, None], X[None, :]),
@@ -87,13 +87,26 @@ def test_Lk(
 def test_LkLa(
     k: linpde_gp.randprocs.kernels.JaxKernel,
     k_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.JaxLinearOperator,
     X: np.ndarray,
 ):
-    LkLa = L(L(k, argnum=1), argnum=0)
-    LkLa_jax = L(L(k_jax, argnum=1), argnum=0)
+    LkLa = diffop(diffop(k, argnum=1), argnum=0)
+    LkLa_jax = diffop(diffop(k_jax, argnum=1), argnum=0)
 
     np.testing.assert_allclose(
         LkLa(X[:, None], X[None, :]),
         LkLa_jax(X[:, None], X[None, :]),
+    )
+
+
+def test_LkLa_jax_equals_call(
+    k: linpde_gp.randprocs.kernels.JaxKernel,
+    diffop: linpde_gp.linfuncops.JaxLinearOperator,
+    X: np.ndarray,
+):
+    LkLa = diffop(diffop(k, argnum=1), argnum=0)
+
+    np.testing.assert_allclose(
+        LkLa.jax(X[:, None], X[None, :]),
+        LkLa(X[:, None], X[None, :]),
     )
