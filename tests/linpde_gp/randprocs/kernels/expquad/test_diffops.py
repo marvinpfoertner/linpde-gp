@@ -26,7 +26,7 @@ def case_diffop_scaled_spatial_laplacian(
         )
 
     return linpde_gp.problems.pde.diffops.ScaledSpatialLaplacian(
-        domain_shape=input_shape, alpha=-1.0
+        domain_shape=input_shape, alpha=-3.1
     )
 
 
