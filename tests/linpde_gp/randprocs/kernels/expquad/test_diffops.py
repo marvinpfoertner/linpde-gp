@@ -33,9 +33,12 @@ def case_diffop_scaled_spatial_laplacian(
 def case_diffop_directional_derivative(
     input_shape: ShapeType,
 ) -> linpde_gp.linfuncops.JaxLinearOperator:
-    return linpde_gp.problems.pde.diffops.TimeDerivative(
-        domain_shape=input_shape,
-    )
+    rng = np.random.default_rng(9871239)
+
+    direction = rng.standard_normal(size=input_shape)
+    direction /= np.sqrt(np.sum(direction ** 2))
+
+    return linpde_gp.problems.pde.diffops.DirectionalDerivative(direction)
 
 
 @pytest_cases.fixture(scope="module")
