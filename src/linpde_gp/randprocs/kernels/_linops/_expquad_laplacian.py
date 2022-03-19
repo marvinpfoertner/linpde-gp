@@ -9,8 +9,8 @@ from probnum.typing import ShapeType
 
 from linpde_gp.linfuncops.diffops import (
     DirectionalDerivative,
-    ScaledLaplaceOperator,
-    ScaledSpatialLaplacian,
+    Laplacian,
+    SpatialLaplacian,
 )
 
 from .._expquad import ExpQuad
@@ -121,7 +121,7 @@ class ExpQuadLaplacianCross(JaxKernel):
         )
 
 
-@ScaledLaplaceOperator.__call__.register
+@Laplacian.__call__.register
 def _(self, k: ExpQuad, /, *, argnum: int = 0):
     return ExpQuadLaplacianCross(
         input_shape=k.input_shape,
@@ -272,7 +272,7 @@ class ExpQuadLaplacian(JaxKernel):
         )
 
 
-@ScaledLaplaceOperator.__call__.register
+@Laplacian.__call__.register
 def _(self, k: ExpQuadLaplacianCross, /, *, argnum: int = 0):
     if argnum != k._argnum:
         if argnum == 0:
@@ -290,7 +290,7 @@ def _(self, k: ExpQuadLaplacianCross, /, *, argnum: int = 0):
             output_scale=k._output_scale,
         )
 
-    return super(ScaledLaplaceOperator, self).__call__(k, argnum=argnum)
+    return super(Laplacian, self).__call__(k, argnum=argnum)
 
 
 class ExpQuadDirectionalDerivativeLaplacian(JaxKernel):
@@ -391,7 +391,7 @@ class ExpQuadDirectionalDerivativeLaplacian(JaxKernel):
         )
 
 
-@ScaledLaplaceOperator.__call__.register
+@Laplacian.__call__.register
 def _(self, k: ExpQuadDirectionalDerivativeCross, /, *, argnum: int = 0):
     if k._argnum != argnum:
         return ExpQuadDirectionalDerivativeLaplacian(
@@ -405,7 +405,7 @@ def _(self, k: ExpQuadDirectionalDerivativeCross, /, *, argnum: int = 0):
             direction=k._direction,
         )
 
-    return super(ScaledLaplaceOperator, self).__call__(k, argnum=argnum)
+    return super(Laplacian, self).__call__(k, argnum=argnum)
 
 
 @DirectionalDerivative.__call__.register
@@ -474,7 +474,7 @@ class ExpQuadSpatialLaplacianCross(JaxKernel):
         )
 
 
-@ScaledSpatialLaplacian.__call__.register
+@SpatialLaplacian.__call__.register
 def _(self, k: ExpQuad, /, *, argnum: int = 0):
     return ExpQuadSpatialLaplacianCross(
         input_shape=k.input_shape,
@@ -537,7 +537,7 @@ class ExpQuadSpatialLaplacianBoth(JaxKernel):
         )
 
 
-@ScaledSpatialLaplacian.__call__.register
+@SpatialLaplacian.__call__.register
 def _(self, k: ExpQuadSpatialLaplacianCross, /, *, argnum: int = 0):
     if argnum != k._argnum:
         if argnum == 0:
@@ -555,7 +555,7 @@ def _(self, k: ExpQuadSpatialLaplacianCross, /, *, argnum: int = 0):
             output_scale=k._output_scale,
         )
 
-    return super(ScaledLaplaceOperator, self).__call__(k, argnum=argnum)
+    return super(Laplacian, self).__call__(k, argnum=argnum)
 
 
 class ExpQuadDirectionalDerivativeSpatialLaplacian(JaxKernel):
@@ -637,7 +637,7 @@ class ExpQuadDirectionalDerivativeSpatialLaplacian(JaxKernel):
         )
 
 
-@ScaledSpatialLaplacian.__call__.register
+@SpatialLaplacian.__call__.register
 def _(self, k: ExpQuadDirectionalDerivativeCross, /, *, argnum: int = 0):
     if k._argnum != argnum:
         return ExpQuadDirectionalDerivativeSpatialLaplacian(
@@ -649,7 +649,7 @@ def _(self, k: ExpQuadDirectionalDerivativeCross, /, *, argnum: int = 0):
             reverse=(argnum == 0),
         )
 
-    return super(ScaledLaplaceOperator, self).__call__(k, argnum=argnum)
+    return super(Laplacian, self).__call__(k, argnum=argnum)
 
 
 @DirectionalDerivative.__call__.register

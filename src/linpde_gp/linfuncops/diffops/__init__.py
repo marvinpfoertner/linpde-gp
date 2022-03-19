@@ -4,4 +4,4 @@ from ._directional_derivative import (
     TimeDerivative,
 )
 from ._heat import HeatOperator
-from ._laplace import ScaledLaplaceOperator, ScaledSpatialLaplacian
+from ._laplacian import Laplacian, SpatialLaplacian

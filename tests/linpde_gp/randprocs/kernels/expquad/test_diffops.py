@@ -13,18 +13,18 @@ from linpde_gp.linfuncops import diffops
 def case_diffop_scaled_laplace(
     input_shape: ShapeType,
 ) -> linpde_gp.linfuncops.JaxLinearOperator:
-    return diffops.ScaledLaplaceOperator(domain_shape=input_shape, alpha=-1.0)
+    return diffops.Laplacian(domain_shape=input_shape, alpha=-1.0)
 
 
 def case_diffop_scaled_spatial_laplacian(
     input_shape: ShapeType,
-) -> Union[diffops.ScaledSpatialLaplacian, NotImplementedError]:
+) -> Union[diffops.SpatialLaplacian, NotImplementedError]:
     if input_shape == () or input_shape == (1,):
         return NotImplementedError(
-            "`ScaledSpatialLaplacian` needs at least two dimensional input vectors"
+            "`SpatialLaplacian` needs at least two dimensional input vectors"
         )
 
-    return diffops.ScaledSpatialLaplacian(domain_shape=input_shape, alpha=-3.1)
+    return diffops.SpatialLaplacian(domain_shape=input_shape, alpha=-3.1)
 
 
 def case_diffop_directional_derivative(

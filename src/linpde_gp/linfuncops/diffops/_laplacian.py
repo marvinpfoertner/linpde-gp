@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     import linpde_gp
 
 
-class ScaledLaplaceOperator(JaxLinearOperator):
+class Laplacian(JaxLinearOperator):
     def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
         self._alpha = alpha
 
@@ -42,14 +42,14 @@ class ScaledLaplaceOperator(JaxLinearOperator):
         raise NotImplementedError()
 
 
-class ScaledSpatialLaplacian(JaxLinearOperator):
+class SpatialLaplacian(JaxLinearOperator):
     def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
         (D,) = pn.utils.as_shape(domain_shape)
 
         assert D > 1
 
         self._alpha = alpha
-        self._laplacian = ScaledLaplaceOperator(
+        self._laplacian = Laplacian(
             domain_shape=(D - 1,),
             alpha=self._alpha,
         )

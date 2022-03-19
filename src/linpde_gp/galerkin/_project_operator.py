@@ -2,12 +2,12 @@ import numpy as np
 import probnum as pn
 import scipy.sparse
 
-from linpde_gp.linfuncops.diffops import ScaledLaplaceOperator
+from linpde_gp.linfuncops.diffops import Laplacian
 
 from . import bases
 
 
-@ScaledLaplaceOperator.project.register
+@Laplacian.project.register
 def _(self, basis: bases.ZeroBoundaryFiniteElementBasis) -> pn.linops.Matrix:
     assert self._alpha == -1.0
 
@@ -25,7 +25,7 @@ def _(self, basis: bases.ZeroBoundaryFiniteElementBasis) -> pn.linops.Matrix:
     )
 
 
-@ScaledLaplaceOperator.project.register
+@Laplacian.project.register
 def _(self, basis: bases.FiniteElementBasis) -> pn.linops.Matrix:
     assert self._alpha == -1.0
 
@@ -55,7 +55,7 @@ def _(self, basis: bases.FiniteElementBasis) -> pn.linops.Matrix:
     )
 
 
-@ScaledLaplaceOperator.project.register
+@Laplacian.project.register
 def _(self, basis: bases.FourierBasis) -> pn.linops.Matrix:
     assert self._alpha == -1.0
 

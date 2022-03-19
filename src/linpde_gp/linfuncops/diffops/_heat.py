@@ -6,7 +6,7 @@ from probnum.typing import ShapeLike
 
 from .._arithmetic import SumLinearFunctionOperator
 from ._directional_derivative import TimeDerivative
-from ._laplace import ScaledSpatialLaplacian
+from ._laplacian import SpatialLaplacian
 
 
 class HeatOperator(SumLinearFunctionOperator):
@@ -15,7 +15,7 @@ class HeatOperator(SumLinearFunctionOperator):
 
         super().__init__(
             TimeDerivative(domain_shape),
-            ScaledSpatialLaplacian(domain_shape, alpha=-self._alpha),
+            SpatialLaplacian(domain_shape, alpha=-self._alpha),
         )
 
     @functools.singledispatchmethod
