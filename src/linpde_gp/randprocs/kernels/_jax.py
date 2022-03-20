@@ -17,12 +17,16 @@ Kernel.input_size = property(
     lambda self: functools.reduce(operator.mul, self.input_shape, 1)
 )
 
-Kernel._batched_sum = lambda self, a, **sum_kwargs: np.sum(
-    a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs
+Kernel._batched_sum = (  # pylint: disable=protected-access
+    lambda self, a, **sum_kwargs: np.sum(
+        a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs
+    )
 )
 
-Kernel._batched_euclidean_norm_sq = lambda self, a, **sum_kwargs: self._batched_sum(
-    a ** 2, **sum_kwargs
+Kernel._batched_euclidean_norm_sq = (  # pylint: disable=protected-access
+    lambda self, a, **sum_kwargs: self._batched_sum(  # pylint: disable=protected-access
+        a ** 2, **sum_kwargs
+    )
 )
 
 
@@ -59,13 +63,17 @@ class JaxKernelMixin:
         return self._batched_sum_jax(a ** 2, **sum_kwargs)
 
     def __add__(self, other: Kernel) -> JaxKernel:
-        from ._jax_arithmetic import JaxSumKernel
+        from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
+            JaxSumKernel,
+        )
 
         return JaxSumKernel(self, other)
 
     def __rmul__(self, other: ArrayLike) -> JaxKernel:
         if np.ndim(other) == 0:
-            from ._jax_arithmetic import JaxScaledKernel
+            from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
+                JaxScaledKernel,
+            )
 
             return JaxScaledKernel(kernel=self, scalar=other)
 
@@ -76,13 +84,15 @@ class JaxKernel(JaxKernelMixin, Kernel):
     ...
 
 
-@linfuncops.JaxLinearOperator.__call__.register
+@linfuncops.JaxLinearOperator.__call__.register  # pylint: disable=no-member
 def _(self, k: JaxKernelMixin, /, *, argnum=0):
     try:
         return super(linfuncops.JaxLinearOperator, self).__call__(k, argnum=argnum)
     except NotImplementedError:
         return JaxLambdaKernel(
-            self._jax_fallback(k.jax, argnum=argnum),
+            self._jax_fallback(  # pylint: disable=protected-access
+                k.jax, argnum=argnum
+            ),
             input_shape=self.output_domain_shape,
             vectorize=True,
         )
