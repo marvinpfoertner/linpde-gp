@@ -284,7 +284,12 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
 
         self._expquad_laplacian = expquad_laplacian
 
-        self._sign = -1.0 if self._reverse else 1.0
+        modified_output_scale_sq = self._alpha * self._expquad._output_scale_sq
+
+        if self._reverse:
+            modified_output_scale_sq = -modified_output_scale_sq
+
+        self._modified_output_scale_sq = modified_output_scale_sq
 
     @property
     def expquad(self) -> ExpQuad:
@@ -310,23 +315,31 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
 
         diffs = x0 - x1
 
-        proj_diffs_direction_lengthscales_4_inv = self._batched_sum(
-            self._direction_lengthscales_4_inv * diffs
-        )
-        dists_sq = self._batched_euclidean_norm_sq(diffs / self._expquad.lengthscales)
-
         proj_diffs_direction_lengthscales_sq_inv = self._batched_sum(
             self._direction_lengthscales_sq_inv * diffs
         )
-        expquad_laplacian_x0_x1 = self._expquad_laplacian(x0, x1)
+        proj_diffs_direction_lengthscales_4_inv = self._batched_sum(
+            self._direction_lengthscales_4_inv * diffs
+        )
 
-        return self._sign * (
-            2
-            * self._alpha
-            * self._expquad._output_scale_sq
-            * proj_diffs_direction_lengthscales_4_inv
-            * np.exp(-0.5 * dists_sq)
-            - proj_diffs_direction_lengthscales_sq_inv * expquad_laplacian_x0_x1
+        dists_sq_lengthscales_sq_inv = self._batched_euclidean_norm_sq(
+            diffs / self._expquad.lengthscales
+        )
+        dists_sq_lengthscales_4_inv = self._batched_euclidean_norm_sq(
+            diffs / self._expquad_laplacian._lengthscales_sq
+        )
+
+        return (
+            self._modified_output_scale_sq
+            * (
+                2 * proj_diffs_direction_lengthscales_4_inv
+                - proj_diffs_direction_lengthscales_sq_inv
+                * (
+                    dists_sq_lengthscales_4_inv
+                    - self._expquad_laplacian._trace_lengthscales_sq_inv
+                )
+            )
+            * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
         )
 
     @functools.partial(jax.jit, static_argnums=0)
@@ -339,25 +352,31 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
 
         diffs = x0 - x1
 
-        proj_diffs_direction_lengthscales_4_inv = self._batched_sum_jax(
-            self._direction_lengthscales_4_inv * diffs
-        )
-        dists_sq = self._batched_euclidean_norm_sq_jax(
-            diffs / self._expquad.lengthscales
-        )
-
         proj_diffs_direction_lengthscales_sq_inv = self._batched_sum_jax(
             self._direction_lengthscales_sq_inv * diffs
         )
-        expquad_laplacian_x0_x1 = self._expquad_laplacian.jax(x0, x1)
+        proj_diffs_direction_lengthscales_4_inv = self._batched_sum_jax(
+            self._direction_lengthscales_4_inv * diffs
+        )
 
-        return self._sign * (
-            2
-            * self._alpha
-            * self._expquad._output_scale_sq
-            * proj_diffs_direction_lengthscales_4_inv
-            * jnp.exp(-0.5 * dists_sq)
-            - proj_diffs_direction_lengthscales_sq_inv * expquad_laplacian_x0_x1
+        dists_sq_lengthscales_sq_inv = self._batched_euclidean_norm_sq_jax(
+            diffs / self._expquad.lengthscales
+        )
+        dists_sq_lengthscales_4_inv = self._batched_euclidean_norm_sq_jax(
+            diffs / self._expquad_laplacian._lengthscales_sq
+        )
+
+        return (
+            self._modified_output_scale_sq
+            * (
+                2 * proj_diffs_direction_lengthscales_4_inv
+                - proj_diffs_direction_lengthscales_sq_inv
+                * (
+                    dists_sq_lengthscales_4_inv
+                    - self._expquad_laplacian._trace_lengthscales_sq_inv
+                )
+            )
+            * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
         )
 
 
