@@ -35,8 +35,14 @@ class Constant(JaxFunction):
     def __add__(self, other: JaxFunction) -> JaxFunction:
         return super().__add__(other)
 
+    def __rmul__(self, other) -> JaxFunction:
+        if np.ndim(other) == 0:
+            return Constant(self.input_shape, value=np.asarray(other) * self.value)
 
-@Constant.__add__.register
+        return super().__rmul__(other)
+
+
+@Constant.__add__.register  # pylint: disable=no-member
 def _(self, other: Constant) -> Constant:
     assert self.input_shape == other.input_shape
 
