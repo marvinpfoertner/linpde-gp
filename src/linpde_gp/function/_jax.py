@@ -40,9 +40,22 @@ class JaxFunction(pn.Function):
 
     @functools.singledispatchmethod
     def __add__(self, other: JaxFunction) -> JaxFunction:
-        from ._jax_arithmetic import JaxSumFunction
+        from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
+            JaxSumFunction,
+        )
 
         return JaxSumFunction(self, other)
+
+    def __rmul__(self, other) -> JaxFunction:
+        if np.ndim(other) == 0:
+            from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
+                JaxScaledFunction,
+            )
+
+            return JaxScaledFunction(function=self, scalar=other)
+
+        # return super().__rmul__(other)
+        return NotImplemented
 
 
 class JaxLambdaFunction(JaxFunction):
