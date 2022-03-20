@@ -69,7 +69,7 @@ class SpatialLaplacian(LinearDifferentialOperator):
                 **kwargs,
             )
 
-        _spatial_laplace_f_t_x = self._laplacian(_f, argnum=argnum + 1)
+        _spatial_laplace_f_t_x = self._laplacian._jax_fallback(_f, argnum=argnum + 1)
 
         @jax.jit
         def _spatial_laplace_f_tx(*args, **kwargs):
