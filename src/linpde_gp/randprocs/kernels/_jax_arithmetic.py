@@ -1,53 +1,51 @@
-from collections.abc import Iterable
 import functools
 import operator
 from typing import Optional
 
 from jax import numpy as jnp
-import numpy as np
+from probnum.randprocs.kernels._arithmetic_fallbacks import ScaledKernel, SumKernel
+from probnum.typing import ScalarLike, ScalarType
 
 from ... import linfuncops
-from ._jax import JaxKernel
+from ._jax import JaxKernel, JaxKernelMixin
 
 
-class JaxSumKernel(JaxKernel):
+class JaxScaledKernel(JaxKernelMixin, ScaledKernel):
+    def __init__(self, kernel: JaxKernel, scalar: ScalarLike) -> None:
+        if not isinstance(kernel, JaxKernelMixin):
+            raise TypeError()
+
+        super().__init__(kernel, scalar)
+
+    @property
+    def scalar(self) -> ScalarType:
+        return self._scalar
+
+    @property
+    def kernel(self) -> JaxKernel:
+        return self._kernel
+
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        return self._scalar * self.kernel.jax(x0, x1)
+
+
+@linfuncops.LinearFunctionOperator.__call__.register
+def _(self, k: JaxScaledKernel, /, *, argnum: int = 0) -> JaxScaledKernel:
+    return k.scalar * self(k.kernel, argnum=argnum)
+
+
+class JaxSumKernel(JaxKernelMixin, SumKernel):
     def __init__(self, *summands: JaxKernel):
-        self._summands = JaxSumKernel._expand_summands(summands)
+        if not all(isinstance(summand, JaxKernelMixin) for summand in summands):
+            raise TypeError()
 
-        assert len(self._summands) > 0
-
-        input_shape = self._summands[0].input_shape
-        output_shape = self._summands[0].output_shape
-
-        # TODO: Replace by broadcasting
-        assert all(summand.input_shape == input_shape for summand in self._summands)
-        assert all(summand.output_shape == output_shape for summand in self._summands)
-
-        super().__init__(input_shape, output_shape=output_shape)
-
-    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        return functools.reduce(
-            operator.add,
-            (summand(x0, x1) for summand in self._summands),
-        )
+        super().__init__(*summands)
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         return functools.reduce(
             operator.add,
             (summand.jax(x0, x1) for summand in self._summands),
         )
-
-    @staticmethod
-    def _expand_summands(summands: Iterable[JaxKernel]) -> tuple[JaxKernel]:
-        expanded_summands = []
-
-        for summand in summands:
-            if isinstance(summand, JaxSumKernel):
-                expanded_summands.extend(summand._summands)
-            else:
-                expanded_summands.append(summand)
-
-        return tuple(expanded_summands)
 
 
 @linfuncops.LinearFunctionOperator.__call__.register

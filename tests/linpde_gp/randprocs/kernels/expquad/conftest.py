@@ -14,10 +14,9 @@ def expquad(
     lengthscales: ArrayLike,
     output_scale: float,
 ) -> linpde_gp.randprocs.kernels.ExpQuad:
-    return linpde_gp.randprocs.kernels.ExpQuad(
+    return output_scale ** 2 * linpde_gp.randprocs.kernels.ExpQuad(
         input_shape=input_shape,
         lengthscales=lengthscales,
-        output_scale=output_scale,
     )
 
 

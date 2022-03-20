@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Callable
 import functools
@@ -56,10 +58,18 @@ class JaxKernelMixin:
     ) -> jnp.ndarray:
         return self._batched_sum_jax(a ** 2, **sum_kwargs)
 
-    def __add__(self, other: Kernel) -> Kernel:
+    def __add__(self, other: Kernel) -> JaxKernel:
         from ._jax_arithmetic import JaxSumKernel
 
         return JaxSumKernel(self, other)
+
+    def __rmul__(self, other: ArrayLike) -> JaxKernel:
+        if np.ndim(other) == 0:
+            from ._jax_arithmetic import JaxScaledKernel
+
+            return JaxScaledKernel(kernel=self, scalar=other)
+
+        return super().__rmul__(self, other)
 
 
 class JaxKernel(JaxKernelMixin, Kernel):
