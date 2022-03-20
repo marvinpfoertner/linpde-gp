@@ -6,15 +6,17 @@ import probnum as pn
 from probnum.typing import FloatLike
 import scipy.interpolate
 
+from linpde_gp import domains, randprocs
+from linpde_gp.problems.pde import DirichletBoundaryCondition
+from linpde_gp.typing import DomainLike
+
 from . import _basis
-from ... import randprocs
-from ...problems.pde import DirichletBoundaryCondition, domains
 
 
 class ZeroBoundaryFiniteElementBasis(_basis.Basis):
     def __init__(
         self,
-        domain: domains.DomainLike,
+        domain: DomainLike,
         num_elements: int,
     ):
         super().__init__(size=num_elements)
@@ -102,7 +104,7 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
 class FiniteElementBasis(_basis.Basis):
     def __init__(
         self,
-        domain: domains.DomainLike,
+        domain: DomainLike,
         boundary_conditions: Sequence[DirichletBoundaryCondition],
         num_elements: int,
     ):

@@ -4,15 +4,16 @@ import numpy as np
 import probnum as pn
 from probnum.typing import FloatLike
 
+from linpde_gp import domains, randprocs
+from linpde_gp.typing import DomainLike
+
 from . import _basis
-from ... import randprocs
-from ...problems.pde import domains
 
 
 class FourierBasis(_basis.Basis):
     def __init__(
         self,
-        domain: domains.DomainLike,
+        domain: DomainLike,
         num_frequencies: int,
         const: bool = False,
         sin: bool = True,

@@ -3,16 +3,17 @@ from typing import Sequence
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatLike
+from probnum.typing import ArrayLike
 
+from linpde_gp import domains
 from linpde_gp.linfuncops import diffops
+from linpde_gp.typing import DomainLike
 
-from . import domains
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 
 
 def poisson_1d_bvp(
-    domain: domains.DomainLike,
+    domain: DomainLike,
     rhs,
     boundary_values: Sequence[float] = (0.0, 0.0),
     solution=None,
@@ -41,7 +42,7 @@ def poisson_1d_bvp(
 
 
 def poisson_bvp(
-    domain: domains.DomainLike,
+    domain: DomainLike,
     rhs: pn.randprocs.RandomProcess,
     boundary_values: pn.randprocs.RandomProcess,
 ):
@@ -61,14 +62,14 @@ def poisson_bvp(
 def poisson_1d_const_solution(l, r, rhs, u_l, u_r):
     aff_slope = (u_r - u_l) / (r - l)
 
-    def u(x: FloatLike) -> np.floating:
+    def u(x: ArrayLike) -> np.floating:
         return u_l + (aff_slope - (rhs / 2.0) * (x - r)) * (x - l)
 
     return u
 
 
 def heat_1d_bvp(
-    domain: domains.DomainLike,
+    domain: DomainLike,
     initial_values,
 ):
     domain = domains.asdomain(domain)

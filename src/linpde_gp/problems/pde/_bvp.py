@@ -6,8 +6,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
 
-from . import domains
-from ... import linfuncops
+from linpde_gp import domains, linfuncops
 
 
 @dataclasses.dataclass(frozen=True)

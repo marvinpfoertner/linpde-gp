@@ -1,5 +1,8 @@
-from . import linops, function, linfuncops, randprocs  # isort: skip
+# isort: off
+from . import linops, randvars, domains, function, linfuncops, randprocs, problems
 
-from . import galerkin, linalg, plotting, problems, randvars
+# isort: on
+
+from . import galerkin, linalg, plotting, typing
 
 __version__ = "0.0.1a1"
