@@ -15,7 +15,7 @@ class HeatOperator(SumLinearFunctionOperator):
 
         super().__init__(
             TimeDerivative(domain_shape),
-            SpatialLaplacian(domain_shape, alpha=-self._alpha),
+            -self._alpha * SpatialLaplacian(domain_shape),
         )
 
     @functools.singledispatchmethod

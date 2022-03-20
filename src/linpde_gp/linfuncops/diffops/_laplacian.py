@@ -28,7 +28,9 @@ class Laplacian(JaxLinearOperator):
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
-    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
+    def _jax_fallback(  # pylint: disable=arguments-differ
+        self, f: Callable, /, *, argnum: int = 0, **kwargs
+    ) -> Callable:
         Hf = jax.jit(jax.hessian(f, argnum))
 
         @jax.jit
@@ -63,7 +65,9 @@ class SpatialLaplacian(JaxLinearOperator):
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
-    def _jax_fallback(self, f, /, *, argnum: int = 0, **kwargs):
+    def _jax_fallback(  # pylint: disable=arguments-differ
+        self, f, /, *, argnum: int = 0, **kwargs
+    ):
         # TODO: Implement using Hessian-vector products
         @jax.jit
         def _f(*args, **kwargs) -> jnp.ndarray:

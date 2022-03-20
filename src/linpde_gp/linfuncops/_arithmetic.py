@@ -1,9 +1,54 @@
 import functools
 import operator
 
+import numpy as np
 import probnum as pn
+from probnum.typing import ScalarLike, ScalarType
 
 from ._linfuncop import LinearFunctionOperator
+
+
+class ScaledLinearFunctionOperator(LinearFunctionOperator):
+    def __init__(self, linfuncop: LinearFunctionOperator, scalar: ScalarLike) -> None:
+        self._linfuncop = linfuncop
+
+        super().__init__(
+            input_shapes=self._linfuncop.input_shapes,
+            output_shapes=self._linfuncop.output_shapes,
+        )
+
+        if not np.ndim(scalar) == 0:
+            raise ValueError()
+
+        self._scalar = np.asarray(scalar, dtype=np.double)
+
+    @property
+    def linfuncop(self) -> LinearFunctionOperator:
+        return self._linfuncop
+
+    @property
+    def scalar(self) -> ScalarType:
+        return self._scalar
+
+    @functools.singledispatchmethod
+    def __call__(self, f, /, **kwargs):
+        return self._scalar * self._linfuncop(f, **kwargs)
+
+    # TODO: Only need until GPs can be scaled
+    @__call__.register
+    def _(
+        self, gp: pn.randprocs.GaussianProcess, /, **kwargs
+    ) -> pn.randprocs.GaussianProcess:
+        return super().__call__(gp, **kwargs)
+
+    def __rmul__(self, other) -> LinearFunctionOperator:
+        if np.ndim(other) == 0:
+            return ScaledLinearFunctionOperator(
+                linfuncop=self._linfuncop,
+                scalar=np.asarray(other) * self._scalar,
+            )
+
+        return super().__rmul__(other)
 
 
 class SumLinearFunctionOperator(LinearFunctionOperator):
