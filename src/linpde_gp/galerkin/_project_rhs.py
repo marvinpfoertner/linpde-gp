@@ -1,8 +1,7 @@
 import numpy as np
 from plum import Dispatcher
-import probnum as pn
 
-from linpde_gp import function
+from linpde_gp import functions
 
 from . import bases
 
@@ -11,13 +10,13 @@ dispatch = Dispatcher()
 
 @dispatch
 def project(
-    f: function.Constant, basis: bases.ZeroBoundaryFiniteElementBasis
+    f: functions.Constant, basis: bases.ZeroBoundaryFiniteElementBasis
 ) -> np.ndarray:
     return (f.value / 2.0) * (basis.grid[2:] - basis.grid[:-2])
 
 
 @dispatch
-def project(f: function.Constant, basis: bases.FiniteElementBasis) -> np.ndarray:
+def project(f: functions.Constant, basis: bases.FiniteElementBasis) -> np.ndarray:
     if not all(
         isinstance(boundary_condition.values, (np.ndarray, np.floating))
         for boundary_condition in basis._boundary_conditions
@@ -43,7 +42,7 @@ def project(f: function.Constant, basis: bases.FiniteElementBasis) -> np.ndarray
 
 
 @dispatch
-def project(f: function.Constant, basis: bases.FourierBasis) -> np.ndarray:
+def project(f: functions.Constant, basis: bases.FourierBasis) -> np.ndarray:
     l, r = basis._domain
 
     idcs = np.arange(1, len(basis) + 1)

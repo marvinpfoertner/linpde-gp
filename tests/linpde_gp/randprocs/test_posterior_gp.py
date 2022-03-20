@@ -212,7 +212,7 @@ def condition_gp_on_observations(
         return kxx - kxX @ jax.scipy.linalg.cho_solve(gram_cho, kXx)
 
     cond_gp = pn.randprocs.GaussianProcess(
-        mean=linpde_gp.function.JaxLambdaFunction(
+        mean=linpde_gp.functions.JaxLambdaFunction(
             cond_mean, input_shape=gp.input_shape, vectorize=True
         ),
         cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(

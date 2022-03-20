@@ -4,7 +4,7 @@ import functools
 
 from probnum.typing import ShapeLike
 
-from linpde_gp.function import JaxFunction, JaxLambdaFunction
+from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
 from .._linfuncop import LinearFunctionOperator
 

@@ -10,7 +10,7 @@ import probnum as pn
 import scipy.linalg
 
 from .. import kernels
-from ... import function, linfuncops
+from ... import functions, linfuncops
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
@@ -105,10 +105,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             ),
         )
 
-    class Mean(function.JaxFunction):
+    class Mean(functions.JaxFunction):
         def __init__(
             self,
-            prior_mean: function.JaxFunction,
+            prior_mean: functions.JaxFunction,
             kLas_Xs: Callable[[np.ndarray], np.ndarray],
             kLas_Xs_jax: Callable[[jnp.ndarray], jnp.ndarray],
             representer_weights: np.ndarray,

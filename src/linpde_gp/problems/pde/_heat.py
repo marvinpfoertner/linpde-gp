@@ -4,7 +4,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
 
-from linpde_gp import domains, function
+from linpde_gp import domains, functions
 from linpde_gp.linfuncops import diffops
 from linpde_gp.typing import DomainLike
 
@@ -36,7 +36,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
             )
 
             if solution is None:
-                if isinstance(rhs, function.Constant) and isinstance(
+                if isinstance(rhs, functions.Constant) and isinstance(
                     boundary_values, np.ndarray
                 ):
                     solution = PoissonEquation1DConstRHSDirichletProblemSolution(
