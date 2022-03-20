@@ -84,10 +84,12 @@ class JaxKernel(JaxKernelMixin, Kernel):
     ...
 
 
-@linfuncops.JaxLinearOperator.__call__.register  # pylint: disable=no-member
+@linfuncops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
 def _(self, k: JaxKernelMixin, /, *, argnum=0):
     try:
-        return super(linfuncops.JaxLinearOperator, self).__call__(k, argnum=argnum)
+        return super(linfuncops.LinearDifferentialOperator, self).__call__(
+            k, argnum=argnum
+        )
     except NotImplementedError:
         return JaxLambdaKernel(
             self._jax_fallback(  # pylint: disable=protected-access

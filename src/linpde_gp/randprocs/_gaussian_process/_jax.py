@@ -3,30 +3,30 @@ import numpy as np
 import probnum as pn
 
 from ...function import JaxLambdaFunction
-from ...linfuncops import JaxLinearOperator
+from ...linfuncops import LinearDifferentialOperator
 from ..kernels import JaxKernel, JaxLambdaKernel
 
 
 def apply_jax_linop_to_gp(
     gp: pn.randprocs.GaussianProcess,
-    linop: JaxLinearOperator,
+    lindiffop: LinearDifferentialOperator,
     **linop_kwargs,
 ) -> tuple[pn.randprocs.GaussianProcess, JaxLambdaKernel]:
-    mean = linop(gp.mean.jax, argnum=0, **linop_kwargs)
-    crosscov = linop(gp.cov.jax, argnum=1, **linop_kwargs)
-    cov = linop(crosscov, argnum=0, **linop_kwargs)
+    mean = lindiffop(gp.mean.jax, argnum=0, **linop_kwargs)
+    crosscov = lindiffop(gp.cov.jax, argnum=1, **linop_kwargs)
+    cov = lindiffop(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
         mean=JaxLambdaFunction(
             mean,
-            input_shape=linop.output_domain_shape,
-            output_shape=linop.output_codomain_shape,
+            input_shape=lindiffop.output_domain_shape,
+            output_shape=lindiffop.output_codomain_shape,
             vectorize=True,
         ),
         cov=JaxLambdaKernel(
             cov,
-            input_shape=linop.input_domain_shape,
-            output_shape=2 * linop.output_codomain_shape,
+            input_shape=lindiffop.input_domain_shape,
+            output_shape=2 * lindiffop.output_codomain_shape,
             vectorize=True,
         ),
     )
@@ -35,8 +35,8 @@ def apply_jax_linop_to_gp(
         crosscov,
         input_shape=gp.input_shape,
         # TODO: We need a second input_shape here, which should be set to
-        # second_input_shape=linop.input_domain_shape,
-        output_shape=gp.output_shape + linop.output_codomain_shape,
+        # second_input_shape=lindiffop.input_domain_shape,
+        output_shape=gp.output_shape + lindiffop.output_codomain_shape,
         vectorize=True,
     )
 

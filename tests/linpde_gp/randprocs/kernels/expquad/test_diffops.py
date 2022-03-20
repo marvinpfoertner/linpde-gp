@@ -27,7 +27,7 @@ def case_diffop_spatial_laplacian(
 
 def case_diffop_directional_derivative(
     input_shape: ShapeType,
-) -> linpde_gp.linfuncops.JaxLinearOperator:
+) -> linpde_gp.linfuncops.LinearDifferentialOperator:
     rng = np.random.default_rng(9871239)
 
     direction = rng.standard_normal(size=input_shape)
@@ -44,8 +44,10 @@ def case_diffop_directional_derivative(
     scope="module",
 )
 def diffop(
-    diffop_: Union[linpde_gp.linfuncops.JaxLinearOperator, NotImplementedError],
-) -> linpde_gp.linfuncops.JaxLinearOperator:
+    diffop_: Union[
+        linpde_gp.linfuncops.LinearDifferentialOperator, NotImplementedError
+    ],
+) -> linpde_gp.linfuncops.LinearDifferentialOperator:
     if isinstance(diffop_, NotImplementedError):
         pytest.skip(diffop_.args[0])
 
@@ -55,7 +57,7 @@ def diffop(
 def test_expquad_diffop_first(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
     expquad_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    diffop: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.LinearDifferentialOperator,
     X: np.ndarray,
 ):
     expquad_diffop_first = diffop(expquad, argnum=0)
@@ -75,7 +77,7 @@ def test_expquad_diffop_first(
 def test_expquad_diffop_second(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
     expquad_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    diffop: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.LinearDifferentialOperator,
     X: np.ndarray,
 ):
     expquad_diffop_second = diffop(expquad, argnum=1)
@@ -95,7 +97,7 @@ def test_expquad_diffop_second(
 def test_expquad_diffop_both(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
     expquad_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    diffop: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.LinearDifferentialOperator,
     X: np.ndarray,
 ):
     expquad_diffop_both = diffop(diffop(expquad, argnum=1), argnum=0)
@@ -114,7 +116,7 @@ def test_expquad_diffop_both(
 
 def test_expquad_diffop_both_jax_equals_call(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
-    diffop: linpde_gp.linfuncops.JaxLinearOperator,
+    diffop: linpde_gp.linfuncops.LinearDifferentialOperator,
     X: np.ndarray,
 ):
     expquad_diffop_both = diffop(diffop(expquad, argnum=1), argnum=0)

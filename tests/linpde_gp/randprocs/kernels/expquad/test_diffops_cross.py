@@ -9,14 +9,15 @@ import pytest_cases
 import linpde_gp
 from linpde_gp.linfuncops import diffops
 
-DifferentialOperatorPair = tuple[
-    linpde_gp.linfuncops.JaxLinearOperator, linpde_gp.linfuncops.JaxLinearOperator
+LinearDifferentialOperatorPair = tuple[
+    linpde_gp.linfuncops.LinearDifferentialOperator,
+    linpde_gp.linfuncops.LinearDifferentialOperator,
 ]
 
 
 def case_diffops_directional_derivative_laplacian(
     input_shape: ShapeType,
-) -> DifferentialOperatorPair:
+) -> LinearDifferentialOperatorPair:
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=input_shape)
@@ -30,7 +31,7 @@ def case_diffops_directional_derivative_laplacian(
 
 def case_diffops_directional_derivative_spatial_laplacian(
     input_shape: ShapeType,
-) -> Union[DifferentialOperatorPair, NotImplementedError]:
+) -> Union[LinearDifferentialOperatorPair, NotImplementedError]:
     if input_shape in ((), (1,)):
         return NotImplementedError(
             "`SpatialLaplacian` needs at least two dimensional input vectors"
@@ -55,8 +56,8 @@ def case_diffops_directional_derivative_spatial_laplacian(
     scope="module",
 )
 def _diffops(
-    diffop_pair_: Union[DifferentialOperatorPair, NotImplementedError],
-) -> DifferentialOperatorPair:
+    diffop_pair_: Union[LinearDifferentialOperatorPair, NotImplementedError],
+) -> LinearDifferentialOperatorPair:
     if isinstance(diffop_pair_, NotImplementedError):
         pytest.skip(diffop_pair_.args[0])
 
@@ -64,14 +65,14 @@ def _diffops(
 
 
 def case_diffop_pair_permutation0(
-    _diffops: DifferentialOperatorPair,
-) -> DifferentialOperatorPair:
+    _diffops: LinearDifferentialOperatorPair,
+) -> LinearDifferentialOperatorPair:
     return _diffops
 
 
 def case_diffop_pair_permutation1(
-    _diffops: DifferentialOperatorPair,
-) -> DifferentialOperatorPair:
+    _diffops: LinearDifferentialOperatorPair,
+) -> LinearDifferentialOperatorPair:
     return _diffops[1], _diffops[0]
 
 
@@ -82,14 +83,16 @@ def case_diffop_pair_permutation1(
     glob="diffop_pair_permutation*",
     scope="module",
 )
-def diffop_pair(diffop_pair_: DifferentialOperatorPair) -> DifferentialOperatorPair:
+def diffop_pair(
+    diffop_pair_: LinearDifferentialOperatorPair,
+) -> LinearDifferentialOperatorPair:
     return diffop_pair_
 
 
 def test_expquad_diffop0_diffop1(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
     expquad_jax: linpde_gp.randprocs.kernels.JaxKernel,
-    diffop_pair: DifferentialOperatorPair,
+    diffop_pair: LinearDifferentialOperatorPair,
     X: np.ndarray,
 ):
     diffop0, diffop1 = diffop_pair
@@ -110,7 +113,7 @@ def test_expquad_diffop0_diffop1(
 
 def test_expquad_diffop0_diffop1_jax_equals_call(
     expquad: linpde_gp.randprocs.kernels.ExpQuad,
-    diffop_pair: DifferentialOperatorPair,
+    diffop_pair: LinearDifferentialOperatorPair,
     X: np.ndarray,
 ):
     diffop0, diffop1 = diffop_pair

@@ -133,7 +133,7 @@ def naive_posterior_gp_linop(
     naive_posterior_gp: pn.randprocs.GaussianProcess,
     L: linpde_gp.linfuncops.LinearFunctionOperator,
 ) -> tuple[pn.randprocs.GaussianProcess, pn.randprocs.kernels.Kernel]:
-    return apply_jax_linop_to_gp(naive_posterior_gp, L)
+    return apply_lindiffop_to_gp(naive_posterior_gp, L)
 
 
 @pytest.fixture
@@ -223,14 +223,14 @@ def condition_gp_on_observations(
     return cond_gp
 
 
-def apply_jax_linop_to_gp(
+def apply_lindiffop_to_gp(
     gp: pn.randprocs.GaussianProcess,
-    L: linpde_gp.linfuncops.JaxLinearOperator,
+    lindiffop: linpde_gp.linfuncops.LinearDifferentialOperator,
     **linop_kwargs,
 ) -> pn.randprocs.GaussianProcess:
-    mean = L(gp.mean.jax, argnum=0, **linop_kwargs)
-    crosscov = L(gp.cov.jax, argnum=1, **linop_kwargs)
-    cov = L(crosscov, argnum=0, **linop_kwargs)
+    mean = lindiffop(gp.mean.jax, argnum=0, **linop_kwargs)
+    crosscov = lindiffop(gp.cov.jax, argnum=1, **linop_kwargs)
+    cov = lindiffop(crosscov, argnum=0, **linop_kwargs)
 
     gp_linop = pn.randprocs.GaussianProcess(
         mean=linpde_gp.function.JaxLambdaFunction(

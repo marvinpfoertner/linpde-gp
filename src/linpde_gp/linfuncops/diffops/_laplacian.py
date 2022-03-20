@@ -9,18 +9,15 @@ from jax import numpy as jnp
 import probnum as pn
 from probnum.typing import ShapeLike
 
-from .._jax import JaxLinearOperator
+from ._lindiffop import LinearDifferentialOperator
 
 if TYPE_CHECKING:
     import linpde_gp
 
 
-class Laplacian(JaxLinearOperator):
+class Laplacian(LinearDifferentialOperator):
     def __init__(self, domain_shape: ShapeLike) -> None:
-        super().__init__(
-            input_shapes=(domain_shape, ()),
-            output_shapes=(domain_shape, ()),
-        )
+        super().__init__(input_shapes=(domain_shape, ()))
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
@@ -42,7 +39,7 @@ class Laplacian(JaxLinearOperator):
         raise NotImplementedError()
 
 
-class SpatialLaplacian(JaxLinearOperator):
+class SpatialLaplacian(LinearDifferentialOperator):
     def __init__(self, domain_shape: ShapeLike) -> None:
         (D,) = pn.utils.as_shape(domain_shape)
 
@@ -50,10 +47,7 @@ class SpatialLaplacian(JaxLinearOperator):
 
         self._laplacian = Laplacian(domain_shape=(D - 1,))
 
-        super().__init__(
-            input_shapes=((D,), ()),
-            output_shapes=((D,), ()),
-        )
+        super().__init__(input_shapes=((D,), ()))
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
