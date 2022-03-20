@@ -6,17 +6,26 @@ from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
-import probnum as pn
+from probnum.randprocs.kernels import Kernel
 from probnum.typing import ArrayLike, ShapeLike
 
 from ... import linfuncops
-from ._stationary import StationaryMixin
+
+Kernel.input_size = property(
+    lambda self: functools.reduce(operator.mul, self.input_shape, 1)
+)
+
+Kernel._batched_sum = lambda self, a, **sum_kwargs: np.sum(
+    a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs
+)
+
+Kernel._batched_euclidean_norm_sq = lambda self, a, **sum_kwargs: self._batched_sum(
+    a ** 2, **sum_kwargs
+)
 
 
-class JaxKernel(pn.randprocs.kernels.Kernel):
-    @property
-    def input_size(self) -> int:
-        return functools.reduce(operator.mul, self.input_shape, 1)
+class JaxKernelMixin:
+    """Careful: Must come before Kernel in inheritance"""
 
     def jax(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> jnp.ndarray:
         x0 = jnp.asarray(x0)
@@ -39,30 +48,26 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         pass
 
-    def __add__(
-        self, other: pn.randprocs.kernels.Kernel
-    ) -> pn.randprocs.kernels.Kernel:
-        from ._jax_arithmetic import JaxSumKernel
-
-        return JaxSumKernel(self, other)
-
-    def _batched_sum(self, a: np.ndarray, **sum_kwargs) -> np.ndarray:
-        return np.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
-
     def _batched_sum_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
         return jnp.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
-
-    def _batched_euclidean_norm_sq(self, a: np.ndarray, **sum_kwargs) -> np.ndarray:
-        return self._batched_sum(a ** 2, **sum_kwargs)
 
     def _batched_euclidean_norm_sq_jax(
         self, a: jnp.ndarray, **sum_kwargs
     ) -> jnp.ndarray:
         return self._batched_sum_jax(a ** 2, **sum_kwargs)
 
+    def __add__(self, other: Kernel) -> Kernel:
+        from ._jax_arithmetic import JaxSumKernel
+
+        return JaxSumKernel(self, other)
+
+
+class JaxKernel(JaxKernelMixin, Kernel):
+    ...
+
 
 @linfuncops.JaxLinearOperator.__call__.register
-def _(self, k: JaxKernel, /, *, argnum=0):
+def _(self, k: JaxKernelMixin, /, *, argnum=0):
     try:
         return super(linfuncops.JaxLinearOperator, self).__call__(k, argnum=argnum)
     except NotImplementedError:
@@ -101,26 +106,3 @@ class JaxLambdaKernel(JaxKernel):
             x1 = x0
 
         return self._k(x0, x1)
-
-
-class JaxStationaryMixin(StationaryMixin):
-    def _squared_euclidean_distances_jax(
-        self,
-        x0: jnp.ndarray,
-        x1: Optional[jnp.ndarray],
-        lengthscales: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
-        """Jax implementation of the squared Euclidean distance, which supports scalar
-        inputs and an optional second argument."""
-        if x1 is None:
-            return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
-                x0,
-                shape=x0.shape[: x0.ndim - self.input_ndim] + self.output_shape,
-            )
-
-        diffs = x0 - x1
-
-        if lengthscales is not None:
-            diffs /= lengthscales
-
-        return self._batched_euclidean_norm_sq_jax(diffs)

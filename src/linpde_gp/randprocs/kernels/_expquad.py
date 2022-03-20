@@ -6,7 +6,8 @@ from jax import numpy as jnp
 import numpy as np
 from probnum.typing import ArrayLike, FloatLike, ShapeLike
 
-from ._jax import JaxKernel, JaxStationaryMixin
+from ._jax import JaxKernel
+from ._stationary import JaxStationaryMixin
 
 
 class ExpQuad(JaxKernel, JaxStationaryMixin):
