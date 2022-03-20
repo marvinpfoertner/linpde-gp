@@ -33,7 +33,7 @@ class LinearDifferentialOperator(LinearFunctionOperator):
             if f.input_shape != self.input_domain_shape:
                 raise ValueError()
 
-            if f.output_ndim != self.input_codomain_shape:
+            if f.output_shape != self.input_codomain_shape:
                 raise ValueError()
 
             return JaxLambdaFunction(
@@ -43,7 +43,12 @@ class LinearDifferentialOperator(LinearFunctionOperator):
                 vectorize=True,
             )
 
-        return self._jax_fallback(f, **kwargs)
+        return JaxLambdaFunction(
+            self._jax_fallback(f, **kwargs),
+            input_shape=self.output_domain_shape,
+            output_shape=self.output_codomain_shape,
+            vectorize=True,
+        )
 
     @abc.abstractmethod
     def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
