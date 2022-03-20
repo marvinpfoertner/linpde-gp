@@ -98,6 +98,11 @@ def test_expquad_diffop0_diffop1(
     expquad_diffop0_diffop1_jax = diffop0(diffop1(expquad_jax, argnum=1), argnum=0)
 
     np.testing.assert_allclose(
+        expquad_diffop0_diffop1(X, None),
+        expquad_diffop0_diffop1_jax(X, None),
+    )
+
+    np.testing.assert_allclose(
         expquad_diffop0_diffop1(X[:, None], X[None, :]),
         expquad_diffop0_diffop1_jax(X[:, None], X[None, :]),
     )
@@ -111,6 +116,11 @@ def test_expquad_diffop0_diffop1_jax_equals_call(
     diffop0, diffop1 = diffop_pair
 
     k_diffop0_diffop1 = diffop0(diffop1(expquad, argnum=1), argnum=0)
+
+    np.testing.assert_allclose(
+        k_diffop0_diffop1.jax(X, None),
+        k_diffop0_diffop1(X, None),
+    )
 
     np.testing.assert_allclose(
         k_diffop0_diffop1.jax(X[:, None], X[None, :]),

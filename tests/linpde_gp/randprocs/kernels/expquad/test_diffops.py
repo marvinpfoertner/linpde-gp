@@ -62,6 +62,11 @@ def test_expquad_diffop_first(
     expquad_diffop_first_jax = diffop(expquad_jax, argnum=0)
 
     np.testing.assert_allclose(
+        expquad_diffop_first(X, None),
+        expquad_diffop_first_jax(X, None),
+    )
+
+    np.testing.assert_allclose(
         expquad_diffop_first(X[:, None], X[None, :]),
         expquad_diffop_first_jax(X[:, None], X[None, :]),
     )
@@ -75,6 +80,11 @@ def test_expquad_diffop_second(
 ):
     expquad_diffop_second = diffop(expquad, argnum=1)
     expquad_diffop_second_jax = diffop(expquad_jax, argnum=1)
+
+    np.testing.assert_allclose(
+        expquad_diffop_second(X, None),
+        expquad_diffop_second_jax(X, None),
+    )
 
     np.testing.assert_allclose(
         expquad_diffop_second(X[:, None], X[None, :]),
@@ -92,6 +102,11 @@ def test_expquad_diffop_both(
     expquad_diffop_both_jax = diffop(diffop(expquad_jax, argnum=1), argnum=0)
 
     np.testing.assert_allclose(
+        expquad_diffop_both(X, None),
+        expquad_diffop_both_jax(X, None),
+    )
+
+    np.testing.assert_allclose(
         expquad_diffop_both(X[:, None], X[None, :]),
         expquad_diffop_both_jax(X[:, None], X[None, :]),
     )
@@ -103,6 +118,11 @@ def test_expquad_diffop_both_jax_equals_call(
     X: np.ndarray,
 ):
     expquad_diffop_both = diffop(diffop(expquad, argnum=1), argnum=0)
+
+    np.testing.assert_allclose(
+        expquad_diffop_both.jax(X, None),
+        expquad_diffop_both(X, None),
+    )
 
     np.testing.assert_allclose(
         expquad_diffop_both.jax(X[:, None], X[None, :]),
