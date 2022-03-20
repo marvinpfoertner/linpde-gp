@@ -1,10 +1,8 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 import dataclasses
 from typing import Optional, Union
 
-import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike
 
 from linpde_gp import domains, linfuncops
 
@@ -18,7 +16,7 @@ class DirichletBoundaryCondition:
 @dataclasses.dataclass(frozen=True)
 class BoundaryValueProblem:
     domain: domains.Domain
-    diffop: linfuncops.LinearFunctionOperator
-    rhs: pn.randprocs.RandomProcess
+    diffop: linfuncops.LinearDifferentialOperator
+    rhs: Union[pn.Function, pn.randprocs.RandomProcess]
     boundary_conditions: Sequence[DirichletBoundaryCondition]
-    solution: Optional[Callable[[ArrayLike], Union[np.floating, np.ndarray]]] = None
+    solution: Optional[pn.Function] = None

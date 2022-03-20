@@ -1,71 +1,83 @@
-import numbers
-from typing import Sequence
+from typing import Union
 
 import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
 
-from linpde_gp import domains
+from linpde_gp import domains, function
 from linpde_gp.linfuncops import diffops
 from linpde_gp.typing import DomainLike
 
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 
 
-def poisson_1d_bvp(
-    domain: DomainLike,
-    rhs,
-    boundary_values: Sequence[float] = (0.0, 0.0),
-    solution=None,
-):
-    domain = domains.asdomain(domain)
+class PoissonEquationDirichletProblem(BoundaryValueProblem):
+    def __init__(
+        self,
+        domain: DomainLike,
+        rhs: pn.Function,
+        boundary_values: Union[
+            ArrayLike,
+            pn.randvars.RandomVariable,
+            pn.Function,
+            pn.randprocs.RandomProcess,
+        ],
+        solution=None,
+    ):
+        domain = domains.asdomain(domain)
 
-    assert isinstance(domain, domains.Interval)
+        if isinstance(domain, domains.Interval):
+            if not isinstance(boundary_values, pn.randvars.RandomVariable):
+                boundary_values = np.asarray(boundary_values)
 
-    if solution is None and isinstance(rhs, numbers.Real):
-        solution = poisson_1d_const_solution(*domain, rhs, *boundary_values)
+            boundary_conditions = (
+                DirichletBoundaryCondition(domain.boundary[0], boundary_values[0]),
+                DirichletBoundaryCondition(domain.boundary[1], boundary_values[1]),
+            )
 
-    return BoundaryValueProblem(
-        domain=domain,
-        diffop=-diffops.Laplacian(domain_shape=domain.shape),
-        rhs=rhs,
-        boundary_conditions=(
-            DirichletBoundaryCondition(
-                domain.boundary[0], pn.randvars.asrandvar(boundary_values[0])
-            ),
-            DirichletBoundaryCondition(
-                domain.boundary[1], pn.randvars.asrandvar(boundary_values[1])
-            ),
-        ),
-        solution=solution,
-    )
+            if solution is None:
+                if isinstance(rhs, function.Constant) and isinstance(
+                    boundary_values, np.ndarray
+                ):
+                    solution = PoissonEquation1DConstRHSDirichletProblemSolution(
+                        domain,
+                        rhs=rhs.value,
+                        boundary_values=boundary_values,
+                    )
+        else:
+            boundary_conditions = tuple(
+                DirichletBoundaryCondition(boundary_part, boundary_values)
+                for boundary_part in domain.boundary
+            )
 
-
-def poisson_bvp(
-    domain: DomainLike,
-    rhs: pn.randprocs.RandomProcess,
-    boundary_values: pn.randprocs.RandomProcess,
-):
-    domain = domains.asdomain(domain)
-
-    return BoundaryValueProblem(
-        domain=domain,
-        diffop=-diffops.Laplacian(domain_shape=domain.shape),
-        rhs=rhs,
-        boundary_conditions=tuple(
-            DirichletBoundaryCondition(boundary_part, boundary_values)
-            for boundary_part in domain.boundary
-        ),
-    )
+        super().__init__(
+            domain=domain,
+            diffop=-diffops.Laplacian(domain.shape),
+            rhs=rhs,
+            boundary_conditions=boundary_conditions,
+            solution=solution,
+        )
 
 
-def poisson_1d_const_solution(l, r, rhs, u_l, u_r):
-    aff_slope = (u_r - u_l) / (r - l)
+class PoissonEquation1DConstRHSDirichletProblemSolution(pn.Function):
+    def __init__(
+        self,
+        domain: domains.Interval,
+        rhs: np.ndarray,
+        boundary_values: np.ndarray,
+    ):
+        super().__init__((), output_shape=())
 
-    def u(x: ArrayLike) -> np.floating:
-        return u_l + (aff_slope - (rhs / 2.0) * (x - r)) * (x - l)
+        self._l, self._r = domain
+        self._rhs = rhs
+        self._u_l, self._u_r = boundary_values
 
-    return u
+        self._aff_slope = (self._u_r - self._u_l) / (self._r - self._l)
+
+    def _evaluate(self, x: np.ndarray) -> np.ndarray:
+        return self._u_l + (self._aff_slope - (self._rhs / 2.0) * (x - self._r)) * (
+            x - self._l
+        )
 
 
 def heat_1d_bvp(
