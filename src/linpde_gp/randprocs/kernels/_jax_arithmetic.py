@@ -29,7 +29,7 @@ class JaxScaledKernel(JaxKernelMixin, ScaledKernel):
         return self._scalar * self.kernel.jax(x0, x1)
 
 
-@linfuncops.LinearFunctionOperator.__call__.register
+@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
 def _(self, k: JaxScaledKernel, /, *, argnum: int = 0) -> JaxScaledKernel:
     return k.scalar * self(k.kernel, argnum=argnum)
 
@@ -41,13 +41,17 @@ class JaxSumKernel(JaxKernelMixin, SumKernel):
 
         super().__init__(*summands)
 
+    @property
+    def summands(self) -> tuple[JaxKernel, ...]:
+        return self._summands
+
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         return functools.reduce(
             operator.add,
-            (summand.jax(x0, x1) for summand in self._summands),
+            (summand.jax(x0, x1) for summand in self.summands),
         )
 
 
-@linfuncops.LinearFunctionOperator.__call__.register
+@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
 def _(self, k: JaxSumKernel, /, *, argnum: int = 0) -> JaxSumKernel:
-    return JaxSumKernel(*(self(summand, argnum=argnum) for summand in k._summands))
+    return JaxSumKernel(*(self(summand, argnum=argnum) for summand in k.summands))
