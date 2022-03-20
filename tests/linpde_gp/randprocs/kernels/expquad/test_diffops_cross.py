@@ -24,7 +24,7 @@ def case_diffops_directional_derivative_laplacian(
 
     return (
         diffops.DirectionalDerivative(direction),
-        diffops.Laplacian(input_shape, alpha=-1.3),
+        -1.3 * diffops.Laplacian(input_shape),
     )
 
 
@@ -43,7 +43,7 @@ def case_diffops_directional_derivative_spatial_laplacian(
 
     return (
         diffops.DirectionalDerivative(direction),
-        diffops.SpatialLaplacian(input_shape, alpha=-2.1),
+        -2.1 * diffops.SpatialLaplacian(input_shape),
     )
 
 

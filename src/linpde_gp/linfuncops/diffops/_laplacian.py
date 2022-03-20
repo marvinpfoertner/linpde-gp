@@ -16,9 +16,7 @@ if TYPE_CHECKING:
 
 
 class Laplacian(JaxLinearOperator):
-    def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
-        self._alpha = alpha
-
+    def __init__(self, domain_shape: ShapeLike) -> None:
         super().__init__(
             input_shapes=(domain_shape, ()),
             output_shapes=(domain_shape, ()),
@@ -35,7 +33,7 @@ class Laplacian(JaxLinearOperator):
 
         @jax.jit
         def _scaled_hessian_trace(*args, **kwargs):
-            return self._alpha * jnp.trace(jnp.atleast_2d(Hf(*args, **kwargs)))
+            return jnp.trace(jnp.atleast_2d(Hf(*args, **kwargs)))
 
         return _scaled_hessian_trace
 
@@ -45,16 +43,12 @@ class Laplacian(JaxLinearOperator):
 
 
 class SpatialLaplacian(JaxLinearOperator):
-    def __init__(self, domain_shape: ShapeLike, alpha: float = 1.0) -> None:
+    def __init__(self, domain_shape: ShapeLike) -> None:
         (D,) = pn.utils.as_shape(domain_shape)
 
         assert D > 1
 
-        self._alpha = alpha
-        self._laplacian = Laplacian(
-            domain_shape=(D - 1,),
-            alpha=self._alpha,
-        )
+        self._laplacian = Laplacian(domain_shape=(D - 1,))
 
         super().__init__(
             input_shapes=((D,), ()),

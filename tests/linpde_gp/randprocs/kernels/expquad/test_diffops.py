@@ -11,7 +11,7 @@ from linpde_gp.linfuncops import diffops
 
 
 def case_diffop_laplacian(input_shape: ShapeType) -> diffops.Laplacian:
-    return diffops.Laplacian(domain_shape=input_shape, alpha=-1.0)
+    return -diffops.Laplacian(domain_shape=input_shape)
 
 
 def case_diffop_spatial_laplacian(
@@ -22,7 +22,7 @@ def case_diffop_spatial_laplacian(
             "`SpatialLaplacian` needs at least two dimensional input vectors"
         )
 
-    return diffops.SpatialLaplacian(domain_shape=input_shape, alpha=-3.1)
+    return -3.1 * diffops.SpatialLaplacian(domain_shape=input_shape)
 
 
 def case_diffop_directional_derivative(

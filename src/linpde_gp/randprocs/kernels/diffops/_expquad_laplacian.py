@@ -13,17 +13,10 @@ from ._expquad_directional_derivative import ExpQuad_Identity_DirectionalDerivat
 
 
 class ExpQuad_Identity_Laplacian(JaxKernel):
-    def __init__(
-        self,
-        expquad: ExpQuad,
-        alpha: float,
-        reverse: bool = True,
-    ):
+    def __init__(self, expquad: ExpQuad, reverse: bool = True):
         self._expquad = expquad
 
         super().__init__(self._expquad.input_shape, output_shape=())
-
-        self._alpha = alpha
 
         self._reverse = bool(reverse)
 
@@ -52,7 +45,7 @@ class ExpQuad_Identity_Laplacian(JaxKernel):
         if x1 is None:
             return np.full_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
-                self._alpha * (-self._trace_lengthscales_sq_inv),
+                -self._trace_lengthscales_sq_inv,
                 shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
@@ -65,10 +58,8 @@ class ExpQuad_Identity_Laplacian(JaxKernel):
             diffs / self._lengthscales_sq
         )
 
-        return (
-            self._alpha
-            * (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv)
-            * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
+        return (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv) * np.exp(
+            -0.5 * dists_sq_lengthscales_sq_inv
         )
 
     @functools.partial(jax.jit, static_argnums=0)
@@ -76,7 +67,7 @@ class ExpQuad_Identity_Laplacian(JaxKernel):
         if x1 is None:
             return jnp.full_like(
                 x0,
-                self._alpha * (-self._trace_lengthscales_sq_inv),
+                -self._trace_lengthscales_sq_inv,
                 shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
@@ -90,36 +81,23 @@ class ExpQuad_Identity_Laplacian(JaxKernel):
         )
 
         return (
-            self._alpha
-            * (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv)
-            * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
-        )
+            dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv
+        ) * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
 
 
 @diffops.Laplacian.__call__.register  # pylint: disable=no-member
-def _(self, k: ExpQuad, /, *, argnum: int = 0):
+def _(self, k: ExpQuad, /, *, argnum: int = 0):  # pylint: disable=unused-argument
     return ExpQuad_Identity_Laplacian(
         expquad=k,
-        alpha=self._alpha,
         reverse=(argnum == 0),
     )
 
 
 class ExpQuad_Laplacian_Laplacian(JaxKernel):
-    def __init__(
-        self,
-        expquad: ExpQuad,
-        alpha0: float,
-        alpha1: float,
-    ):
+    def __init__(self, expquad: ExpQuad):
         self._expquad = expquad
 
         super().__init__(self._expquad.input_shape, output_shape=())
-
-        self._alpha0 = alpha0
-        self._alpha1 = alpha1
-
-        self._alpha_prod = self._alpha0 * self._alpha1
 
     @property
     def expquad(self) -> ExpQuad:
@@ -160,11 +138,8 @@ class ExpQuad_Laplacian_Laplacian(JaxKernel):
             return np.full_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
                 (
-                    self._alpha_prod
-                    * (
-                        self._trace_lengthscales_sq_inv ** 2
-                        + 2 * self._trace_lengthscales_4_inv
-                    )
+                    self._trace_lengthscales_sq_inv ** 2
+                    + 2 * self._trace_lengthscales_4_inv
                 ),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
@@ -182,14 +157,10 @@ class ExpQuad_Laplacian_Laplacian(JaxKernel):
         )
 
         return (
-            self._alpha_prod
-            * (
-                (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv) ** 2
-                - 4 * dists_sq_lengthscales_6_inv
-                + 2 * self._trace_lengthscales_4_inv
-            )
-            * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
-        )
+            (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv) ** 2
+            - 4 * dists_sq_lengthscales_6_inv
+            + 2 * self._trace_lengthscales_4_inv
+        ) * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
@@ -197,11 +168,8 @@ class ExpQuad_Laplacian_Laplacian(JaxKernel):
             return jnp.full_like(
                 x0,
                 (
-                    self._alpha_prod
-                    * (
-                        self._trace_lengthscales_sq_inv ** 2
-                        + 2 * self._trace_lengthscales_4_inv
-                    )
+                    self._trace_lengthscales_sq_inv ** 2
+                    + 2 * self._trace_lengthscales_4_inv
                 ),
                 shape=x0.shape[: x0.ndim - self._input_ndim],
             )
@@ -219,32 +187,18 @@ class ExpQuad_Laplacian_Laplacian(JaxKernel):
         )
 
         return (
-            self._alpha_prod
-            * (
-                (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv) ** 2
-                - 4 * dists_sq_lengthscales_6_inv
-                + 2 * self._trace_lengthscales_4_inv
-            )
-            * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
-        )
+            (dists_sq_lengthscales_4_inv - self._trace_lengthscales_sq_inv) ** 2
+            - 4 * dists_sq_lengthscales_6_inv
+            + 2 * self._trace_lengthscales_4_inv
+        ) * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
 
 
 @diffops.Laplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad_Identity_Laplacian, /, *, argnum: int = 0):
-    if argnum == 0 and not k.reverse:
-        alpha0 = self._alpha
-        alpha1 = k._alpha
-    elif argnum == 1 and k.reverse:
-        alpha0 = k._alpha
-        alpha1 = self._alpha
-    else:
-        return super(diffops.Laplacian, self).__call__(k, argnum=argnum)
+    if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
+        return ExpQuad_Laplacian_Laplacian(expquad=k.expquad)
 
-    return ExpQuad_Laplacian_Laplacian(
-        expquad=k.expquad,
-        alpha0=alpha0,
-        alpha1=alpha1,
-    )
+    return super(diffops.Laplacian, self).__call__(k, argnum=argnum)
 
 
 class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
@@ -252,7 +206,6 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
         self,
         expquad: ExpQuad,
         direction: np.ndarray,
-        alpha: float,
         reverse: bool = False,
         expquad_laplacian: Optional[ExpQuad_Identity_Laplacian] = None,
     ):
@@ -261,23 +214,18 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
         super().__init__(self._expquad.input_shape, output_shape=())
 
         self._direction = direction
-        self._alpha = alpha
 
         self._reverse = bool(reverse)
 
         if expquad_laplacian is None:
             expquad_laplacian = ExpQuad_Identity_Laplacian(
                 self._expquad,
-                alpha=self._alpha,
                 reverse=self._reverse,
             )
 
-        assert expquad_laplacian._alpha == self._alpha
         assert expquad_laplacian.reverse == self._reverse
 
         self._expquad_laplacian = expquad_laplacian
-
-        self._sign = -1.0 if self._reverse else 1.0
 
     @property
     def expquad(self) -> ExpQuad:
@@ -317,19 +265,19 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
             diffs / self._expquad_laplacian._lengthscales_sq
         )
 
-        return (
-            self._sign
-            * self._alpha
+        k_x0_x1 = (
+            2 * proj_diffs_direction_lengthscales_4_inv
+            - proj_diffs_direction_lengthscales_sq_inv
             * (
-                2 * proj_diffs_direction_lengthscales_4_inv
-                - proj_diffs_direction_lengthscales_sq_inv
-                * (
-                    dists_sq_lengthscales_4_inv
-                    - self._expquad_laplacian._trace_lengthscales_sq_inv
-                )
+                dists_sq_lengthscales_4_inv
+                - self._expquad_laplacian._trace_lengthscales_sq_inv
             )
-            * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
-        )
+        ) * np.exp(-0.5 * dists_sq_lengthscales_sq_inv)
+
+        if self._reverse:
+            return -k_x0_x1
+
+        return k_x0_x1
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
@@ -355,19 +303,19 @@ class ExpQuad_DirectionalDerivative_Laplacian(JaxKernel):
             diffs / self._expquad_laplacian._lengthscales_sq
         )
 
-        return (
-            self._sign
-            * self._alpha
+        k_x0_x1 = (
+            2 * proj_diffs_direction_lengthscales_4_inv
+            - proj_diffs_direction_lengthscales_sq_inv
             * (
-                2 * proj_diffs_direction_lengthscales_4_inv
-                - proj_diffs_direction_lengthscales_sq_inv
-                * (
-                    dists_sq_lengthscales_4_inv
-                    - self._expquad_laplacian._trace_lengthscales_sq_inv
-                )
+                dists_sq_lengthscales_4_inv
+                - self._expquad_laplacian._trace_lengthscales_sq_inv
             )
-            * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
-        )
+        ) * jnp.exp(-0.5 * dists_sq_lengthscales_sq_inv)
+
+        if self._reverse:
+            return -k_x0_x1
+
+        return k_x0_x1
 
 
 @diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
@@ -376,7 +324,6 @@ def _(self, k: ExpQuad_Identity_Laplacian, /, *, argnum: int = 0):
         return ExpQuad_DirectionalDerivative_Laplacian(
             expquad=k.expquad,
             direction=self.direction,
-            alpha=k._alpha,
             reverse=(argnum == 1),
         )
 
@@ -389,7 +336,6 @@ def _(self, k: ExpQuad_Identity_DirectionalDerivative, /, *, argnum: int = 0):
         return ExpQuad_DirectionalDerivative_Laplacian(
             expquad=k.expquad,
             direction=k.direction,
-            alpha=self._alpha,
             reverse=(argnum == 0),
         )
 
