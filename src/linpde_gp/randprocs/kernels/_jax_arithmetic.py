@@ -3,8 +3,9 @@ import operator
 from typing import Optional
 
 from jax import numpy as jnp
+import numpy as np
 from probnum.randprocs.kernels._arithmetic_fallbacks import ScaledKernel, SumKernel
-from probnum.typing import ScalarLike, ScalarType
+from probnum.typing import ArrayLike, ScalarLike, ScalarType
 
 from ... import linfuncops
 from ._jax import JaxKernel, JaxKernelMixin
@@ -27,6 +28,15 @@ class JaxScaledKernel(JaxKernelMixin, ScaledKernel):
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         return self._scalar * self.kernel.jax(x0, x1)
+
+    def __rmul__(self, other: ArrayLike) -> JaxKernel:
+        if np.ndim(other) == 0:
+            return JaxScaledKernel(
+                self.kernel,
+                scalar=np.asarray(other) * self.scalar,
+            )
+
+        return super().__rmul__(other)
 
 
 @linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
