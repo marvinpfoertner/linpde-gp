@@ -9,14 +9,14 @@ import pytest_cases
 import linpde_gp
 from linpde_gp.linfuncops import diffops
 
-JaxLinearOperatorPair = tuple[
+DifferentialOperatorPair = tuple[
     linpde_gp.linfuncops.JaxLinearOperator, linpde_gp.linfuncops.JaxLinearOperator
 ]
 
 
 def case_diffops_directional_derivative_laplacian(
     input_shape: ShapeType,
-) -> JaxLinearOperatorPair:
+) -> DifferentialOperatorPair:
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=input_shape)
@@ -30,10 +30,10 @@ def case_diffops_directional_derivative_laplacian(
 
 def case_diffops_directional_derivative_spatial_laplacian(
     input_shape: ShapeType,
-) -> Union[JaxLinearOperatorPair, NotImplementedError]:
-    if input_shape == () or input_shape == (1,):
+) -> Union[DifferentialOperatorPair, NotImplementedError]:
+    if input_shape in ((), (1,)):
         return NotImplementedError(
-            "`ScaledSpatialLaplacian` needs at least two dimensional input vectors"
+            "`SpatialLaplacian` needs at least two dimensional input vectors"
         )
 
     rng = np.random.default_rng(4343609)
@@ -49,46 +49,70 @@ def case_diffops_directional_derivative_spatial_laplacian(
 
 @pytest_cases.fixture("module")
 @pytest_cases.parametrize_with_cases(
-    "diffop_permutation",
+    "diffop_pair_",
     cases=pytest_cases.THIS_MODULE,
     glob="diffops_*",
     scope="module",
 )
-def _diffops_permutation0(
-    diffop_permutation: Union[JaxLinearOperatorPair, NotImplementedError],
-) -> JaxLinearOperatorPair:
-    if isinstance(diffop_permutation, NotImplementedError):
-        pytest.skip(diffop_permutation.args[0])
+def _diffops(
+    diffop_pair_: Union[DifferentialOperatorPair, NotImplementedError],
+) -> DifferentialOperatorPair:
+    if isinstance(diffop_pair_, NotImplementedError):
+        pytest.skip(diffop_pair_.args[0])
 
-    return diffop_permutation
-
-
-def case_permutation0(_diffops_permutation0):
-    return _diffops_permutation0
+    return diffop_pair_
 
 
-def case_permutation1(_diffops_permutation0):
-    return _diffops_permutation0[1], _diffops_permutation0[0]
+def case_diffop_pair_permutation0(
+    _diffops: DifferentialOperatorPair,
+) -> DifferentialOperatorPair:
+    return _diffops
+
+
+def case_diffop_pair_permutation1(
+    _diffops: DifferentialOperatorPair,
+) -> DifferentialOperatorPair:
+    return _diffops[1], _diffops[0]
 
 
 @pytest_cases.fixture("module")
 @pytest_cases.parametrize_with_cases(
-    "diffop_permutation",
+    "diffop_pair_",
     cases=pytest_cases.THIS_MODULE,
-    glob="permutation*",
+    glob="diffop_pair_permutation*",
     scope="module",
 )
-def diffop_pair(diffop_permutation):
-    return diffop_permutation
+def diffop_pair(diffop_pair_: DifferentialOperatorPair) -> DifferentialOperatorPair:
+    return diffop_pair_
 
 
-def test_L0_k_L1adj(k, k_jax, diffop_pair, X):
-    L0, L1 = diffop_pair
+def test_expquad_diffop0_diffop1(
+    expquad: linpde_gp.randprocs.kernels.ExpQuad,
+    expquad_jax: linpde_gp.randprocs.kernels.JaxKernel,
+    diffop_pair: DifferentialOperatorPair,
+    X: np.ndarray,
+):
+    diffop0, diffop1 = diffop_pair
 
-    L0_k_L1adj = L0(L1(k, argnum=1), argnum=0)
-    L0_k_L1adj_jax = L0(L1(k_jax, argnum=1), argnum=0)
+    expquad_diffop0_diffop1 = diffop0(diffop1(expquad, argnum=1), argnum=0)
+    expquad_diffop0_diffop1_jax = diffop0(diffop1(expquad_jax, argnum=1), argnum=0)
 
     np.testing.assert_allclose(
-        L0_k_L1adj(X[:, None], X[None, :]),
-        L0_k_L1adj_jax(X[:, None], X[None, :]),
+        expquad_diffop0_diffop1(X[:, None], X[None, :]),
+        expquad_diffop0_diffop1_jax(X[:, None], X[None, :]),
+    )
+
+
+def test_expquad_diffop0_diffop1_jax_equals_call(
+    expquad: linpde_gp.randprocs.kernels.ExpQuad,
+    diffop_pair: DifferentialOperatorPair,
+    X: np.ndarray,
+):
+    diffop0, diffop1 = diffop_pair
+
+    k_diffop0_diffop1 = diffop0(diffop1(expquad, argnum=1), argnum=0)
+
+    np.testing.assert_allclose(
+        k_diffop0_diffop1.jax(X[:, None], X[None, :]),
+        k_diffop0_diffop1(X[:, None], X[None, :]),
     )

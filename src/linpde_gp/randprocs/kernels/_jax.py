@@ -1,5 +1,7 @@
 import abc
 from collections.abc import Callable
+import functools
+import operator
 from typing import Optional
 
 from jax import numpy as jnp
@@ -12,6 +14,10 @@ from ._stationary import StationaryMixin
 
 
 class JaxKernel(pn.randprocs.kernels.Kernel):
+    @property
+    def input_size(self) -> int:
+        return functools.reduce(operator.mul, self.input_shape, 1)
+
     def jax(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> jnp.ndarray:
         x0 = jnp.asarray(x0)
 
@@ -45,6 +51,14 @@ class JaxKernel(pn.randprocs.kernels.Kernel):
 
     def _batched_sum_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
         return jnp.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
+
+    def _batched_euclidean_norm_sq(self, a: np.ndarray, **sum_kwargs) -> np.ndarray:
+        return self._batched_sum(a ** 2, **sum_kwargs)
+
+    def _batched_euclidean_norm_sq_jax(
+        self, a: jnp.ndarray, **sum_kwargs
+    ) -> jnp.ndarray:
+        return self._batched_sum_jax(a ** 2, **sum_kwargs)
 
 
 @linfuncops.JaxLinearOperator.__call__.register
@@ -109,4 +123,4 @@ class JaxStationaryMixin(StationaryMixin):
         if lengthscales is not None:
             diffs /= lengthscales
 
-        return jnp.sum(diffs ** 2, axis=tuple(range(-self.input_ndim, 0)))
+        return self._batched_euclidean_norm_sq_jax(diffs)

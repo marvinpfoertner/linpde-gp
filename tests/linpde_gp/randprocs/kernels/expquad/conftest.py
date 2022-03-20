@@ -9,11 +9,11 @@ jax.config.update("jax_enable_x64", True)
 
 
 @pytest_cases.fixture(scope="module")
-def k(
+def expquad(
     input_shape: ShapeType,
     lengthscales: ArrayLike,
     output_scale: float,
-) -> linpde_gp.randprocs.kernels.JaxKernel:
+) -> linpde_gp.randprocs.kernels.ExpQuad:
     return linpde_gp.randprocs.kernels.ExpQuad(
         input_shape=input_shape,
         lengthscales=lengthscales,
@@ -22,11 +22,11 @@ def k(
 
 
 @pytest_cases.fixture(scope="module")
-def k_jax(
-    k: linpde_gp.randprocs.kernels.JaxKernel,
+def expquad_jax(
+    expquad: linpde_gp.randprocs.kernels.ExpQuad,
 ) -> linpde_gp.randprocs.kernels.JaxKernel:
     return linpde_gp.randprocs.kernels.JaxLambdaKernel(
-        k=k.jax,
-        input_shape=k.input_shape,
+        k=expquad.jax,
+        input_shape=expquad.input_shape,
         vectorize=False,
     )

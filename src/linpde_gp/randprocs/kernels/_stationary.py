@@ -23,4 +23,4 @@ class StationaryMixin:
         if lengthscales is not None:
             diffs /= lengthscales
 
-        return self._batched_sum(diffs ** 2)
+        return self._batched_euclidean_norm_sq(diffs)
