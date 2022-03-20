@@ -6,6 +6,8 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike, ShapeType
 
+from linpde_gp import functions
+
 
 class LinearFunctionOperator:
     def __init__(
@@ -50,6 +52,14 @@ class LinearFunctionOperator:
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         raise NotImplementedError()
+
+    @__call__.register
+    def _(self, f: functions.JaxSumFunction, /) -> functions.JaxSumFunction:
+        return functions.JaxSumFunction(*(self(summand) for summand in f.summands))
+
+    @__call__.register
+    def _(self, f: functions.JaxScaledFunction, /) -> functions.JaxScaledFunction:
+        return functions.JaxScaledFunction(self(f), scalar=f.scalar)
 
     def __neg__(self) -> LinearFunctionOperator:
         return -1.0 * self
