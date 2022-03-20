@@ -36,10 +36,6 @@ class Laplacian(LinearDifferentialOperator):
 
         return f_laplacian
 
-    @functools.singledispatchmethod
-    def project(self, basis: linpde_gp.bases.Basis) -> pn.linops.LinearOperator:
-        raise NotImplementedError()
-
 
 class SpatialLaplacian(LinearDifferentialOperator):
     def __init__(self, domain_shape: ShapeLike) -> None:
