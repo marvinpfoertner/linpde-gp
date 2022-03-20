@@ -27,10 +27,12 @@ def input_shape(input_dim: int) -> ShapeType:
 def prior(input_shape: ShapeType) -> pn.randprocs.GaussianProcess:
     return pn.randprocs.GaussianProcess(
         mean=linpde_gp.randprocs.mean_fns.Zero(input_shape=input_shape),
-        cov=linpde_gp.randprocs.kernels.ExpQuad(
-            input_shape=input_shape,
-            lengthscales=0.25,
-            output_scale=2.0,
+        cov=(
+            2.0 ** 2
+            * linpde_gp.randprocs.kernels.ExpQuad(
+                input_shape=input_shape,
+                lengthscales=0.25,
+            )
         ),
     )
 

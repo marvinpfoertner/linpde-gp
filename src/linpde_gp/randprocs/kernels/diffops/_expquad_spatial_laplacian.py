@@ -1,6 +1,5 @@
 from typing import Optional
 
-import jax
 from jax import numpy as jnp
 import numpy as np
 
@@ -41,7 +40,6 @@ class ExpQuad_Identity_SpatialLaplacian(JaxKernel):
                 if self._expquad.lengthscales.ndim == 0
                 else self._expquad.lengthscales[0]
             ),
-            output_scale=self._expquad._output_scale,
         )
 
         self._expquad_space = ExpQuad(
@@ -51,7 +49,6 @@ class ExpQuad_Identity_SpatialLaplacian(JaxKernel):
                 if self._expquad.lengthscales.ndim == 0
                 else self._expquad.lengthscales[1:]
             ),
-            output_scale=1.0,
         )
 
         self._expquad_laplacian_space = ExpQuad_Identity_Laplacian(
@@ -83,7 +80,7 @@ class ExpQuad_Identity_SpatialLaplacian(JaxKernel):
         )
 
 
-@diffops.SpatialLaplacian.__call__.register
+@diffops.SpatialLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad, /, *, argnum: int = 0):
     return ExpQuad_Identity_SpatialLaplacian(
         expquad=k,
@@ -116,7 +113,6 @@ class ExpQuad_SpatialLaplacian_SpatialLaplacian(JaxKernel):
                 if self._expquad.lengthscales.ndim == 0
                 else self._expquad.lengthscales[0]
             ),
-            output_scale=self._expquad._output_scale,
         )
 
         self._expquad_laplacian_laplacian_space = ExpQuad_Laplacian_Laplacian(
@@ -127,7 +123,6 @@ class ExpQuad_SpatialLaplacian_SpatialLaplacian(JaxKernel):
                     if self._expquad.lengthscales.ndim == 0
                     else self._expquad.lengthscales[1:]
                 ),
-                output_scale=1.0,
             ),
             alpha0=self._alpha0,
             alpha1=self._alpha1,
@@ -152,7 +147,7 @@ class ExpQuad_SpatialLaplacian_SpatialLaplacian(JaxKernel):
         )
 
 
-@diffops.SpatialLaplacian.__call__.register
+@diffops.SpatialLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad_Identity_SpatialLaplacian, /, *, argnum: int = 0):
     if argnum == 0 and not k.reverse:
         alpha0 = self._alpha
@@ -258,7 +253,7 @@ class ExpQuad_DirectionalDerivative_SpatialLaplacian(JaxKernel):
         )
 
 
-@diffops.DirectionalDerivative.__call__.register
+@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad_Identity_SpatialLaplacian, /, *, argnum: int = 0):
     if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
         return ExpQuad_DirectionalDerivative_SpatialLaplacian(
@@ -272,7 +267,7 @@ def _(self, k: ExpQuad_Identity_SpatialLaplacian, /, *, argnum: int = 0):
     return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
 
 
-@diffops.SpatialLaplacian.__call__.register
+@diffops.SpatialLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad_Identity_DirectionalDerivative, /, *, argnum: int = 0):
     if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
         return ExpQuad_DirectionalDerivative_SpatialLaplacian(
