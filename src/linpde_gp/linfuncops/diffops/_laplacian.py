@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import functools
+from multiprocessing.sharedctypes import Value
 from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
+import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike
 
@@ -26,13 +28,13 @@ class Laplacian(LinearDifferentialOperator):
     def _jax_fallback(  # pylint: disable=arguments-differ
         self, f: Callable, /, *, argnum: int = 0, **kwargs
     ) -> Callable:
-        Hf = jax.jit(jax.hessian(f, argnum))
+        f_hessian = jax.jit(jax.hessian(f, argnums=argnum))
 
         @jax.jit
-        def _scaled_hessian_trace(*args, **kwargs):
-            return jnp.trace(jnp.atleast_2d(Hf(*args, **kwargs)))
+        def f_laplacian(*args, **kwargs):
+            return jnp.trace(jnp.atleast_2d(f_hessian(*args, **kwargs)))
 
-        return _scaled_hessian_trace
+        return f_laplacian
 
     @functools.singledispatchmethod
     def project(self, basis: linpde_gp.bases.Basis) -> pn.linops.LinearOperator:
@@ -41,42 +43,32 @@ class Laplacian(LinearDifferentialOperator):
 
 class SpatialLaplacian(LinearDifferentialOperator):
     def __init__(self, domain_shape: ShapeLike) -> None:
-        (D,) = pn.utils.as_shape(domain_shape)
+        domain_shape = pn.utils.as_shape(domain_shape)
 
-        assert D > 1
+        if domain_shape in ((), (1,)) or len(domain_shape) > 1:
+            raise ValueError()
 
-        self._laplacian = Laplacian(domain_shape=(D - 1,))
+        (self._D,) = domain_shape
 
-        super().__init__(input_shapes=((D,), ()))
+        self._laplacian = Laplacian(domain_shape=(self._D - 1,))
+
+        super().__init__(input_shapes=((self._D,), ()))
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
     def _jax_fallback(  # pylint: disable=arguments-differ
-        self, f, /, *, argnum: int = 0, **kwargs
+        self, f, /, *, argnum: int = 0
     ):
-        # TODO: Implement using Hessian-vector products
-        @jax.jit
-        def _f(*args, **kwargs) -> jnp.ndarray:
-            t, x = args[argnum : argnum + 2]
-            tx = jnp.concatenate((t[None], x), axis=0)
+        f_hessian = jax.jit(jax.hessian(f, argnums=argnum))
 
-            return f(
-                *args[:argnum],
-                tx,
-                *args[argnum + 2 :],
-                **kwargs,
+        @jax.jit
+        def f_spatial_laplacian(*args, **kwargs) -> jnp.ndarray:
+            return jnp.sum(
+                jnp.diag(
+                    f_hessian(*args, **kwargs),
+                )[1:],
             )
 
-        _spatial_laplace_f_t_x = self._laplacian._jax_fallback(_f, argnum=argnum + 1)
-
-        @jax.jit
-        def _spatial_laplace_f_tx(*args, **kwargs):
-            tx = args[argnum]
-            t, x = tx[0], tx[1:]
-            args = args[:argnum] + (t, x) + args[argnum + 1 :]
-
-            return _spatial_laplace_f_t_x(*args, **kwargs)
-
-        return _spatial_laplace_f_tx
+        return f_spatial_laplacian
