@@ -26,7 +26,7 @@ def poisson_1d_bvp(
 
     return BoundaryValueProblem(
         domain=domain,
-        diffop=diffops.ScaledLaplaceOperator(domain_shape=domain.shape, alpha=-1.0),
+        diffop=diffops.Laplacian(domain_shape=domain.shape, alpha=-1.0),
         rhs=rhs,
         boundary_conditions=(
             DirichletBoundaryCondition(
@@ -49,7 +49,7 @@ def poisson_bvp(
 
     return BoundaryValueProblem(
         domain=domain,
-        diffop=diffops.ScaledLaplaceOperator(domain_shape=domain.shape, alpha=-1.0),
+        diffop=diffops.Laplacian(domain_shape=domain.shape, alpha=-1.0),
         rhs=rhs,
         boundary_conditions=tuple(
             DirichletBoundaryCondition(boundary_part, boundary_values)
