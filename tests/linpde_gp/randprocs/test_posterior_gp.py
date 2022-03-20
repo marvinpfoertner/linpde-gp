@@ -26,7 +26,7 @@ def input_shape(input_dim: int) -> ShapeType:
 @pytest.fixture
 def prior(input_shape: ShapeType) -> pn.randprocs.GaussianProcess:
     return pn.randprocs.GaussianProcess(
-        mean=linpde_gp.randprocs.mean_fns.Zero(input_shape=input_shape),
+        mean=linpde_gp.functions.Zero(input_shape=input_shape),
         cov=(
             2.0 ** 2
             * linpde_gp.randprocs.kernels.ExpQuad(
@@ -191,8 +191,8 @@ def condition_gp_on_observations(
     gram = gp.cov(X[:, None], X[None, :])
 
     if noise is not None:
-        pred_mean += noise.mean
-        gram += noise.cov
+        pred_mean = pred_mean + noise.mean
+        gram = gram + noise.cov
 
     gram_cho = scipy.linalg.cho_factor(gram)
 

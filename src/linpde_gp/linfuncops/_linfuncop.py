@@ -61,6 +61,15 @@ class LinearFunctionOperator:
     def _(self, f: functions.JaxScaledFunction, /) -> functions.JaxScaledFunction:
         return functions.JaxScaledFunction(self(f), scalar=f.scalar)
 
+    @__call__.register
+    def _(
+        self, f: functions.Zero, /  # pylint: disable=unused-argument
+    ) -> functions.JaxSumFunction:
+        return functions.Zero(
+            input_shape=self.output_domain_shape,
+            output_shape=self.output_codomain_shape,
+        )
+
     def __neg__(self) -> LinearFunctionOperator:
         return -1.0 * self
 

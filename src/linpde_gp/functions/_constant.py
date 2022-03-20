@@ -47,3 +47,23 @@ def _(self, other: Constant) -> Constant:
     assert self.input_shape == other.input_shape
 
     return Constant(self.input_shape, value=self.value + other.value)
+
+
+class Zero(Constant):
+    def __init__(self, input_shape: ShapeLike, output_shape: ShapeLike = ()) -> None:
+        super().__init__(input_shape, value=np.broadcast_to(0.0, output_shape))
+
+    def __rmul__(self, other) -> JaxFunction:
+        if np.ndim(other) == 0:
+            return self
+
+        return super().__rmul__(other)
+
+
+@JaxFunction.__add__.register  # pylint: disable=no-member
+@Constant.__add__.register  # pylint: disable=no-member
+def _(self, other: Zero):
+    assert other.input_shape == self.input_shape
+    assert other.output_shape == self.output_shape
+
+    return self
