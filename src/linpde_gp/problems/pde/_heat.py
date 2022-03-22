@@ -26,13 +26,17 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
     ):
         domain = domains.asdomain(domain)
 
-        if isinstance(domain, domains.Interval):
+        if domain.shape == ():
+            if not isinstance(domain, domains.Interval):
+                raise TypeError()
+
+            assert isinstance(domain.boundary, domains.PointSet)
+
             if not isinstance(boundary_values, pn.randvars.RandomVariable):
                 boundary_values = np.asarray(boundary_values)
 
             boundary_conditions = (
-                DirichletBoundaryCondition(domain.boundary[0], boundary_values[0]),
-                DirichletBoundaryCondition(domain.boundary[1], boundary_values[1]),
+                DirichletBoundaryCondition(domain.boundary, boundary_values),
             )
 
             if solution is None:

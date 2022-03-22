@@ -5,9 +5,8 @@ import numpy as np
 
 from linpde_gp.typing import DomainLike
 
-from ._box import Box
+from ._box import Box, Interval
 from ._domain import Domain
-from ._interval import Interval
 
 
 def asdomain(arg: DomainLike) -> Domain:
