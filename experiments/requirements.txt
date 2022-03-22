@@ -1,0 +1,5 @@
+git+https://github.com/pnkraemer/tueplots.git
+
+# For the interactive visualizations
+ipympl==0.8.8
+ipywidgets==7.6.5

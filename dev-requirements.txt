@@ -1,0 +1,12 @@
+# Editable install of `linpde-gp`
+-e .
+
+-r experiments/requirements.txt
+-r tests/requirements.txt
+
+# Editable install of `probnum`
+# -r ./probnum/dev-requirements does not work since `.` points to the current directory and not to ./probnum
+-e ./probnum
+
+-r ./probnum/linting-requirements.txt
+-r ./probnum/formatting-requirements.txt
