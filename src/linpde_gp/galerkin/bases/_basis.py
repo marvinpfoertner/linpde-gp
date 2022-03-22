@@ -3,7 +3,6 @@ from typing import Callable, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatLike
 
 
 class Basis(abc.ABC):
@@ -14,9 +13,7 @@ class Basis(abc.ABC):
         return self._size
 
     @abc.abstractmethod
-    def __getitem__(
-        self, idx: int
-    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
+    def __getitem__(self, idx: int) -> pn.Function:
         pass
 
     @abc.abstractmethod
@@ -26,10 +23,7 @@ class Basis(abc.ABC):
             np.ndarray,
             pn.randvars.RandomVariable,  # TODO: Add probnum type RandomVariableLike
         ],
-    ) -> Union[
-        Callable[[Union[FloatLike, np.ndarray]], np.floating],
-        pn.randprocs.RandomProcess,
-    ]:
+    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
         pass
 
     def observation_operator(self, xs: np.ndarray):

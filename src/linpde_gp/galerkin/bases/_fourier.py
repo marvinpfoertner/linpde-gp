@@ -2,7 +2,6 @@ from typing import Callable, Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatLike
 
 from linpde_gp import domains, randprocs
 from linpde_gp.typing import DomainLike
@@ -28,9 +27,7 @@ class FourierBasis(_basis.Basis):
 
         super().__init__(size=self._num_frequencies)
 
-    def __getitem__(
-        self, idx: Union[int, slice, np.ndarray]
-    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
+    def __getitem__(self, idx: Union[int, slice, np.ndarray]) -> pn.Function:
         l, r = self._domain
 
         if isinstance(idx, slice):
@@ -39,32 +36,34 @@ class FourierBasis(_basis.Basis):
                 idx.stop if idx.stop is not None else len(self),
                 idx.step,
             )
+        else:
+            idx = np.asarray(idx)
 
-        return lambda x: np.sin((idx + 1) * np.pi * (x[..., None] - l) / (r - l))
+        return pn.LambdaFunction(
+            lambda x: np.sin((idx + 1) * np.pi * (x[..., None] - l) / (r - l)),
+            input_shape=(),
+            output_shape=idx.shape,
+        )
 
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[
-        Callable[[Union[FloatLike, np.ndarray]], np.floating],
-        pn.randprocs.RandomProcess,
-    ]:
+    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return lambda x: self[:](x) @ coords
+            return pn.LambdaFunction(
+                lambda x: self[:](x) @ coords,
+                input_shape=(),
+                output_shape=(),
+            )
 
         # Interpret as random variable
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.DeterministicProcess(
-                self.coords2fn(coords.support),
-                input_shape=(),
-                output_shape=(),
-                dtype=coords.dtype,
-            )
-        elif isinstance(coords, pn.randvars.Normal):
+            return randprocs.DeterministicProcess(self.coords2fn(coords.support))
+
+        if isinstance(coords, pn.randvars.Normal):
             return randprocs.ParametricGaussianProcess(
-                input_shape=1,
                 weights=coords,
                 feature_fn=self[:],
             )

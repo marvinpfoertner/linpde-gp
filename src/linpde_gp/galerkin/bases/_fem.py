@@ -3,7 +3,6 @@ from typing import Union
 
 import numpy as np
 import probnum as pn
-from probnum.typing import FloatLike
 import scipy.interpolate
 
 from linpde_gp import domains, randprocs
@@ -39,60 +38,58 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
     def grid(self) -> np.ndarray:
         return self._grid
 
-    def __getitem__(
-        self, idx: int
-    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
+    def __getitem__(self, idx: int) -> pn.Function:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
             idx += len(self)
 
-        return scipy.interpolate.interp1d(
-            x=self._grid[idx : idx + 3],
-            y=np.array((0.0, 1.0, 0.0)),
-            kind="linear",
-            bounds_error=False,
-            fill_value=0.0,
-            assume_sorted=True,
+        return pn.LambdaFunction(
+            scipy.interpolate.interp1d(
+                x=self._grid[idx : idx + 3],
+                y=np.array((0.0, 1.0, 0.0)),
+                kind="linear",
+                bounds_error=False,
+                fill_value=0.0,
+                assume_sorted=True,
+            ),
+            input_shape=(),
+            output_shape=(),
         )
 
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[
-        Callable[[Union[FloatLike, np.ndarray]], np.floating],
-        pn.randprocs.RandomProcess,
-    ]:
+    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return scipy.interpolate.interp1d(
-                x=self._grid,
-                y=np.hstack((0.0, coords, 0.0)),
-                kind="linear",
-                bounds_error=False,
-                fill_value=0.0,
-                assume_sorted=True,
+            return pn.LambdaFunction(
+                scipy.interpolate.interp1d(
+                    x=self._grid,
+                    y=np.hstack((0.0, coords, 0.0)),
+                    kind="linear",
+                    bounds_error=False,
+                    fill_value=0.0,
+                    assume_sorted=True,
+                ),
+                input_shape=(),
+                output_shape=(),
             )
 
         # Interpret as random variable
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.DeterministicProcess(
-                self.coords2fn(coords.support),
-                input_shape=(),
-                output_shape=(),
-                dtype=coords.dtype,
-            )
-        elif isinstance(coords, pn.randvars.Normal):
+            return randprocs.DeterministicProcess(self.coords2fn(coords.support))
+
+        if isinstance(coords, pn.randvars.Normal):
             return randprocs.ParametricGaussianProcess(
-                input_shape=(),
                 weights=coords,
-                feature_fn=self._observation_operator_fn,
-                mean=pn.LambdaFunction(
-                    self.coords2fn(coords.mean),
+                feature_fn=pn.LambdaFunction(
+                    self._observation_operator_fn,
                     input_shape=(),
-                    output_shape=(),
+                    output_shape=coords.shape,
                 ),
+                mean=self.coords2fn(coords.mean),
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")
@@ -130,9 +127,7 @@ class FiniteElementBasis(_basis.Basis):
     def grid(self) -> np.ndarray:
         return self._grid
 
-    def __getitem__(
-        self, idx: int
-    ) -> Callable[[Union[FloatLike, np.ndarray]], np.floating]:
+    def __getitem__(self, idx: int) -> pn.Function:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
@@ -149,45 +144,45 @@ class FiniteElementBasis(_basis.Basis):
 
         ys = np.array(ys)
 
-        return lambda x: np.interp(x, xs, ys)
+        return pn.LambdaFunction(
+            lambda x: np.interp(x, xs, ys),
+            input_shape=(),
+            output_shape=(),
+        )
 
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[
-        Callable[[Union[FloatLike, np.ndarray]], np.floating],
-        pn.randprocs.RandomProcess,
-    ]:
+    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return scipy.interpolate.interp1d(
-                x=self._grid,
-                y=coords,
-                kind="linear",
-                bounds_error=False,
-                fill_value=0.0,
-                assume_sorted=True,
+            return pn.LambdaFunction(
+                scipy.interpolate.interp1d(
+                    x=self._grid,
+                    y=coords,
+                    kind="linear",
+                    bounds_error=False,
+                    fill_value=0.0,
+                    assume_sorted=True,
+                ),
+                input_shape=(),
+                output_shape=(),
             )
 
         # Interpret as random variable
         coords = pn.randvars.asrandvar(coords)
 
         if isinstance(coords, pn.randvars.Constant):
-            return randprocs.DeterministicProcess(
-                self.coords2fn(coords.support),
-                input_shape=(),
-                output_shape=(),
-                dtype=coords.dtype,
-            )
-        elif isinstance(coords, pn.randvars.Normal):
+            return randprocs.DeterministicProcess(self.coords2fn(coords.support))
+
+        if isinstance(coords, pn.randvars.Normal):
             return randprocs.ParametricGaussianProcess(
-                input_shape=(),
                 weights=coords,
-                feature_fn=self._observation_operator_fn,
-                mean=pn.LambdaFunction(
-                    self.coords2fn(coords.mean),
+                feature_fn=pn.LambdaFunction(
+                    self._observation_operator_fn,
                     input_shape=(),
-                    output_shape=(),
+                    output_shape=coords.shape,
                 ),
+                mean=self.coords2fn(coords.mean),
             )
 
         raise TypeError("Unsupported type of random variable for argument `coords`")

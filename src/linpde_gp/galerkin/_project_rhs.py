@@ -1,7 +1,8 @@
 import numpy as np
 from plum import Dispatcher
+import probnum as pn
 
-from linpde_gp import functions
+from linpde_gp import functions, problems
 
 from . import bases
 
@@ -17,14 +18,14 @@ def project(
 
 @dispatch
 def project(f: functions.Constant, basis: bases.FiniteElementBasis) -> np.ndarray:
-    if not all(
-        isinstance(boundary_condition.values, (np.ndarray, np.floating))
-        for boundary_condition in basis._boundary_conditions
-    ):
-        raise NotImplementedError()
+    assert len(basis._boundary_conditions) == 1
 
-    u_l = basis._boundary_conditions[0].values
-    u_r = basis._boundary_conditions[1].values
+    boundary_condition = basis._boundary_conditions[0]
+
+    assert isinstance(boundary_condition, problems.pde.DirichletBoundaryCondition)
+    assert isinstance(boundary_condition.values, (np.ndarray, pn.randvars.Constant))
+
+    u_l, u_r = basis._boundary_conditions[0].values
 
     rhs = np.empty_like(basis.grid)
 
