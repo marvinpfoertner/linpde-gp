@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
@@ -16,12 +14,12 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         self,
         domain: DomainLike,
         rhs: pn.Function,
-        boundary_values: Union[
-            ArrayLike,
-            pn.randvars.RandomVariable,
-            pn.Function,
-            pn.randprocs.RandomProcess,
-        ],
+        boundary_values: (
+            ArrayLike
+            | pn.randvars.RandomVariable
+            | pn.Function
+            | pn.randprocs.RandomProcess
+        ),
         solution=None,
     ):
         domain = domains.asdomain(domain)
@@ -66,15 +64,20 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
 class PoissonEquation1DConstRHSDirichletProblemSolution(pn.Function):
     def __init__(
         self,
-        domain: domains.Interval,
-        rhs: np.ndarray,
-        boundary_values: np.ndarray,
+        domain: DomainLike,
+        rhs: ArrayLike,
+        boundary_values: ArrayLike,
     ):
         super().__init__((), output_shape=())
 
+        domain = domains.asdomain(domain)
+
+        if not isinstance(domain, domains.Interval):
+            raise TypeError()
+
         self._l, self._r = domain
-        self._rhs = rhs
-        self._u_l, self._u_r = boundary_values
+        self._rhs = np.asarray(rhs)
+        self._u_l, self._u_r = np.asarray(boundary_values)
 
         self._aff_slope = (self._u_r - self._u_l) / (self._r - self._l)
 
