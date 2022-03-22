@@ -1,24 +1,16 @@
-from typing import Callable
-
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, DTypeLike, ShapeLike
+from probnum.typing import ArrayLike, ShapeLike
 
 
 class DeterministicProcess(pn.randprocs.RandomProcess[ArrayLike, np.ndarray]):
-    def __init__(
-        self,
-        fn: Callable[[np.ndarray], np.ndarray],
-        input_shape: ShapeLike,
-        output_shape: ShapeLike,
-        dtype: DTypeLike,
-    ):
+    def __init__(self, fn: pn.Function):
         self._fn = fn
 
         super().__init__(
-            input_shape=input_shape,
-            output_shape=output_shape,
-            dtype=dtype,
+            input_shape=self._fn.input_shape,
+            output_shape=self._fn.output_shape,
+            dtype=np.double,
         )
 
     def __call__(self, args: ArrayLike) -> pn.randvars.Constant:
@@ -26,11 +18,7 @@ class DeterministicProcess(pn.randprocs.RandomProcess[ArrayLike, np.ndarray]):
 
     @property
     def mean(self) -> pn.Function:
-        return pn.LambdaFunction(
-            fn=self._fn,
-            input_shape=self.input_shape,
-            output_shape=self.output_shape,
-        )
+        return self._fn
 
     def _sample_at_input(
         self,
