@@ -9,9 +9,11 @@ import numpy as np
 import probnum as pn
 import scipy.stats
 
+from linpde_gp import randprocs
 
-def plot_gaussian_process(
-    gp: pn.randprocs.GaussianProcess,
+
+def plot_random_process(
+    randproc: pn.randprocs.RandomProcess,
     /,
     ax: matplotlib.axes.Axes,
     xs: np.ndarray,
@@ -27,34 +29,45 @@ def plot_gaussian_process(
     **kwargs,
 ) -> Tuple[
     matplotlib.lines.Line2D,
-    matplotlib.collections.PolyCollection,
+    Optional[matplotlib.collections.PolyCollection],
     List[matplotlib.lines.Line2D],
 ]:
-    mean = gp.mean(xs)
-    std = gp.std(xs)
-
-    std_factor = -scipy.stats.norm.ppf((1.0 - cred_int) / 2.0)
-
-    fill_delta = std_factor * std
+    # Plot mean function
+    mean = randproc.mean(xs)
 
     (mean_line2d,) = ax.plot(xs, mean, color=color, alpha=alpha, label=label, **kwargs)
-    std_poly = ax.fill_between(
-        xs,
-        mean - fill_delta,
-        mean + fill_delta,
-        color=mean_line2d.get_color(),
-        alpha=alpha * rel_fill_alpha,
-        **kwargs,
-    )
 
+    # Plot marginal credible interval as shaded region
+    try:
+        std = randproc.std(xs)
+    except NotImplementedError:
+        std = None
+
+    if std is not None:
+        std_factor = -scipy.stats.norm.ppf((1.0 - cred_int) / 2.0)
+
+        fill_delta = std_factor * std
+
+        std_poly = ax.fill_between(
+            xs,
+            mean - fill_delta,
+            mean + fill_delta,
+            color=mean_line2d.get_color(),
+            alpha=alpha * rel_fill_alpha,
+            **kwargs,
+        )
+    else:
+        std_poly = None
+
+    # Plot samples
     samples_line2d = []
 
     if num_samples > 0:
         if rng is None:
             raise ValueError()
 
-        samples_line2d = plot_gaussian_process_samples(
-            gp,
+        samples_line2d = plot_random_process_samples(
+            randproc,
             ax,
             xs,
             rng,
@@ -67,18 +80,19 @@ def plot_gaussian_process(
     return mean_line2d, std_poly, samples_line2d
 
 
-pn.randprocs.GaussianProcess.plot = plot_gaussian_process
+pn.randprocs.RandomProcess.plot = plot_random_process
+randprocs.DeterministicProcess.plot = plot_random_process
 
 
-def plot_gaussian_process_samples(
-    gp: pn.randprocs.GaussianProcess,
+def plot_random_process_samples(
+    randproc: pn.randprocs.RandomProcess,
     ax: matplotlib.axes.Axes,
     xs: np.ndarray,
     rng: np.random.Generator,
     num_samples: int = 1,
     **kwargs,
 ) -> List[matplotlib.lines.Line2D]:
-    samples = gp.sample(rng, xs, size=(num_samples,))
+    samples = randproc.sample(rng, xs, size=(num_samples,))
 
     samples_line2d = ax.plot(
         np.broadcast_to(xs[:, None], (xs.shape[0], num_samples)),
@@ -89,7 +103,7 @@ def plot_gaussian_process_samples(
     return samples_line2d
 
 
-pn.randprocs.GaussianProcess.plot_samples = plot_gaussian_process_samples
+pn.randprocs.RandomProcess.plot_samples = plot_random_process_samples
 
 
 def plot_gaussian_pdf(
