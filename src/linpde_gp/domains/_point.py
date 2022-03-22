@@ -42,3 +42,51 @@ class Point(Domain):
             return False
 
         return np.all(self._point == arr)
+
+
+class PointSet(Domain, Sequence[Point]):
+    def __init__(self, points: ArrayLike) -> None:
+        self._points = np.asarray(points)
+
+        if self._points.ndim < 1:
+            raise ValueError()
+
+        super().__init__(
+            shape=self._points.shape[1:],
+            dtype=self._points.dtype,
+        )
+
+    @functools.cached_property
+    def boundary(self) -> Sequence[Domain]:
+        return ()
+
+    def __repr__(self) -> str:
+        return (
+            "<PointSet {"
+            f"{', '.join(str(point) for point in self._points)}"
+            "} with "
+            f"shape={self.shape} and "
+            f"dtype={str(self.dtype)}>"
+        )
+
+    def __getitem__(self, idx: int) -> Point:
+        return Point(self._points[idx])
+
+    def __len__(self) -> int:
+        return len(self._points)
+
+    def __array__(self, dtype: np.dtype = None) -> np.ndarray:
+        return np.array(self._points, dtype=dtype, copy=True)
+
+    def __contains__(self, item: ArrayLike) -> bool:
+        arr = np.asarray(item, dtype=self.dtype)
+
+        if arr.shape != self.shape:
+            return False
+
+        return np.any(
+            np.all(
+                self._points == arr,
+                axis=tuple(range(1, len(self._points.shape))),
+            )
+        )

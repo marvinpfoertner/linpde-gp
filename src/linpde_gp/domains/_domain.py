@@ -12,6 +12,11 @@ from probnum.typing import ArrayLike, DTypeLike, ShapeLike, ShapeType
 
 class Domain(abc.ABC):
     def __init__(self, shape: ShapeLike, dtype: DTypeLike) -> None:
+        if not np.issubdtype(dtype, np.floating):
+            raise TypeError(
+                "The dtype of an interval must be a sub dtype of `np.floating`"
+            )
+
         self._shape = pn.utils.as_shape(shape)
         self._dtype = np.dtype(dtype)
 
