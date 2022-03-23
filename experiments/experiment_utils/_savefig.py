@@ -1,5 +1,4 @@
 from collections.abc import Iterable
-from typing import Optional, Union
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -9,8 +8,8 @@ from . import config
 
 def savefig(
     filename: str,
-    extension: Optional[Union[str, Iterable[str]]] = None,
-    fig: Optional[matplotlib.figure.Figure] = None,
+    extension: str | Iterable[str] | None = None,
+    fig: matplotlib.figure.Figure | None = None,
     **savefig_kwargs,
 ) -> None:
     if fig is None:
