@@ -1,5 +1,4 @@
 import functools
-from multiprocessing.sharedctypes import Value
 from typing import Optional
 
 import jax
@@ -36,13 +35,10 @@ class Matern(JaxKernel, JaxStationaryMixin):
         return self._lengthscale
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        distances = np.sqrt(
-            self._squared_euclidean_distances(x0, x1, self._lengthscale)
-        )
+        distances = self._euclidean_distances(x0, x1) / self._lengthscale
+        scaled_distances = np.sqrt(2 * self.p + 1) * distances
 
         if self.p == 3:
-            scaled_distances = np.sqrt(2 * self.p + 1) * distances
-
             return (
                 1.0
                 + scaled_distances
@@ -56,13 +52,10 @@ class Matern(JaxKernel, JaxStationaryMixin):
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        distances = jnp.sqrt(
-            self._squared_euclidean_distances_jax(x0, x1, self._lengthscale)
-        )
+        distances = self._euclidean_distances_jax(x0, x1) / self._lengthscale
+        scaled_distances = np.sqrt(2 * self.p + 1) * distances
 
         if self.p == 3:
-            scaled_distances = np.sqrt(2 * self.p + 1) * distances
-
             return (
                 1.0
                 + scaled_distances

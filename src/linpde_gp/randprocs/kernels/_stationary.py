@@ -29,6 +29,17 @@ class StationaryMixin:
 
         return self._batched_euclidean_norm_sq(diffs)
 
+    def _euclidean_distances(
+        self: Kernel,
+        x0: np.ndarray,
+        x1: Optional[np.ndarray],
+        *,
+        lengthscales: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        return np.sqrt(
+            self._squared_euclidean_distances(x0, x1, lengthscales=lengthscales)
+        )
+
 
 class JaxStationaryMixin(StationaryMixin):
     def _squared_euclidean_distances_jax(
@@ -51,3 +62,14 @@ class JaxStationaryMixin(StationaryMixin):
             diffs /= lengthscales
 
         return self._batched_euclidean_norm_sq_jax(diffs)
+
+    def _euclidean_distances_jax(
+        self: Kernel,
+        x0: jnp.ndarray,
+        x1: Optional[jnp.ndarray],
+        *,
+        lengthscales: Optional[jnp.ndarray] = None,
+    ) -> jnp.ndarray:
+        return jnp.sqrt(
+            self._squared_euclidean_distances_jax(x0, x1, lengthscales=lengthscales)
+        )
