@@ -2,7 +2,6 @@ from linpde_gp import functions
 
 from ._directional_derivative import DirectionalDerivative
 from ._laplacian import Laplacian, SpatialLaplacian
-from ._lindiffop import LinearDifferentialOperator
 
 
 @DirectionalDerivative.__call__.register  # pylint: disable=no-member
