@@ -41,7 +41,7 @@ class Matern(JaxKernel, JaxStationaryMixin):
         )
 
         if self.p == 3:
-            scaled_distances = np.sqrt(2 * self.p + 1) / self.lengthscale * distances
+            scaled_distances = np.sqrt(2 * self.p + 1) * distances
 
             return (
                 1.0
@@ -61,7 +61,7 @@ class Matern(JaxKernel, JaxStationaryMixin):
         )
 
         if self.p == 3:
-            scaled_distances = np.sqrt(2 * self.p + 1) / self.lengthscale * distances
+            scaled_distances = np.sqrt(2 * self.p + 1) * distances
 
             return (
                 1.0
