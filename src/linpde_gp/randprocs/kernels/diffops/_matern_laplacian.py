@@ -9,15 +9,11 @@ from linpde_gp.linfuncops import diffops
 
 from .._jax import JaxKernel
 from .._matern import Matern
+from .._stationary import JaxStationaryMixin
 
 
-class Matern_Identity_Laplacian(JaxKernel):
+class Matern_Identity_Laplacian(JaxKernel, JaxStationaryMixin):
     def __init__(self, matern: Matern, reverse: bool = True):
-        if matern.input_shape != ():
-            raise ValueError()
-
-        if matern.p != 3:
-            raise ValueError()
 
         self._matern = matern
 
@@ -34,35 +30,33 @@ class Matern_Identity_Laplacian(JaxKernel):
         return self._reverse
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        if x1 is None:
-            x1 = x0
-
-        dists = np.abs(x0 - x1) / self._matern.lengthscale
-
+        dists = self._euclidean_distances(x0, x1) / self._matern.lengthscale
         scaled_dists = np.sqrt(2 * self._matern.p + 1) * dists
 
-        return (
-            (2 * self._matern.p + 1)
-            / self._matern.lengthscale**2
-            * np.exp(-scaled_dists)
-            * ((1.0 / 15.0 * scaled_dists**2 - 0.2) * scaled_dists - 0.2)
-        )
+        if self._matern.p == 3:
+            return (
+                (2 * self._matern.p + 1)
+                / self._matern.lengthscale**2
+                * np.exp(-scaled_dists)
+                * ((1.0 / 15.0 * scaled_dists**2 - 0.2) * scaled_dists - 0.2)
+            )
+
+        raise ValueError()
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        if x1 is None:
-            x1 = x0
-
-        dists = jnp.abs(x0 - x1) / self._matern.lengthscale
-
+        dists = self._euclidean_distances_jax(x0, x1) / self._matern.lengthscale
         scaled_dists = jnp.sqrt(2 * self._matern.p + 1) * dists
 
-        return (
-            (2 * self._matern.p + 1)
-            / self._matern.lengthscale**2
-            * jnp.exp(-scaled_dists)
-            * ((1.0 / 15.0 * scaled_dists**2 - 0.2) * scaled_dists - 0.2)
-        )
+        if self._matern.p == 3:
+            return (
+                (2 * self._matern.p + 1)
+                / self._matern.lengthscale**2
+                * jnp.exp(-scaled_dists)
+                * ((1.0 / 15.0 * scaled_dists**2 - 0.2) * scaled_dists - 0.2)
+            )
+
+        raise ValueError()
 
 
 @diffops.Laplacian.__call__.register  # pylint: disable=no-member
@@ -73,7 +67,7 @@ def _(self, k: Matern, /, *, argnum: int = 0):  # pylint: disable=unused-argumen
     )
 
 
-class Matern_Laplacian_Laplacian(JaxKernel):
+class Matern_Laplacian_Laplacian(JaxKernel, JaxStationaryMixin):
     def __init__(self, matern: Matern):
         self._matern = matern
 
@@ -84,39 +78,39 @@ class Matern_Laplacian_Laplacian(JaxKernel):
         return self._matern
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        if x1 is None:
-            x1 = x0
-
-        dists = np.abs(x0 - x1) / self._matern.lengthscale
-
+        dists = self._euclidean_distances(x0, x1) / self._matern.lengthscale
         scaled_dists = np.sqrt(2 * self._matern.p + 1) * dists
 
-        return (
-            ((2 * self._matern.p + 1) / self._matern.lengthscale**2) ** 2
-            * np.exp(-scaled_dists)
-            * (
-                ((1.0 / 15.0 * scaled_dists - 0.4) * scaled_dists + 0.2) * scaled_dists
-                + 0.2
+        if self._matern.p == 3:
+            return (
+                ((2 * self._matern.p + 1) / self._matern.lengthscale**2) ** 2
+                * np.exp(-scaled_dists)
+                * (
+                    ((1.0 / 15.0 * scaled_dists - 0.4) * scaled_dists + 0.2)
+                    * scaled_dists
+                    + 0.2
+                )
             )
-        )
+
+        raise ValueError()
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        if x1 is None:
-            x1 = x0
+        dists = self._euclidean_distances_jax(x0, x1) / self._matern.lengthscale
+        scaled_dists = np.sqrt(2 * self._matern.p + 1) * dists
 
-        dists = jnp.abs(x0 - x1) / self._matern.lengthscale
-
-        scaled_dists = jnp.sqrt(2 * self._matern.p + 1) * dists
-
-        return (
-            ((2 * self._matern.p + 1) / self._matern.lengthscale**2) ** 2
-            * jnp.exp(-scaled_dists)
-            * (
-                ((1.0 / 15.0 * scaled_dists - 0.4) * scaled_dists + 0.2) * scaled_dists
-                + 0.2
+        if self._matern.p == 3:
+            return (
+                ((2 * self._matern.p + 1) / self._matern.lengthscale**2) ** 2
+                * jnp.exp(-scaled_dists)
+                * (
+                    ((1.0 / 15.0 * scaled_dists - 0.4) * scaled_dists + 0.2)
+                    * scaled_dists
+                    + 0.2
+                )
             )
-        )
+
+        raise ValueError()
 
 
 @diffops.Laplacian.__call__.register  # pylint: disable=no-member
