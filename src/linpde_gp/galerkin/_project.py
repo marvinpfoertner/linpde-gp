@@ -8,7 +8,7 @@ from ._project_rhs import project as project_function
 
 
 def project(bvp: BoundaryValueProblem, basis: bases.Basis):
-    A = project_linfuncop(bvp.diffop, basis)
-    b = project_function(bvp.rhs, basis)
+    A = project_linfuncop(bvp.pde.diffop, basis)
+    b = project_function(bvp.pde.rhs, basis)
 
     return pn.problems.LinearSystem(pn.linops.aslinop(A), b)

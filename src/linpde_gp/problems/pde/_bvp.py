@@ -1,22 +1,21 @@
 from collections.abc import Sequence
 import dataclasses
-from typing import Optional, Union
 
 import probnum as pn
 
-from linpde_gp import domains, linfuncops
+from linpde_gp import domains
+
+from ._linear_pde import LinearPDE
 
 
 @dataclasses.dataclass(frozen=True)
 class DirichletBoundaryCondition:
     boundary: domains.Domain
-    values: Union[pn.randprocs.RandomProcess, pn.randvars.RandomVariable]
+    values: pn.randprocs.RandomProcess | pn.randvars.RandomVariable
 
 
 @dataclasses.dataclass(frozen=True)
 class BoundaryValueProblem:
-    domain: domains.Domain
-    diffop: linfuncops.LinearDifferentialOperator
-    rhs: Union[pn.Function, pn.randprocs.RandomProcess]
+    pde: LinearPDE
     boundary_conditions: Sequence[DirichletBoundaryCondition]
-    solution: Optional[pn.Function] = None
+    solution: pn.Function | None = None
