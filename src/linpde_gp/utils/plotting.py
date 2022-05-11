@@ -12,6 +12,19 @@ import scipy.stats
 from linpde_gp import randprocs
 
 
+def plot_function(
+    f: pn.Function,
+    /,
+    ax: matplotlib.axes.Axes,
+    xs: np.ndarray,
+    **kwargs,
+) -> matplotlib.lines.Line2D:
+    return ax.plot(xs, f(xs), **kwargs)
+
+
+pn.Function.plot = plot_function
+
+
 def plot_random_process(
     randproc: pn.randprocs.RandomProcess,
     /,
