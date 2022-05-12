@@ -4,7 +4,6 @@ from typing import Optional
 import numpy as np
 import probnum as pn
 import scipy.linalg
-from scipy.linalg.decomp import eigvals
 
 
 def outer(u: np.ndarray, v: np.ndarray) -> pn.linops.LinearOperator:
