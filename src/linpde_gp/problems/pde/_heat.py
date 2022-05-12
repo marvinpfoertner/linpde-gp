@@ -25,6 +25,12 @@ class PoissonEquation(LinearPDE):
             rhs=rhs,
         )
 
+        self._alpha = alpha
+
+    @property
+    def alpha(self) -> float:
+        return self._alpha
+
 
 class HeatEquation(LinearPDE):
     def __init__(
