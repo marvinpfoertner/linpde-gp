@@ -22,6 +22,8 @@ class Matern(JaxKernel, JaxStationaryMixin):
         self._p = int(p)
         self._lengthscale = float(lengthscale)
 
+        self._scale_factor = np.sqrt(2 * self.p + 1) / self._lengthscale
+
     @property
     def nu(self) -> float:
         return self._p + 0.5
@@ -35,8 +37,7 @@ class Matern(JaxKernel, JaxStationaryMixin):
         return self._lengthscale
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        distances = self._euclidean_distances(x0, x1) / self._lengthscale
-        scaled_distances = np.sqrt(2 * self.p + 1) * distances
+        scaled_distances = self._scale_factor * self._euclidean_distances(x0, x1)
 
         if self.p == 3:
             return (
@@ -52,8 +53,7 @@ class Matern(JaxKernel, JaxStationaryMixin):
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        distances = self._euclidean_distances_jax(x0, x1) / self._lengthscale
-        scaled_distances = np.sqrt(2 * self.p + 1) * distances
+        scaled_distances = self._scale_factor * self._euclidean_distances_jax(x0, x1)
 
         if self.p == 3:
             return (

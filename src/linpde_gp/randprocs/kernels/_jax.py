@@ -25,7 +25,15 @@ Kernel._batched_sum = (  # pylint: disable=protected-access
 
 Kernel._batched_euclidean_norm_sq = (  # pylint: disable=protected-access
     lambda self, a, **sum_kwargs: self._batched_sum(  # pylint: disable=protected-access
-        a ** 2, **sum_kwargs
+        a**2, **sum_kwargs
+    )
+)
+
+Kernel._batched_euclidean_norm = (  # pylint: disable=protected-access
+    lambda self, a, **sum_kwargs: np.sqrt(
+        self._batched_euclidean_norm_sq(  # pylint: disable=protected-access
+            a, **sum_kwargs
+        )
     )
 )
 
@@ -60,7 +68,10 @@ class JaxKernelMixin:
     def _batched_euclidean_norm_sq_jax(
         self, a: jnp.ndarray, **sum_kwargs
     ) -> jnp.ndarray:
-        return self._batched_sum_jax(a ** 2, **sum_kwargs)
+        return self._batched_sum_jax(a**2, **sum_kwargs)
+
+    def _batched_euclidean_norm_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
+        return jnp.sqrt(self._batched_sum_jax(a**2, **sum_kwargs))
 
     def __add__(self, other: Kernel) -> JaxKernel:
         from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
