@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import matplotlib
 import matplotlib.animation
@@ -9,7 +9,9 @@ import numpy as np
 import probnum as pn
 import scipy.stats
 
+import linpde_gp
 from linpde_gp import randprocs
+from linpde_gp.typing import ArrayLike
 
 
 def plot_function(
@@ -39,6 +41,7 @@ def plot_random_process(
     rel_fill_alpha: float = 0.1,
     rel_sample_alpha: float = 0.1,
     label: Optional[str] = None,
+    mean_line2d_kwargs: dict[str, Any] = {},
     **kwargs,
 ) -> Tuple[
     matplotlib.lines.Line2D,
@@ -48,7 +51,14 @@ def plot_random_process(
     # Plot mean function
     mean = randproc.mean(xs)
 
-    (mean_line2d,) = ax.plot(xs, mean, color=color, alpha=alpha, label=label, **kwargs)
+    (mean_line2d,) = ax.plot(
+        xs,
+        mean,
+        color=color,
+        alpha=alpha,
+        label=label,
+        **(kwargs | mean_line2d_kwargs),
+    )
 
     # Plot marginal credible interval as shaded region
     try:
@@ -141,6 +151,55 @@ def plot_gaussian_pdf(
 
 
 pn.randvars.Normal.plot = plot_gaussian_pdf
+
+
+def plot_local_taylor_processes(
+    ax: matplotlib.axes.Axes,
+    xs: ArrayLike,
+    coeffs_xs: list,
+    *,
+    radius: float = 0.1,
+    gridsize: int = 21,
+    markersize: Optional[float] = None,
+    label: str = None,
+    color: str = None,
+    **kwargs,
+):
+    xs = np.atleast_1d(xs)
+
+    eval_grid = np.linspace(-radius, radius, gridsize)
+
+    offsets = []
+
+    for idx, (x0, coeffs_x) in enumerate(zip(xs, coeffs_xs)):
+        coeffs_x = pn.asrandvar(coeffs_x)
+
+        offsets.append(coeffs_x.mean[0])
+
+        taylor_process_x = linpde_gp.randprocs.ParametricGaussianProcess(
+            weights=coeffs_x,
+            feature_fn=pn.LambdaFunction(
+                lambda x: (x - x0)[:, None] ** np.arange(coeffs_x.size),
+                input_shape=(),
+                output_shape=(coeffs_x.size,),
+            ),
+        )
+
+        mean_line2d, _, _ = taylor_process_x.plot(
+            ax,
+            x0 + eval_grid,
+            color=color,
+            label=label if idx == 0 else None,
+            mean_line2d_kwargs={
+                "marker": "|",
+                "markersize": markersize,
+                "markevery": (gridsize // 2, gridsize),
+            },
+            **kwargs,
+        )
+
+        if color is None:
+            color = mean_line2d.get_color()
 
 
 def plot_local_curvature(
