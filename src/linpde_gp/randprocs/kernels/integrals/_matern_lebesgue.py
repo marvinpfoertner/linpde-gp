@@ -134,9 +134,24 @@ class Matern_UndefinedLebesgueIntegral_UndefinedLebesgueIntegral(JaxKernel):
         return self._lower_bound
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        assert x0 == x1
+        assert x0.size == 1
+
+        outshape = ()
+
+        if x0.ndim == 1 and x1.ndim == 1:
+            x0 = x0[0]
+            x1 = x1[0]
+
+            outshape = (1,)
+        elif x0.ndim == 2 and x1.ndim == 2:
+            x0 = x0[0, 0]
+            x1 = x1[0, 0]
+
+            outshape = (1, 1)
+
         assert x0.shape == ()
         assert x1.shape == ()
-        assert x0 == x1
 
         ell = self._matern.lengthscale
         a = self._lower_bound
@@ -165,7 +180,7 @@ class Matern_UndefinedLebesgueIntegral_UndefinedLebesgueIntegral(JaxKernel):
                 )
                 - 6.0 * ell**2 * (35.0 * ell - 16.0 * c)
             )
-        )
+        ).reshape(outshape)
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         return super()._evaluate_jax(x0, x1)
