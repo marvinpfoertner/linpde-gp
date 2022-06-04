@@ -167,9 +167,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 k_xx
                 - (
                     kLas_x_Xs[..., None, :]
-                    @ scipy.linalg.cho_solve(
-                        self._gram_Xs_Xs_cho, Lks_Xs_x.transpose()
-                    ).transpose()[..., :, None]
+                    @ cho_solve(self._gram_Xs_Xs_cho, Lks_Xs_x.transpose()).transpose()[
+                        ..., :, None
+                    ]
                 )[..., 0, 0]
             )
 
@@ -324,6 +324,16 @@ def _(
         gram_Xs_Xs_cho=conditional_gp._gram_Xs_Xs_cho,
         representer_weights=conditional_gp._representer_weights,
     )
+
+
+def cho_solve(L, b):
+    """Fixes a bug in scipy.linalg.cho_solve"""
+    (L, lower) = L
+
+    if L.shape == (1, 1) and b.shape[0] == 1:
+        return b / L[0, 0] ** 2
+
+    return scipy.linalg.cho_solve((L, lower), b)
 
 
 def _schur_update(A_cho, B, C, D, A_inv_u, v):
