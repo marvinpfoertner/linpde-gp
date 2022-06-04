@@ -20,3 +20,11 @@ class UndefinedLebesgueIntegral(_linfuncop.LinearFunctionOperator):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         raise NotImplementedError()
+
+
+@UndefinedLebesgueIntegral.__call__.register  # pylint: disable=no-member
+def _(self, f: Constant) -> Affine:
+    return Affine(
+        A=f.value,
+        b=-f.value * self.lower_bound,
+    )
