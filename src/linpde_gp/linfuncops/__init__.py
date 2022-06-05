@@ -5,6 +5,7 @@ from ._arithmetic import (
     SumLinearFunctional,
     SumLinearFunctionOperator,
 )
+from ._evaluate import Evaluate
 from ._identity import Identity
 from ._integrals import UndefinedLebesgueIntegral
 from ._linfuncop import LinearFunctional, LinearFunctionOperator
