@@ -20,7 +20,13 @@ def condition_normal_on_observations(
     \mathcal{N}(b, \Lambda)`.
     """
 
+    observations = np.asarray(observations)
     A = transform
+
+    if np.ndim(A) == 1:
+        A = A[None, :]
+        noise = noise[None]
+        observations = observations[None]
 
     if A is not None:
         A = pn.linops.aslinop(A)
