@@ -93,6 +93,29 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
         return super().__call__(randproc)
 
 
+class CompositeLinearFunctionOperator(LinearFunctionOperator):
+    def __init__(self, *linfuncops: LinearFunctionOperator) -> None:
+        assert all(
+            L0.input_shape == L1.output_shape
+            for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
+        )
+
+        self._linfuncops = tuple(linfuncops)
+
+        super().__init__(
+            input_shapes=self._linfuncops[-1].input_shapes,
+            output_shapes=self._linfuncops[0].output_shapes,
+        )
+
+    @functools.singledispatchmethod
+    def __call__(self, f, /, **kwargs):
+        return functools.reduce(
+            lambda h, linfuncop: linfuncop(h, **kwargs),
+            reversed(self._linfuncops),
+            f,
+        )
+
+
 class ScaledLinearFunctional(LinearFunctional):
     def __init__(self, linfunctl: LinearFunctional, scalar: ScalarLike) -> None:
         self._linfunctl = linfunctl
@@ -168,3 +191,35 @@ class SumLinearFunctional(LinearFunctional):
     @__call__.register
     def _(self, randproc: pn.randprocs.RandomProcess, /) -> pn.randprocs.RandomProcess:
         return super().__call__(randproc)
+
+
+class CompositeLinearFunctional(LinearFunctional):
+    def __init__(
+        self,
+        linfunctl: LinearFunctional,
+        *linfuncops: LinearFunctionOperator,
+    ) -> None:
+        assert linfunctl.input_shapes == linfuncops[0].output_shapes
+        assert all(
+            L0.input_shape == L1.output_shape
+            for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
+        )
+
+        self._linfunctl = linfunctl
+        self._linfuncops = tuple(linfuncops)
+
+        super().__init__(
+            input_shapes=self._linfuncops[-1].input_shapes,
+            output_shape=self._linfunctl.output_shape,
+        )
+
+    @functools.singledispatchmethod
+    def __call__(self, f, /, **kwargs):
+        return self._linfunctl(
+            functools.reduce(
+                lambda h, linfuncop: linfuncop(h, **kwargs),
+                reversed(self._linfuncops),
+                f,
+            ),
+            **kwargs,
+        )

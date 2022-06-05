@@ -1,5 +1,7 @@
 from . import diffops
 from ._arithmetic import (
+    CompositeLinearFunctional,
+    CompositeLinearFunctionOperator,
     ScaledLinearFunctional,
     ScaledLinearFunctionOperator,
     SumLinearFunctional,

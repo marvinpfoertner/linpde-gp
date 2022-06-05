@@ -90,6 +90,13 @@ class LinearFunctionOperator:
 
         return NotImplemented
 
+    def __matmul__(self, other) -> LinearFunctionOperator:
+        from ._arithmetic import (  # pylint: disable=import-outside-toplevel
+            CompositeLinearFunctionOperator,
+        )
+
+        return CompositeLinearFunctionOperator(self, other)
+
 
 class LinearFunctional:
     def __init__(
@@ -155,3 +162,10 @@ class LinearFunctional:
             return ScaledLinearFunctional(linfunctl=self, scalar=other)
 
         return NotImplemented
+
+    def __matmul__(self, other) -> LinearFunctional:
+        from ._arithmetic import (  # pylint: disable=import-outside-toplevel
+            CompositeLinearFunctional,
+        )
+
+        return CompositeLinearFunctional(self, other)
