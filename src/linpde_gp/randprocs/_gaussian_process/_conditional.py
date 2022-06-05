@@ -291,10 +291,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         if b is not None:
             assert isinstance(b, (pn.randvars.Constant, pn.randvars.Normal))
-            assert b.shape == Y.shape
+            assert b.size == Y.size
 
-            pred_mean_X = pred_mean_X + b.mean.reshape((-1,), order="C")
-            # This assumes that the covariance matrix is raveled in C-order
+            b = b.reshape((-1,))  # this assumes reshaping in C-order
+
+            pred_mean_X = pred_mean_X + b.mean
             gram_XX += b.cov
 
         return X, Y, kLa, pred_mean_X, gram_XX
