@@ -1,6 +1,5 @@
 from collections.abc import Callable, Sequence
 import functools
-from typing import Optional, Union
 
 import jax
 import jax.numpy as jnp
@@ -9,8 +8,9 @@ from numpy.typing import ArrayLike
 import probnum as pn
 import scipy.linalg
 
-from .. import kernels
-from ... import functions, linfuncops
+from linpde_gp import functions, linfuncops
+from linpde_gp.randprocs import kernels
+from linpde_gp.typing import RandomVariableLike
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
@@ -20,10 +20,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         prior: pn.randprocs.GaussianProcess,
         X: ArrayLike,
         Y: ArrayLike,
-        L: Optional[linfuncops.LinearFunctionOperator] = None,
-        b: Optional[pn.randvars.Normal] = None,
+        L: linfuncops.LinearFunctionOperator | None = None,
+        b: RandomVariableLike | None = None,
     ):
-        X, Y, kLa, pred_mean_X, gram_XX = cls._preprocess_observations(
+        X, Y, b, kLa, pred_mean_X, gram_XX = cls._preprocess_observations(
             prior=prior,
             X=X,
             Y=Y,
@@ -51,8 +51,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
     def __init__(
         self,
         prior: pn.randprocs.GaussianProcess,
-        Ls: Sequence[Optional[linfuncops.LinearFunctionOperator]],
-        bs: Sequence[pn.randvars.Normal],
+        Ls: Sequence[linfuncops.LinearFunctionOperator | None],
+        bs: Sequence[pn.randvars.Normal | pn.randvars.Constant],
         Xs: Sequence[np.ndarray],
         Ys: Sequence[np.ndarray],
         kLas: Sequence[pn.randprocs.kernels.Kernel],
@@ -158,7 +158,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 output_shape=self._prior_kernel.output_shape,
             )
 
-        def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
             k_xx = self._prior_kernel(x0, x1)
             kLas_x_Xs = self._kLas_Xs(x0)
             Lks_Xs_x = self._kLas_Xs(x1) if x1 is not None else kLas_x_Xs
@@ -174,9 +174,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         @functools.partial(jax.jit, static_argnums=0)
-        def _evaluate_jax(
-            self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]
-        ) -> jnp.ndarray:
+        def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
             k_xx = self._prior_kernel.jax(x0, x1)
             kLas_x_Xs = self._kLas_Xs_jax(x0)
             Lks_Xs_x = self._kLas_Xs_jax(x1) if x1 is not None else kLas_x_Xs
@@ -203,10 +201,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         self,
         X: ArrayLike,
         Y: ArrayLike,
-        L: Optional[linfuncops.LinearFunctionOperator] = None,
-        b: Optional[pn.randvars.Normal] = None,
+        L: linfuncops.LinearFunctionOperator | None = None,
+        b: RandomVariableLike | None = None,
     ):
-        X, Y, kLa, pred_mean_X, gram_XX = self._preprocess_observations(
+        X, Y, b, kLa, pred_mean_X, gram_XX = self._preprocess_observations(
             prior=self._prior,
             X=X,
             Y=Y,
@@ -255,27 +253,18 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         prior: pn.randprocs.GaussianProcess,
         X: ArrayLike,
         Y: ArrayLike,
-        L: Optional[linfuncops.LinearFunctionOperator],
-        b: Optional[Union[pn.randvars.Normal, pn.randvars.Constant]],
+        L: linfuncops.LinearFunctionOperator | None,
+        b: RandomVariableLike | None,
     ) -> tuple[
         np.ndarray,
         np.ndarray,
+        pn.randvars.Normal | pn.randvars.Constant | None,
         pn.randprocs.kernels.Kernel,
         np.ndarray,
         np.ndarray,
     ]:
-        # Reshape to (N, input_dim) and (N,)
-        X = np.asarray(X)
-        Y = np.asarray(Y)
-
-        assert prior.output_shape == ()  # TODO: Support vector-valued GPs
-        assert (
-            X.ndim >= 1 and X.shape[X.ndim - prior._input_ndim :] == prior.input_shape
-        )
-        assert Y.shape == X.shape[: X.ndim - prior._input_ndim] + prior.output_shape
-
-        X = X.reshape((-1,) + prior.input_shape, order="C")
-        Y = Y.reshape((-1,), order="C")
+        # TODO: Allow LinearFunctionals (make X optional in this case)
+        # TODO: Allow `RandomProcessLike` for `b` ("b = b(X)")
 
         # Apply measurement operator to prior
         if L is None:
@@ -285,20 +274,56 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             Lf = L(prior)
             kLa = L(prior.cov, argnum=1)
 
+        if Lf.output_shape != ():
+            raise NotImplementedError("Vector-valued GPs are not yet supported")  # TODO
+
+        # Check data
+        X = np.asarray(X)
+        Y = np.asarray(Y)
+
+        batch_shape = X.shape[: X.ndim - Lf.input_ndim]
+
+        if X.shape != batch_shape + Lf.input_shape:
+            raise ValueError(
+                f"{X.shape=} does not decompose into `batch_shape + L(prior)."
+                f"input_shape`."
+            )
+
+        if Y.shape != batch_shape + Lf.output_shape:
+            raise ValueError(
+                f"{Y.shape} does not decompose into `batch_shape + L(prior)."
+                f"output_shape`."
+            )
+
+        # Check `b`
+        if b is not None:
+            b = pn.randvars.asrandvar(b)
+
+            if not isinstance(b, (pn.randvars.Constant, pn.randvars.Normal)):
+                raise TypeError(
+                    f"`b` must be a `Normal` or a `Constant` `RandomVariable`"
+                    f"({type(b)=})"
+                )
+
+            if Y.shape != b.shape:
+                raise ValueError(f"{b.shape=} must be equal to {Y.shape=}")
+
+        # Reshape to (N,) + input_shape and (N * D,)
+        X = X.reshape((-1,) + prior.input_shape, order="C")
+        Y = Y.reshape((-1,), order="C")
+
+        if b is not None:
+            b = b.reshape((-1,))  # this assumes reshaping in C-order
+
         # Compute predictive mean and kernel Gram matrix
         pred_mean_X = Lf.mean(X)
         gram_XX = Lf.cov(X[:, None], X[None, :])
 
         if b is not None:
-            assert isinstance(b, (pn.randvars.Constant, pn.randvars.Normal))
-            assert b.size == Y.size
-
-            b = b.reshape((-1,))  # this assumes reshaping in C-order
-
             pred_mean_X = pred_mean_X + b.mean
             gram_XX += b.cov
 
-        return X, Y, kLa, pred_mean_X, gram_XX
+        return X, Y, b, kLa, pred_mean_X, gram_XX
 
 
 pn.randprocs.GaussianProcess.condition_on_observations = (
@@ -360,7 +385,7 @@ def _block_cholesky(
     A_cho: tuple[np.ndarray, bool],
     B: np.ndarray,
     D: np.ndarray,
-    sol_update: Optional[tuple[np.ndarray, np.ndarray]] = None,
+    sol_update: tuple[np.ndarray, np.ndarray] | None = None,
 ) -> tuple[np.ndarray, bool]:
     A_sqrt, lower = A_cho
 
