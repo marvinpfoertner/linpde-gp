@@ -9,7 +9,9 @@ from ._linfuncop import LinearFunctional, LinearFunctionOperator
 
 
 class ScaledLinearFunctionOperator(LinearFunctionOperator):
-    def __init__(self, linfuncop: LinearFunctionOperator, scalar: ScalarLike) -> None:
+    def __init__(
+        self, linfuncop: LinearFunctionOperator, /, scalar: ScalarLike
+    ) -> None:
         self._linfuncop = linfuncop
 
         super().__init__(
