@@ -47,6 +47,9 @@ class Point(Domain):
 
         return np.all(self._point == arr)
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Point) and np.all(self._point == other._point)
+
 
 class PointSet(Domain, Sequence[Point]):
     def __init__(self, points: ArrayLike) -> None:
@@ -98,3 +101,6 @@ class PointSet(Domain, Sequence[Point]):
                 axis=tuple(range(1, len(self._points.shape))),
             )
         )
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, PointSet) and np.all(self._points == other._points)

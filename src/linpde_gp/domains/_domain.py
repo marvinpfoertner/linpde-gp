@@ -49,3 +49,7 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def __contains__(self, item: ArrayLike) -> bool:
         pass
+
+    @abc.abstractmethod
+    def __eq__(self, other) -> bool:
+        pass

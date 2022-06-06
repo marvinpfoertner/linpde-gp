@@ -70,6 +70,9 @@ class Interval(Domain, Sequence[np.ndarray]):
 
         return self._lower_bound <= arr <= self._upper_bound
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Interval) and tuple(self) == tuple(other)
+
 
 class Box(Domain):
     def __init__(self, bounds: ArrayLike) -> None:
@@ -101,6 +104,7 @@ class Box(Domain):
             dtype=self._bounds.dtype,
         )
 
+    @property
     def bounds(self) -> np.ndarray:
         return self._bounds
 
@@ -155,3 +159,6 @@ class Box(Domain):
             return False
 
         return np.all((self._bounds[:, 0] <= arr) & (arr <= self._bounds[:, 1]))
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Box) and np.all(self.bounds == other.bounds)
