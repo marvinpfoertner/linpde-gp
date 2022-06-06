@@ -4,10 +4,10 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
 
-from . import _linfuncop
+from . import _linfunctl
 
 
-class Evaluate(_linfuncop.LinearFunctional):
+class DiracFunctional(_linfunctl.LinearFunctional):
     def __init__(
         self,
         domain_shape: ShapeLike,
