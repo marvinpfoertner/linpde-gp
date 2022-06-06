@@ -32,12 +32,24 @@ class LinearFunctional:
         return self._input_domain_shape
 
     @property
+    def input_domain_ndim(self) -> int:
+        return len(self.input_domain_shape)
+
+    @property
     def input_codomain_shape(self) -> ShapeType:
         return self._input_codomain_shape
 
     @property
+    def input_codomain_ndim(self) -> int:
+        return len(self.input_codomain_shape)
+
+    @property
     def output_shape(self) -> ShapeType:
         return self._output_shape
+
+    @property
+    def output_ndim(self) -> int:
+        return len(self.output_shape)
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
