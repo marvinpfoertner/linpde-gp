@@ -4,7 +4,7 @@ from collections.abc import Sequence
 import functools
 
 import numpy as np
-from probnum.typing import ArrayLike
+from probnum.typing import ArrayLike, ScalarType
 
 from ._domain import Domain
 
@@ -18,6 +18,10 @@ class Point(Domain):
     @functools.cached_property
     def boundary(self) -> Sequence[Domain]:
         return ()
+
+    @property
+    def volume(self) -> ScalarType:
+        return np.zeros_like(self._point, shape=())
 
     def __repr__(self) -> str:
         return (
@@ -59,6 +63,10 @@ class PointSet(Domain, Sequence[Point]):
     @functools.cached_property
     def boundary(self) -> Sequence[Domain]:
         return ()
+
+    @property
+    def volume(self) -> ScalarType:
+        return np.zeros_like(self._points, shape=())
 
     def __repr__(self) -> str:
         return (

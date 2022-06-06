@@ -5,7 +5,7 @@ import functools
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, DTypeLike, FloatLike
+from probnum.typing import ArrayLike, DTypeLike, FloatLike, ScalarType
 
 from ._domain import Domain
 from ._point import PointSet
@@ -47,6 +47,10 @@ class Interval(Domain, Sequence[np.ndarray]):
     @functools.cached_property
     def boundary(self) -> PointSet:
         return PointSet((self._lower_bound, self._upper_bound))
+
+    @property
+    def volume(self) -> ScalarType:
+        return self._upper_bound - self._lower_bound
 
     def __repr__(self) -> str:
         return (
@@ -114,6 +118,10 @@ class Box(Domain):
                 res.append(Box(boundary_bounds))
 
         return tuple(res)
+
+    @functools.cached_property
+    def volume(self) -> ScalarType:
+        return np.prod(self._bounds[..., 1] - self._bounds[..., 0])
 
     def __len__(self) -> int:
         return self.shape[0]

@@ -7,7 +7,7 @@ import operator
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, DTypeLike, ShapeLike, ShapeType
+from probnum.typing import ArrayLike, DTypeLike, ScalarType, ShapeLike, ShapeType
 
 
 class Domain(abc.ABC):
@@ -39,6 +39,11 @@ class Domain(abc.ABC):
     @property
     @abc.abstractmethod
     def boundary(self) -> Sequence[Domain]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def volume(self) -> ScalarType:
         pass
 
     @abc.abstractmethod
