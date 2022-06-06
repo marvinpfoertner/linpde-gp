@@ -19,7 +19,7 @@ class ScaledProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarian
             randproc_input_shape=pv_crosscov.randproc_input_shape,
             randproc_output_shape=pv_crosscov.randproc_output_shape,
             randvar_shape=pv_crosscov.randvar_shape,
-            transpose=pv_crosscov.transposed,
+            reverse=pv_crosscov.reverse,
         )
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
@@ -40,7 +40,7 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
                 == pv_crosscovs[0].randproc_output_shape
             )
             and pv_crosscov.randvar_shape == pv_crosscovs[0].randvar_shape
-            and pv_crosscov.transposed == pv_crosscovs[0].transposed
+            and pv_crosscov.reverse == pv_crosscovs[0].reverse
             for pv_crosscov in self._pv_crosscovs
         )
 
@@ -48,7 +48,7 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
             randproc_input_shape=self._pv_crosscovs[0].randproc_input_shape,
             randproc_output_shape=self._pv_crosscovs[0].randproc_output_shape,
             randvar_shape=self._pv_crosscovs[0].randvar_shape,
-            transpose=self._pv_crosscovs[0].transposed,
+            reverse=self._pv_crosscovs[0].reverse,
         )
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
