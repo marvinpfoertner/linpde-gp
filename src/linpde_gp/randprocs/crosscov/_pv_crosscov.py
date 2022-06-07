@@ -37,12 +37,24 @@ class ProcessVectorCrossCovariance(functions.JaxFunction):
         return self._randproc_input_shape
 
     @property
+    def randproc_input_ndim(self) -> int:
+        return len(self._randproc_input_shape)
+
+    @property
     def randproc_output_shape(self) -> ShapeType:
         return self._randproc_output_shape
 
     @property
+    def randproc_output_ndim(self) -> int:
+        return len(self._randproc_output_shape)
+
+    @property
     def randvar_shape(self) -> ShapeType:
         return self._randvar_shape
+
+    @property
+    def randvar_ndim(self) -> int:
+        return len(self._randvar_shape)
 
     @property
     def reverse(self) -> bool:
