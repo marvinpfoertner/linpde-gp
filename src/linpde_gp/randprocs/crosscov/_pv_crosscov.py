@@ -6,9 +6,10 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike, ShapeType
 
-from linpde_gp import functions, linfuncops
+from linpde_gp import functions
 
 
+# TODO: This should not inherit from `Function`
 class ProcessVectorCrossCovariance(functions.JaxFunction):
     def __init__(
         self,
@@ -85,9 +86,3 @@ class ProcessVectorCrossCovariance(functions.JaxFunction):
             return ScaledProcessVectorCrossCovariance(self, scalar=other)
 
         return NotImplemented
-
-
-@linfuncops.LinearFunctional.__call__.register  # pylint: disable=no-member
-@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
-def _(self, cross_cov: ProcessVectorCrossCovariance, /) -> np.ndarray:
-    raise NotImplementedError()

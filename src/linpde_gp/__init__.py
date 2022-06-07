@@ -1,5 +1,14 @@
 # isort: off
-from . import linops, randvars, domains, functions, linfuncops, randprocs, problems
+from . import (
+    linops,
+    randvars,
+    domains,
+    functions,
+    linfuncops,
+    linfunctls,
+    randprocs,
+    problems,
+)
 
 # isort: on
 

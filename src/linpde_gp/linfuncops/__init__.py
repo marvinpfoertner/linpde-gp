@@ -5,6 +5,5 @@ from ._arithmetic import (
     SumLinearFunctionOperator,
 )
 from ._identity import Identity
-from ._integrals import UndefinedLebesgueIntegral
 from ._linfuncop import LinearFunctionOperator
 from .diffops import LambdaLinearDifferentialOperator, LinearDifferentialOperator

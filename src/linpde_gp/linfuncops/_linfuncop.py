@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from typing import Type
 
 import numpy as np
 import probnum as pn
@@ -80,13 +81,16 @@ class LinearFunctionOperator:
 
         return SumLinearFunctionOperator(self, other)
 
+    def __sub__(self, other) -> LinearFunctionOperator | Type[NotImplemented]:
+        return self + -other
+
     def __rmul__(self, other) -> LinearFunctionOperator:
         if np.ndim(other) == 0:
             from ._arithmetic import (  # pylint: disable=import-outside-toplevel
                 ScaledLinearFunctionOperator,
             )
 
-            return ScaledLinearFunctionOperator(linfuncop=self, scalar=other)
+            return ScaledLinearFunctionOperator(self, scalar=other)
 
         return NotImplemented
 
