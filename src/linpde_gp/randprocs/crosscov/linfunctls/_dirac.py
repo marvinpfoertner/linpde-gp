@@ -257,7 +257,9 @@ class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
         return kxX
 
 
-@linfunctls.DiracFunctional.__call__.register  # pylint: disable=no-member
+@linfunctls.DiracFunctional.__call__.register(
+    Kernel_Identity_Dirac
+)  # pylint: disable=no-member
 def _(self, k_id_dirac: Kernel_Identity_Dirac, /, argnum: int = 0) -> np.ndarray:
     if argnum != 0:
         raise ValueError("TODO")
