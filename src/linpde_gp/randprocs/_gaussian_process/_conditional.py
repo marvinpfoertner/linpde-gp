@@ -124,7 +124,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         def _evaluate(self, x: np.ndarray) -> np.ndarray:
-            batch_shape = x.shape[: x.ndim - self.input_ndim]
+            batch_shape = x.shape[: x.ndim - self.randproc_input_ndim]
 
             return np.concatenate(
                 [
@@ -139,7 +139,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-            batch_shape = x.shape[: x.ndim - self.input_ndim]
+            batch_shape = x.shape[: x.ndim - self.randproc_input_ndim]
 
             return jnp.concatenate(
                 [
