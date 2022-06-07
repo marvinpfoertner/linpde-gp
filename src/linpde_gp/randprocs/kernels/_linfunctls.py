@@ -9,14 +9,14 @@ from ._matern import Matern
 def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
     match argnum:
         case 0:
-            from ..crosscov import Kernel_Dirac_Identity
+            from ..crosscov.linfunctls import Kernel_Dirac_Identity
 
             return Kernel_Dirac_Identity(
                 kernel=k,
                 dirac=self,
             )
         case 1:
-            from ..crosscov import Kernel_Identity_Dirac
+            from ..crosscov.linfunctls import Kernel_Identity_Dirac
 
             return Kernel_Identity_Dirac(
                 kernel=k,
@@ -31,7 +31,7 @@ def _(self, k: Matern, /, *, argnum: int = 0):
     if argnum not in (0, 1):
         raise ValueError("`argnum` must either be 0 or 1.")
 
-    from ..crosscov.integrals import (  # pylint: disable=import-outside-toplevel
+    from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
         Matern_Identity_LebesgueIntegral,
     )
 

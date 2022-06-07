@@ -3,9 +3,9 @@ import numpy as np
 from probnum.typing import ScalarType
 
 from linpde_gp import linfunctls
+from linpde_gp.randprocs import kernels
 
-from .. import _pv_crosscov
-from ... import kernels
+from ... import _pv_crosscov
 
 
 class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance):

@@ -4,7 +4,7 @@ import probnum as pn
 
 from linpde_gp import linfunctls
 
-from ._pv_crosscov import ProcessVectorCrossCovariance
+from .._pv_crosscov import ProcessVectorCrossCovariance
 
 
 class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
