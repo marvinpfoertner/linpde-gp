@@ -38,8 +38,16 @@ class LinearFunctionOperator:
         return self._input_domain_shape
 
     @property
+    def input_domain_ndim(self) -> ShapeType:
+        return len(self._input_domain_shape)
+
+    @property
     def input_codomain_shape(self) -> ShapeType:
         return self._input_codomain_shape
+
+    @property
+    def input_codomain_ndim(self) -> ShapeType:
+        return len(self._input_codomain_shape)
 
     @property
     def output_shapes(self) -> ShapeType:
@@ -50,8 +58,16 @@ class LinearFunctionOperator:
         return self._output_domain_shape
 
     @property
+    def output_domain_ndim(self) -> ShapeType:
+        return len(self._output_domain_shape)
+
+    @property
     def output_codomain_shape(self) -> ShapeType:
         return self._output_codomain_shape
+
+    @property
+    def output_codomain_ndim(self) -> ShapeType:
+        return len(self._output_codomain_shape)
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
