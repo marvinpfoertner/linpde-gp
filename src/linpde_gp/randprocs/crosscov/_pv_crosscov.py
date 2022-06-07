@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+import operator
 from typing import Type
 
 import numpy as np
@@ -56,6 +58,10 @@ class ProcessVectorCrossCovariance(functions.JaxFunction):
     @property
     def randvar_ndim(self) -> int:
         return len(self._randvar_shape)
+
+    @property
+    def randvar_size(self) -> int:
+        return functools.reduce(operator.mul, self._randvar_shape, 1)
 
     @property
     def reverse(self) -> bool:

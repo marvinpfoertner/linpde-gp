@@ -12,7 +12,7 @@ def _(self, gp: pn.randprocs.GaussianProcess, /) -> pn.randvars.Normal:
     cov = self(crosscov, argnum=0)
 
     assert isinstance(mean, np.ndarray)
-    assert isinstance(cov, np.ndarray)
+    assert isinstance(cov, (np.ndarray, np.number))
 
     return pn.randvars.Normal(mean, cov)
 

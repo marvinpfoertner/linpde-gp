@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 import functools
 
 import jax
@@ -112,7 +112,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             super().__init__(
                 randproc_input_shape=self._kLas[0].randproc_input_shape,
                 randproc_output_shape=self._kLas[0].randproc_output_shape,
-                randvar_shape=(sum(),),
+                randvar_shape=(sum(kLa.randvar_size for kLa in self._kLas),),
                 reverse=False,
             )
 
@@ -152,6 +152,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 ],
                 axis=-1,
             )
+
+        def __iter__(self) -> Iterator[ProcessVectorCrossCovariance]:
+            for kLa in self._kLas:
+                yield kLa
 
     class Mean(JaxFunction):
         def __init__(
@@ -362,6 +366,20 @@ pn.randprocs.GaussianProcess.condition_on_observations = (
         *args, **kwargs
     )
 )
+
+
+@LinearFunctionOperator.__call__.register(
+    ConditionalGaussianProcess._PriorPredictiveCrossCovariance
+)  # pylint: disable=no-member
+def _(
+    self,
+    crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
+    /,
+    argnum: int = 0,
+) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
+    return ConditionalGaussianProcess._PriorPredictiveCrossCovariance(
+        (self(kLa, argnum=0) for kLa in crosscov)
+    )
 
 
 @LinearFunctionOperator.__call__.register  # pylint: disable=no-member

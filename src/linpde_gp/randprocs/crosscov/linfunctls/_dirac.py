@@ -2,7 +2,7 @@ from jax import numpy as jnp
 import numpy as np
 import probnum as pn
 
-from linpde_gp import linfunctls
+from linpde_gp import linfuncops, linfunctls
 
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -273,3 +273,14 @@ def _(self, k_dirac_id: Kernel_Dirac_Indentity, /, argnum: int = 0) -> np.ndarra
         raise ValueError("TODO")
 
     return k_dirac_id(self.X)
+
+
+@linfuncops.LinearFunctionOperator.__call__.register(Kernel_Identity_Dirac)
+def _(self, k_id_dirac: Kernel_Identity_Dirac, /, argnum: int = 0) -> np.ndarray:
+    if argnum != 0:
+        raise ValueError("TODO")
+
+    return Kernel_Identity_Dirac(
+        self(k_id_dirac._kernel, argnum=0),
+        k_id_dirac._dirac,
+    )
