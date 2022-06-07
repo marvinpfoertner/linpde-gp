@@ -2,7 +2,7 @@ import functools
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, ShapeLike
+from probnum.typing import ArrayLike, ShapeLike, ShapeType
 
 from . import _linfunctl
 
@@ -10,23 +10,31 @@ from . import _linfunctl
 class DiracFunctional(_linfunctl.LinearFunctional):
     def __init__(
         self,
-        domain_shape: ShapeLike,
-        codomain_shape: ShapeLike,
-        xs: ArrayLike,
+        input_domain_shape: ShapeLike,
+        input_codomain_shape: ShapeLike,
+        X: ArrayLike,
     ) -> None:
-        xs = np.asarray(xs)
+        self._X = np.asarray(X)
 
-        domain_ndim = len(domain_shape)
-        batch_shape = xs.shape[: xs.ndim - domain_ndim]
+        self._X_batch_shape = self._X.shape[: self._X.ndim - len(input_domain_shape)]
+        assert self._X.shape == self._X_batch_shape + input_domain_shape
 
         super().__init__(
-            input_shapes=(domain_shape, codomain_shape),
-            output_shape=batch_shape + codomain_shape,
+            input_shapes=(input_domain_shape, input_codomain_shape),
+            output_shape=self._X_batch_shape + input_codomain_shape,
         )
 
-        assert xs.shape[xs.ndim - domain_ndim :] == self.input_domain_shape
+    @property
+    def X(self) -> np.ndarray:
+        return self._X
 
-        self._xs = xs
+    @property
+    def X_batch_shape(self) -> ShapeType:
+        return self._X_batch_shape
+
+    @property
+    def X_batch_ndim(self) -> ShapeType:
+        return len(self._X_batch_shape)
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
@@ -34,4 +42,4 @@ class DiracFunctional(_linfunctl.LinearFunctional):
 
     @__call__.register
     def _(self, f: pn.Function, /) -> np.ndarray:
-        return f(self._xs)
+        return f(self._X)
