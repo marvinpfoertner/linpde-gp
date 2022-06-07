@@ -1,8 +1,14 @@
 import probnum as pn
+from probnum.randprocs.kernels._arithmetic_fallbacks import ScaledKernel
 
-from linpde_gp.linfunctls import DiracFunctional, LebesgueIntegral
+from linpde_gp.linfunctls import DiracFunctional, LebesgueIntegral, LinearFunctional
 
 from ._matern import Matern
+
+
+@LinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k_scaled: ScaledKernel, /, *, argnum: int = 0):
+    return k_scaled._scalar * self(k_scaled._kernel, argnum=argnum)
 
 
 @DiracFunctional.__call__.register  # pylint: disable=no-member

@@ -3,7 +3,6 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ScalarLike
 
-from linpde_gp import linfunctls
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
 

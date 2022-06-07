@@ -66,8 +66,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         bs: Sequence[pn.randvars.Normal | pn.randvars.Constant | None],
         kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
         gram_blocks: Sequence[Sequence[np.ndarray]],
-        gram_cho: tuple[np.ndarray, bool],
-        representer_weights: np.ndarray,
+        gram_cho: tuple[np.ndarray, bool] | None = None,
+        representer_weights: np.ndarray | None = None,
     ):
         self._prior = prior
 
@@ -86,14 +86,57 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             mean=ConditionalGaussianProcess.Mean(
                 prior_mean=self._prior.mean,
                 kLas=self._kLas,
-                representer_weights=self._representer_weights,
+                representer_weights=self.representer_weights,
             ),
             cov=ConditionalGaussianProcess.Kernel(
                 prior_kernel=self._prior.cov,
                 kLas=self._kLas,
-                gram_cho=self._gram_cho,
+                gram_cho=self.gram_cho,
             ),
         )
+
+    @functools.cached_property
+    def gram(self) -> np.ndarray:
+        return np.block(
+            [
+                [
+                    self._gram_blocks[i][j] if i >= j else self._gram_blocks[j][i].T
+                    for j in range(len(self._Ys))
+                ]
+                for i in range(len(self._Ys))
+            ]
+        )
+
+    @property
+    def gram_cho(self) -> tuple[np.ndarray, bool]:
+        if self._gram_cho is None:
+            self._gram_cho = scipy.linalg.cho_factor(self.gram)
+
+        return self._gram_cho
+
+    @property
+    def representer_weights(self) -> np.ndarray:
+        if self._representer_weights is None:
+            self._representer_weights = scipy.linalg.cho_solve(
+                self.gram_cho,
+                np.concatenate(
+                    [
+                        np.reshape(
+                            (
+                                (Y - L(self._prior.mean))
+                                if b is None
+                                else (Y - L(self._prior.mean) - b.mean)
+                            ),
+                            (-1,),
+                            order="C",
+                        )
+                        for Y, L, b in zip(self._Ys, self._Ls, self._bs)
+                    ],
+                    axis=-1,
+                ),
+            )
+
+        return self._representer_weights
 
     class _PriorPredictiveCrossCovariance(ProcessVectorCrossCovariance):
         def __init__(
@@ -226,18 +269,6 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
             return k_xx - kLas_x0 @ jax.scipy.linalg.cho_solve(self._gram_cho, kLas_x1)
 
-    @functools.cached_property
-    def gram(self) -> np.ndarray:
-        return np.block(
-            [
-                [
-                    self._gram_blocks[i][j] if i >= j else self._gram_blocks[j][i].T
-                    for j in range(len(self._Ys))
-                ]
-                for i in range(len(self._Ys))
-            ]
-        )
-
     def condition_on_observations(
         self,
         Y: ArrayLike,
@@ -263,11 +294,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         # Update the Cholesky decomposition of the previous kernel Gram matrix and the
         # representer weights
         gram_cho, representer_weights = _block_cholesky(
-            A_cho=self._gram_cho,
+            A_cho=self.gram_cho,
             B=np.concatenate(gram_L_La_prev_blocks, axis=-1).T,
             D=gram,
             sol_update=(
-                self._representer_weights,
+                self.representer_weights,
                 (Y - pred_mean).reshape((-1,), order="C"),
             ),
         )
@@ -400,8 +431,8 @@ def _(
         bs=conditional_gp._bs,
         kLas=self(conditional_gp._kLas, argnum=0),
         gram_blocks=conditional_gp._gram_blocks,
-        gram_cho=conditional_gp._gram_cho,
-        representer_weights=conditional_gp._representer_weights,
+        gram_cho=conditional_gp.gram_cho,
+        representer_weights=conditional_gp.representer_weights,
     )
 
 
