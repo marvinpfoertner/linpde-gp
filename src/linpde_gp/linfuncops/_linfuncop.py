@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import functools
-from typing import Type
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike, ShapeType
 
 from linpde_gp import functions
+
+if TYPE_CHECKING:
+    import linpde_gp
 
 
 class LinearFunctionOperator:
@@ -69,6 +72,20 @@ class LinearFunctionOperator:
         return functions.Zero(
             input_shape=self.output_domain_shape,
             output_shape=self.output_codomain_shape,
+        )
+
+    def to_linfunctl(self, X: np.ndarray) -> "linpde_gp.linfunctls.LinearFunctional":
+        from linpde_gp.linfunctls import (  # pylint: disable=import-outside-toplevel
+            DiracFunctional,
+        )
+
+        return (
+            DiracFunctional(
+                input_domain_shape=self.output_domain_shape,
+                input_codomain_shape=self.output_codomain_shape,
+                X=X,
+            )
+            @ self
         )
 
     def __neg__(self) -> LinearFunctionOperator:
