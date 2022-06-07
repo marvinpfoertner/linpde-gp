@@ -19,13 +19,13 @@ class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance
         self._integral = integral
         self._reverse = bool(reverse)
 
-        assert self._matern.input_shape != self._integral.input_domain_shape
+        assert self._matern.input_shape == self._integral.input_domain_shape
 
         super().__init__(
             randproc_input_shape=self._matern.input_shape,
             randproc_output_shape=(),
             randvar_shape=self._integral.output_shape,
-            transpose=reverse,
+            reverse=reverse,
         )
 
     @property

@@ -254,7 +254,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         )
 
         # Compute lower-left block in the new kernel gram matrix
-        gram_L_La_prev_blocks = tuple(L(kLa_prev, argnum=0) for kLa_prev in self._kLas)
+        gram_L_La_prev_blocks = tuple(
+            L(kLa_prev, argnum=0).reshape((L.output_size, kLa_prev.randvar_size))
+            for kLa_prev in self._kLas
+        )
         gram_L_row_blocks = gram_L_La_prev_blocks + (gram,)
 
         # Update the Cholesky decomposition of the previous kernel Gram matrix and the
@@ -352,7 +355,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         # Compute predictive mean and kernel Gram matrix
         pred_mean = Lf.mean
-        gram = Lf.cov
+        gram = np.atleast_2d(Lf.cov)
 
         if b is not None:
             pred_mean = pred_mean + b.mean

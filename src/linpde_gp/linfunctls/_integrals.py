@@ -36,21 +36,26 @@ class LebesgueIntegral(_linfunctl.LinearFunctional):
 
     @__call__.register
     def _(self, f: pn.Function, /) -> np.ndarray:
-        import scipy.integrate  # pylint: disable=import-outside-toplevel
+        try:
+            super().__call__(f)
+        except NotImplementedError as err:
+            import scipy.integrate  # pylint: disable=import-outside-toplevel
 
-        if self._output_shape != ():
-            raise NotImplementedError()
+            if self._output_shape != ():
+                raise NotImplementedError from err
 
-        match self._domain:
-            case domains.Interval():
-                return scipy.integrate.quad(f, a=self._domain[0], b=self._domain[1])[0]
-            case domains.Box():
-                return scipy.integrate.nquad(
-                    f,
-                    ranges=[tuple(interval) for interval in self._domain],
-                )
+            match self._domain:
+                case domains.Interval():
+                    return scipy.integrate.quad(
+                        f, a=self._domain[0], b=self._domain[1]
+                    )[0]
+                case domains.Box():
+                    return scipy.integrate.nquad(
+                        f,
+                        ranges=[tuple(interval) for interval in self._domain],
+                    )[0]
 
-        raise NotImplementedError()
+            raise NotImplementedError from err
 
     @__call__.register
     def _(self, f: functions.Constant, /) -> np.ndarray:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import operator
 from typing import Type
 
 import numpy as np
@@ -50,6 +51,10 @@ class LinearFunctional:
     @property
     def output_ndim(self) -> int:
         return len(self.output_shape)
+
+    @property
+    def output_size(self) -> int:
+        return functools.reduce(operator.mul, self._output_shape, 1)
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):

@@ -3,6 +3,10 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ScalarLike
 
+from linpde_gp import linfunctls
+from linpde_gp.linfuncops import LinearFunctionOperator
+from linpde_gp.linfunctls import LinearFunctional
+
 from . import _pv_crosscov
 
 
@@ -27,6 +31,21 @@ class ScaledProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarian
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return self._scalar * self._pv_crosscov.jax(x)
+
+
+@LinearFunctionOperator.__call__.register
+def _(
+    self, crosscov: ScaledProcessVectorCrossCovariance, /, **kwargs
+) -> ScaledProcessVectorCrossCovariance:
+    return ScaledProcessVectorCrossCovariance(
+        pv_crosscov=self(crosscov._pv_crosscov, **kwargs),
+        scalar=crosscov._scalar,
+    )
+
+
+@LinearFunctional.__call__.register
+def _(self, crosscov: ScaledProcessVectorCrossCovariance, /, **kwargs) -> np.ndarray:
+    return crosscov._scalar * self(crosscov._pv_crosscov, **kwargs)
 
 
 class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
