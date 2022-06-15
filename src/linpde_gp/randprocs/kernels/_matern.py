@@ -98,13 +98,16 @@ class ProductMatern(JaxKernel, JaxStationaryMixin):
         return self._lengthscales
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        return np.prod(self._evaluate_factors(x0, x1), axis=-1)
+
+    def _evaluate_factors(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> np.ndarray:
         if x1 is None:
-            scaled_distances = np.zeros_like(x0, shape=x0.shape[:-1])
+            scaled_distances = np.zeros_like(x0)
         else:
             scaled_distances = self._scale_factors * np.abs(x0 - x1)
 
         if self.p == 3:
-            ks_x0_x1 = (
+            return (
                 1.0
                 + scaled_distances
                 * (
@@ -112,15 +115,13 @@ class ProductMatern(JaxKernel, JaxStationaryMixin):
                     + scaled_distances * (2.0 / 5.0 + scaled_distances * (1.0 / 15.0))
                 )
             ) * np.exp(-scaled_distances)
-        else:
-            raise ValueError()
 
-        return np.prod(ks_x0_x1, axis=-1)
+        raise ValueError()
 
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if x1 is None:
-            scaled_distances = jnp.zeros_like(x0, shape=x0.shape[:-1])
+            scaled_distances = jnp.zeros_like(x0)
         else:
             scaled_distances = self._scale_factors * jnp.abs(x0 - x1)
 
