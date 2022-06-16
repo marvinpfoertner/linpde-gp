@@ -36,3 +36,10 @@ disable = [
     "missing-module-docstring",
     "missing-function-docstring",
 ]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    # "import jax" implies "import flatbuffers", which raises the following warning.
+    # Ignore similar to https://github.com/google/jax/blob/main/pytest.ini
+    "ignore:the imp module is deprecated in favour of importlib.*:DeprecationWarning:flatbuffers.*"
+]

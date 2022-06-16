@@ -112,7 +112,7 @@ class ProductMatern_Laplacian_Laplacian(JaxKernel, JaxStationaryMixin):
         return self._prod_matern
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
-        idx_equal_mask = np.eye(self.input_shape[0], dtype=np.bool)
+        idx_equal_mask = np.eye(self.input_shape[0], dtype=np.bool_)
 
         ks_x0_x1 = np.where(
             idx_equal_mask[None, :, :] ^ idx_equal_mask[:, None, :],
