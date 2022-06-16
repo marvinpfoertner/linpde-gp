@@ -21,3 +21,7 @@ from ._matern_laplacian import (
     Matern_Identity_Laplacian,
     Matern_Laplacian_Laplacian,
 )
+from ._product_matern_laplacian import (
+    ProductMatern_Identity_Laplacian,
+    ProductMatern_Laplacian_Laplacian,
+)
