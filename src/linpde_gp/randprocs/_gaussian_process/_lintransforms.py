@@ -14,6 +14,9 @@ def _(self, gp: pn.randprocs.GaussianProcess, /) -> pn.randvars.Normal:
     assert isinstance(mean, (np.ndarray, np.number))
     assert isinstance(cov, (np.ndarray, np.number))
 
+    if mean.ndim > 0:
+        cov = cov.reshape((mean.size, mean.size), order="C")
+
     return pn.randvars.Normal(mean, cov)
 
 
