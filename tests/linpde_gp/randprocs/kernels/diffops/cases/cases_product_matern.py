@@ -98,3 +98,39 @@ def case_laplacian_laplacian(input_shape: ShapeType) -> KernelLinFuncOpTestCase:
         L0=linpde_gp.linfuncops.diffops.Laplacian(domain_shape=input_shape),
         L1=linpde_gp.linfuncops.diffops.Laplacian(domain_shape=input_shape),
     )
+
+
+@parametrize(
+    input_shape=input_shapes,
+)
+def case_directional_derivative_laplacian(
+    input_shape: ShapeType,
+) -> KernelLinFuncOpTestCase:
+    rng = np.random.default_rng(390852098)
+
+    direction = rng.standard_normal(size=input_shape)
+    direction /= np.sqrt(np.sum(direction**2))
+
+    return KernelLinFuncOpTestCase(
+        k=linpde_gp.randprocs.kernels.ProductMatern(input_shape=input_shape),
+        L0=linpde_gp.linfuncops.diffops.DirectionalDerivative(direction),
+        L1=linpde_gp.linfuncops.diffops.Laplacian(domain_shape=input_shape),
+    )
+
+
+@parametrize(
+    input_shape=input_shapes,
+)
+def case_laplacian_directional_derivative(
+    input_shape: ShapeType,
+) -> KernelLinFuncOpTestCase:
+    rng = np.random.default_rng(390852098)
+
+    direction = rng.standard_normal(size=input_shape)
+    direction /= np.sqrt(np.sum(direction**2))
+
+    return KernelLinFuncOpTestCase(
+        k=linpde_gp.randprocs.kernels.ProductMatern(input_shape=input_shape),
+        L0=linpde_gp.linfuncops.diffops.Laplacian(domain_shape=input_shape),
+        L1=linpde_gp.linfuncops.diffops.DirectionalDerivative(direction),
+    )

@@ -31,4 +31,4 @@ def test_L0_k_L1_adj(test_case: KernelLinFuncOpTestCase):
     if np.any(nan_mask):
         L0_k_L1_adj_jax[nan_mask] = L0_k_L1_adj[nan_mask]
 
-    np.testing.assert_allclose(L0_k_L1_adj, L0_k_L1_adj_jax)
+    np.testing.assert_allclose(L0_k_L1_adj, L0_k_L1_adj_jax, atol=1e-14)
