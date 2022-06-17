@@ -10,7 +10,12 @@ def jmlr(*, rel_width=1.0, nrows=1, ncols=1, family="serif", **kwargs):
     )
     font_config = fonts.jmlr2001_tex(family=family)
     fontsize_config = fontsizes.jmlr2001()
-    return {**font_config, **size, **fontsize_config}
+
+    tueplots_rcparams = {**font_config, **size, **fontsize_config}
+
+    tueplots_rcparams["text.latex.preamble"] += r"\usepackage{siunitx}" + "\n"
+
+    return tueplots_rcparams
 
 
 def beamer_moml(*, rel_width=1.0, rel_height=0.8, nrows=1):
