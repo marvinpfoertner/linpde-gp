@@ -5,6 +5,7 @@ import matplotlib.animation
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.lines
+from mpl_toolkits import mplot3d
 import numpy as np
 import probnum as pn
 import scipy.stats
@@ -151,6 +152,50 @@ def plot_gaussian_pdf(
 
 
 pn.randvars.Normal.plot = plot_gaussian_pdf
+
+
+def fill_between_3d(
+    ax: mplot3d.Axes3D,
+    xs: ArrayLike,
+    ys: ArrayLike,
+    z1: ArrayLike,
+    z2: ArrayLike,
+    /,
+    *,
+    axis: str = "x",
+    color: str | None = None,
+    **kwargs,
+):
+    if axis not in ("x", "y"):
+        raise ValueError()
+
+    xs = np.asarray(xs)
+    ys = np.asarray(ys)
+
+    xs_2d = xs if axis == "x" else ys
+
+    ys1_2d = np.asarray(z1)
+    ys2_2d = np.asarray(z2)
+
+    fill_poly = matplotlib.collections.PolyCollection(
+        (
+            np.concatenate(
+                (
+                    np.stack((xs_2d, ys2_2d), axis=-1),
+                    np.flip(np.stack((xs_2d, ys1_2d), axis=-1), axis=-2),
+                ),
+                axis=-2,
+            ),
+        ),
+        facecolors=(color if color is not None else ax._get_lines.get_next_color(),),
+        **kwargs,
+    )
+
+    ax.add_collection3d(
+        fill_poly,
+        zs=(ys if axis == "x" else xs,),
+        zdir="y" if axis == "x" else "x",
+    )
 
 
 def plot_local_taylor_processes(
