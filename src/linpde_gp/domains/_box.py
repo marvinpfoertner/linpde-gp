@@ -5,7 +5,7 @@ import functools
 
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike, DTypeLike, FloatLike, ScalarType
+from probnum.typing import ArrayLike, DTypeLike, FloatLike, ScalarType, ShapeLike
 
 from ._domain import Domain
 from ._point import PointSet
@@ -73,6 +73,18 @@ class Interval(Domain, Sequence[np.ndarray]):
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Interval) and tuple(self) == tuple(other)
 
+    def uniform_grid(self, shape: ShapeLike, inset: ArrayLike = 0.0) -> np.ndarray:
+        shape = pn.utils.as_shape(shape)
+        inset = np.asarray(inset)
+
+        assert len(shape) == 1 and inset.ndim == 0
+
+        return np.linspace(
+            self._lower_bound + inset,
+            self._upper_bound - inset,
+            shape[0],
+        )
+
 
 class Box(Domain):
     def __init__(self, bounds: ArrayLike) -> None:
@@ -130,7 +142,7 @@ class Box(Domain):
     def __len__(self) -> int:
         return self.shape[0]
 
-    def __getitem__(self, idx) -> np.ndarray:
+    def __getitem__(self, idx) -> Domain:
         if isinstance(idx, int):
             return Interval(*self._bounds[idx, :], dtype=self.dtype)
 
@@ -162,3 +174,21 @@ class Box(Domain):
 
     def __eq__(self, other) -> bool:
         return isinstance(other, Box) and np.all(self.bounds == other.bounds)
+
+    def uniform_grid(self, shape: ShapeLike, inset: ArrayLike = 0.0) -> np.ndarray:
+        shape = pn.utils.as_shape(shape)
+
+        assert len(shape) == self.shape[0]
+
+        inset = np.broadcast_to(inset, self.shape)
+
+        return np.stack(
+            np.meshgrid(
+                *(
+                    self[idx].uniform_grid(num_points, inset=inset[idx])
+                    for idx, num_points in enumerate(shape)
+                ),
+                indexing="ij",
+            ),
+            axis=-1,
+        )

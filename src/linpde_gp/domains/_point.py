@@ -4,7 +4,7 @@ from collections.abc import Sequence
 import functools
 
 import numpy as np
-from probnum.typing import ArrayLike, ScalarType
+from probnum.typing import ArrayLike, ScalarType, ShapeLike
 
 from ._domain import Domain
 
@@ -49,6 +49,9 @@ class Point(Domain):
 
     def __eq__(self, other) -> bool:
         return isinstance(other, Point) and np.all(self._point == other._point)
+
+    def uniform_grid(self, shape: ShapeLike, inset: float = 0.0) -> np.ndarray:
+        raise NotImplementedError()
 
 
 class PointSet(Domain, Sequence[Point]):
@@ -104,3 +107,6 @@ class PointSet(Domain, Sequence[Point]):
 
     def __eq__(self, other) -> bool:
         return isinstance(other, PointSet) and np.all(self._points == other._points)
+
+    def uniform_grid(self, shape: ShapeLike, inset: float = 0.0) -> np.ndarray:
+        raise NotImplementedError()
