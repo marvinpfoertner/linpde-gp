@@ -5,6 +5,7 @@ import matplotlib.animation
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.lines
+import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import numpy as np
 import probnum as pn
@@ -28,7 +29,20 @@ def plot_function(
 pn.Function.plot = plot_function
 
 
-def plot_random_process(
+def plot_random_process(randproc: pn.randprocs.RandomProcess, *args, **kwargs):
+    if randproc.input_shape == ():
+        return _plot_1d_random_process(randproc, *args, **kwargs)
+    elif randproc.input_shape == (2,):
+        return _plot_2d_random_process(randproc, *args, **kwargs)
+    else:
+        raise TypeError()
+
+
+pn.randprocs.RandomProcess.plot = plot_random_process
+randprocs.DeterministicProcess.plot = plot_random_process
+
+
+def _plot_1d_random_process(
     randproc: pn.randprocs.RandomProcess,
     /,
     ax: matplotlib.axes.Axes,
@@ -106,10 +120,6 @@ def plot_random_process(
     return mean_line2d, std_poly, samples_line2d
 
 
-pn.randprocs.RandomProcess.plot = plot_random_process
-randprocs.DeterministicProcess.plot = plot_random_process
-
-
 def plot_random_process_samples(
     randproc: pn.randprocs.RandomProcess,
     ax: matplotlib.axes.Axes,
@@ -133,6 +143,228 @@ def plot_random_process_samples(
 
 
 pn.randprocs.RandomProcess.plot_samples = plot_random_process_samples
+
+
+def _plot_2d_random_process(
+    f: pn.randprocs.RandomProcess,
+    ax: mplot3d.Axes3D,
+    xy: np.ndarray,
+    /,
+    *,
+    mean_zorder: int = 2,
+    slice_xs: ArrayLike | None = None,
+    slice_ys: ArrayLike | None = None,
+    slice_axis: str = "x",
+    slice_lower_zorder: int = 1,
+    slice_upper_zorder: int = 3,
+    slice_color: str | None = None,
+    slice_alpha: float = 0.8,
+    slice_padding: float = 0.0,
+    slice_cred_int: float = 0.95,
+    slice_cred_int_color: str = None,
+    slice_cred_int_alpha: str = 0.8,
+    slice_num_samples: int = 0,
+    slice_samples_rng: np.random.Generator | None = None,
+    slice_samples_color: str | None = None,
+    slice_samples_alpha: float = 0.9,
+    slice_samples_linewidth: float | None = None,
+    **kwargs,
+):
+    """
+    Notes
+    -----
+    The axes of the subplot must be set up with
+
+    .. code::
+        fig, ax = plt.subplots(
+            subplot_kw={
+                "projection": "3d",
+                "computed_zorder": False,
+            }
+        )
+
+    in order for this to work.
+    """
+    # Plot mean function
+    mean_xy = f.mean(xy)
+
+    ax.plot_surface(
+        xy[..., 0],
+        xy[..., 1],
+        mean_xy,
+        zorder=mean_zorder,
+        **kwargs,
+    )
+
+    z_min = np.min(mean_xy)
+    z_max = np.max(mean_xy)
+
+    # Plot slice of marginal credible interval
+    if slice_xs is not None and slice_ys is not None:
+        slice_xys = np.stack(
+            np.broadcast_arrays(slice_xs, slice_ys),
+            axis=-1,
+        )
+
+        slice_mean = f.mean(slice_xys)
+        slice_std = f.std(slice_xys)
+
+        slice_std_factor = -scipy.stats.norm.ppf((1.0 - slice_cred_int) / 2.0)
+
+        slice_cred_int_color = (
+            slice_cred_int_color
+            if slice_cred_int_color is not None
+            else ax._get_lines.get_next_color()
+        )
+
+        if slice_std_factor > 0.0:
+            slice_cred_int_lower = slice_mean - slice_std_factor * slice_std
+            slice_cred_int_upper = slice_mean + slice_std_factor * slice_std
+
+            lower_cred_int_poly = linpde_gp.utils.plotting.fill_between_3d(
+                ax,
+                slice_xs,
+                slice_ys,
+                slice_cred_int_lower,
+                slice_mean,
+                axis=slice_axis,
+                zorder=slice_lower_zorder,
+                color=slice_cred_int_color,
+                alpha=slice_cred_int_alpha,
+            )
+
+            linpde_gp.utils.plotting.fill_between_3d(
+                ax,
+                slice_xs,
+                slice_ys,
+                slice_mean,
+                slice_cred_int_upper,
+                axis=slice_axis,
+                zorder=slice_upper_zorder,
+                color=lower_cred_int_poly._facecolor3d,
+                alpha=slice_cred_int_alpha,
+            )
+
+            z_min = np.minimum(z_min, np.min(slice_cred_int_lower))
+            z_max = np.maximum(z_max, np.max(slice_cred_int_upper))
+        else:
+            slice_cred_int_lower = slice_mean
+            slice_cred_int_upper = slice_mean
+
+        if slice_num_samples > 0:
+            samples = f.sample(slice_samples_rng, slice_xys, size=slice_num_samples)
+            samples = np.atleast_2d(samples)
+
+            slice_samples_color = (
+                slice_samples_color
+                if slice_samples_color is not None
+                else slice_cred_int_color
+            )
+
+            slice_samples_linewidth = (
+                slice_samples_linewidth
+                if slice_samples_linewidth is not None
+                else plt.rcParams["lines.linewidth"]
+            )
+
+            for idx in range(slice_num_samples):
+                _plot_line_zbuffered_wrt_surface(
+                    ax,
+                    xs=slice_xs if slice_axis == "x" else slice_ys,
+                    ys_line=samples[idx],
+                    ys_surf=slice_mean,
+                    z=slice_ys if slice_axis == "x" else slice_xs,
+                    zdir="y" if slice_axis == "x" else "x",
+                    zorder_above_surf=slice_upper_zorder,
+                    zorder_below_surf=slice_lower_zorder,
+                    linewidths=slice_samples_linewidth,
+                    color=slice_samples_color,
+                    alpha=slice_samples_alpha,
+                )
+
+            z_min = np.minimum(z_min, np.min(samples))
+            z_max = np.maximum(z_max, np.max(samples))
+
+        if slice_color is not None:
+            z_min = z_min - slice_padding
+            z_max = z_max + slice_padding
+
+            linpde_gp.utils.plotting.fill_between_3d(
+                ax,
+                slice_xs,
+                slice_ys,
+                z_min,
+                slice_cred_int_lower,
+                zorder=slice_lower_zorder,
+                color=slice_color,
+                alpha=slice_alpha,
+            )
+
+            linpde_gp.utils.plotting.fill_between_3d(
+                ax,
+                slice_xs,
+                slice_ys,
+                slice_cred_int_upper,
+                z_max,
+                zorder=slice_upper_zorder,
+                color=slice_color,
+                alpha=slice_alpha,
+            )
+
+        ax.set_zlim(z_min, z_max)
+
+
+def _plot_line_zbuffered_wrt_surface(
+    ax: mplot3d.Axes3D,
+    xs: np.ndarray,
+    ys_line: np.ndarray,
+    ys_surf: np.ndarray,
+    z: float | np.floating,
+    zdir: str,
+    zorder_above_surf: int,
+    zorder_below_surf: int,
+    **kwargs,
+):
+    def line_chunks(xs, ys_line, ys_surf, above, **kwargs):
+        chunks = [[]]
+
+        for x, y_line, y_surf in zip(xs, ys_line, ys_surf):
+            if (above and y_line >= y_surf) or (not above and y_line < y_surf):
+                chunks[-1].append((x, y_line))
+            else:
+                chunks.append([])
+
+        chunks = [line for line in chunks if len(line) > 0]
+
+        return matplotlib.collections.LineCollection(chunks, **kwargs)
+
+    # Line chunks below the surface
+    ax.add_collection3d(
+        line_chunks(
+            xs,
+            ys_line,
+            ys_surf,
+            above=False,
+            zorder=zorder_below_surf,
+            **kwargs,
+        ),
+        zs=z,
+        zdir=zdir,
+    )
+
+    # Line chunks above the surface
+    ax.add_collection3d(
+        line_chunks(
+            xs,
+            ys_line,
+            ys_surf,
+            above=True,
+            zorder=zorder_above_surf,
+            **kwargs,
+        ),
+        zs=z,
+        zdir=zdir,
+    )
 
 
 def plot_gaussian_pdf(
@@ -170,7 +402,7 @@ def fill_between_3d(
     axis: str = "x",
     color: str | None = None,
     **kwargs,
-):
+) -> matplotlib.collections.PolyCollection:
     if axis not in ("x", "y"):
         raise ValueError()
 
@@ -186,8 +418,11 @@ def fill_between_3d(
         (
             np.concatenate(
                 (
-                    np.stack((xs_2d, ys2_2d), axis=-1),
-                    np.flip(np.stack((xs_2d, ys1_2d), axis=-1), axis=-2),
+                    np.stack(np.broadcast_arrays(xs_2d, ys2_2d), axis=-1),
+                    np.flip(
+                        np.stack(np.broadcast_arrays(xs_2d, ys1_2d), axis=-1),
+                        axis=-2,
+                    ),
                 ),
                 axis=-2,
             ),
@@ -201,6 +436,8 @@ def fill_between_3d(
         zs=(ys if axis == "x" else xs,),
         zdir="y" if axis == "x" else "x",
     )
+
+    return fill_poly
 
 
 def plot_local_taylor_processes(
