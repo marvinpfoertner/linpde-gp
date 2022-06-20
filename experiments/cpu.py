@@ -110,9 +110,10 @@ q_dot_V_sink_1D = linpde_gp.functions.Constant(
     value=-TDP / A_sink / depth,
 )
 
+# Boundary function for all boundary parts in a row (order NESW)
 q_dot_A_2D = linpde_gp.functions.Constant(
     input_shape=(),
-    value=TDP / A_sink,
+    value=-TDP / A_sink,
 )
 
 ########################################################################################
