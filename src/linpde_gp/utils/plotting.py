@@ -43,6 +43,7 @@ def plot_random_process(
     rel_sample_alpha: float = 0.1,
     label: Optional[str] = None,
     mean_line2d_kwargs: dict[str, Any] = {},
+    vertical: bool = False,
     **kwargs,
 ) -> Tuple[
     matplotlib.lines.Line2D,
@@ -53,8 +54,8 @@ def plot_random_process(
     mean = randproc.mean(xs)
 
     (mean_line2d,) = ax.plot(
-        xs,
-        mean,
+        xs if not vertical else mean,
+        mean if not vertical else xs,
         color=color,
         alpha=alpha,
         label=label,
@@ -72,7 +73,7 @@ def plot_random_process(
 
         fill_delta = std_factor * std
 
-        std_poly = ax.fill_between(
+        std_poly = (ax.fill_between if not vertical else ax.fill_betweenx)(
             xs,
             mean - fill_delta,
             mean + fill_delta,
@@ -98,6 +99,7 @@ def plot_random_process(
             num_samples=num_samples,
             color=mean_line2d.get_color(),
             alpha=alpha * rel_sample_alpha,
+            vertical=vertical,
             **kwargs,
         )
 
@@ -114,13 +116,16 @@ def plot_random_process_samples(
     xs: np.ndarray,
     rng: np.random.Generator,
     num_samples: int = 1,
+    vertical: bool = False,
     **kwargs,
 ) -> List[matplotlib.lines.Line2D]:
     samples = randproc.sample(rng, xs, size=(num_samples,))
 
+    xs_plt = np.broadcast_to(xs[:, None], (xs.shape[0], num_samples))
+
     samples_line2d = ax.plot(
-        np.broadcast_to(xs[:, None], (xs.shape[0], num_samples)),
-        samples.T,
+        xs_plt if not vertical else samples.T,
+        samples.T if not vertical else xs_plt,
         **kwargs,
     )
 
