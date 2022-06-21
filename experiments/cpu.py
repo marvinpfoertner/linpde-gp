@@ -129,6 +129,33 @@ q_dot_V_2D = q_dot_V_src_2D + q_dot_V_sink_2D
 q_dot_V_1D = q_dot_V_src_1D + q_dot_V_sink_1D
 
 ########################################################################################
+# Digital Thermal Sensor (DTS) Measurements
+########################################################################################
+
+X_dts_2D = core_centers
+u_X_dts_2D = np.array(
+    # fmt: off
+    [[59.6, 60.1, 58.5],
+     [61.03, 60.36, 59.22]],
+    # [60.68, 60.51, 59.46]
+    # fmt: on
+)
+u_X_dts_2D_noise = pn.randvars.Normal(
+    mean=np.zeros_like(u_X_dts_2D),
+    cov=0.5**2 * np.eye(u_X_dts_2D.size),
+)
+
+X_dts_1D = X_dts_2D[1, :, 0]
+u_X_dts_1D = u_X_dts_2D[1, :]
+u_X_dts_1D_noise = u_X_dts_2D_noise[1, :]
+
+########################################################################################
+# Mock Dirichlet Boundary Conditions
+########################################################################################
+
+u_X_dbc_1D = np.array(np.array([60.26, 56.52]))
+
+########################################################################################
 # Plotting
 ########################################################################################
 
@@ -180,7 +207,7 @@ def adjust_q_dot_V_axis(axis: matplotlib.axis.Axis):
     )
 
 
-def plot_schematic(ax: matplotlib.axes.Axes):
+def plot_schematic(ax: matplotlib.axes.Axes, show_dts: bool = False):
     ax.add_patch(
         plt.Rectangle(
             (0, 0),
@@ -220,3 +247,12 @@ def plot_schematic(ax: matplotlib.axes.Axes):
 
     adjust_xaxis(ax)
     adjust_yaxis(ax)
+
+    if show_dts:
+        ax.scatter(
+            X_dts_2D[..., 0],
+            X_dts_2D[..., 1],
+            marker="+",
+            color="C4",
+            label=r"$X_\text{DTS}$",
+        )
