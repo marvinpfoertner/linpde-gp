@@ -72,7 +72,7 @@ kappa *= 10  # W/mm K
 # Heat Sources
 ########################################################################################
 
-TDP = 95  # W, [2]
+TDP = 95.0  # W, [2]
 
 core_heat_dist_x = linpde_gp.functions.TruncatedGaussianMixturePDF(
     domain=domain[0],
@@ -115,6 +115,8 @@ q_dot_A_2D = linpde_gp.functions.Constant(
     input_shape=(),
     value=-TDP / A_sink,
 )
+
+q_dot_A_1D = np.full(2, -TDP / A_sink)
 
 ########################################################################################
 # Stationary PDE
@@ -186,7 +188,7 @@ def plot_schematic(ax: matplotlib.axes.Axes):
             height,
             edgecolor="black",
             facecolor="None",
-            # linewidth=0.5,
+            linewidth=0.75,
         )
     )
 
@@ -202,7 +204,7 @@ def plot_schematic(ax: matplotlib.axes.Axes):
                     core_height,
                     edgecolor="black",
                     facecolor="None",
-                    # linewidth=0.5,
+                    linewidth=0.75,
                 )
             )
 
