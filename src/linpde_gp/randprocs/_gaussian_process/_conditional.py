@@ -25,8 +25,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         cls,
         prior: pn.randprocs.GaussianProcess,
         Y: ArrayLike,
-        *,
         X: ArrayLike | None = None,
+        *,
         L: None | LinearFunctional | LinearFunctionOperator = None,
         b: None | RandomVariableLike = None,
     ):
@@ -272,7 +272,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
     def condition_on_observations(
         self,
         Y: ArrayLike,
-        X: ArrayLike | None,
+        X: ArrayLike | None = None,
+        *,
         L: LinearFunctional | LinearFunctionOperator | None = None,
         b: RandomVariableLike | None = None,
     ):
