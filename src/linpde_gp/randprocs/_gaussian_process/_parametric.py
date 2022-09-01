@@ -9,8 +9,8 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
     def __init__(
         self,
         weights: pn.randvars.Normal,
-        feature_fn: pn.Function,
-        mean: Optional[pn.Function] = None,
+        feature_fn: pn.functions.Function,
+        mean: Optional[pn.functions.Function] = None,
     ):
         self._weights = weights
         self._feature_fn = feature_fn
@@ -29,9 +29,9 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
             ),
         )
 
-    class Mean(pn.Function):
+    class Mean(pn.functions.Function):
         def __init__(
-            self, weights: pn.randvars.Normal, feature_fn: pn.Function
+            self, weights: pn.randvars.Normal, feature_fn: pn.functions.Function
         ) -> None:
             self._weights = weights
             self._feature_fn = feature_fn
@@ -48,7 +48,7 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
         def __init__(
             self,
             weights: pn.randvars.Normal,
-            feature_fn: pn.Function,
+            feature_fn: pn.functions.Function,
         ):
             self._weights = weights
             self._feature_fn = feature_fn

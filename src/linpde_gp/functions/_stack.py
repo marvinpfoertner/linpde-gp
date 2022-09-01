@@ -8,7 +8,7 @@ from . import _jax
 
 
 class StackedFunction(_jax.JaxFunction):
-    def __init__(self, *fns: pn.Function, axis: int = -1) -> None:
+    def __init__(self, *fns: pn.functions.Function, axis: int = -1) -> None:
         self._fns = tuple(fns)
         self._axis = axis
 
@@ -24,7 +24,7 @@ class StackedFunction(_jax.JaxFunction):
         super().__init__(input_shape, output_shape)
 
     @property
-    def fns(self) -> Sequence[pn.Function]:
+    def fns(self) -> Sequence[pn.functions.Function]:
         return self._fns
 
     @property
@@ -44,5 +44,5 @@ class StackedFunction(_jax.JaxFunction):
         )
 
 
-def stack(fns: Sequence[pn.Function], axis: int = -1) -> StackedFunction:
+def stack(fns: Sequence[pn.functions.Function], axis: int = -1) -> StackedFunction:
     return StackedFunction(*fns, axis=axis)

@@ -10,7 +10,7 @@ def asrandproc(f: RandomProcessLike) -> pn.randprocs.RandomProcess:
     match f:
         case pn.randprocs.RandomProcess():
             return f
-        case pn.Function():
+        case pn.functions.Function():
             return DeterministicProcess(f)
 
     raise TypeError(

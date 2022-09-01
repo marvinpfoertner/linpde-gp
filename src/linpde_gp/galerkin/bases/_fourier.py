@@ -27,7 +27,7 @@ class FourierBasis(_basis.Basis):
 
         super().__init__(size=self._num_frequencies)
 
-    def __getitem__(self, idx: Union[int, slice, np.ndarray]) -> pn.Function:
+    def __getitem__(self, idx: Union[int, slice, np.ndarray]) -> pn.functions.Function:
         l, r = self._domain
 
         if isinstance(idx, slice):
@@ -39,7 +39,7 @@ class FourierBasis(_basis.Basis):
         else:
             idx = np.asarray(idx)
 
-        return pn.LambdaFunction(
+        return pn.functions.LambdaFunction(
             lambda x: np.sin((idx + 1) * np.pi * (x[..., None] - l) / (r - l)),
             input_shape=(),
             output_shape=idx.shape,
@@ -48,9 +48,9 @@ class FourierBasis(_basis.Basis):
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
+    ) -> Union[pn.functions.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return pn.LambdaFunction(
+            return pn.functions.LambdaFunction(
                 lambda x: self[:](x) @ coords,
                 input_shape=(),
                 output_shape=(),

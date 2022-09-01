@@ -35,7 +35,7 @@ class LebesgueIntegral(_linfunctl.LinearFunctional):
         return super().__call__(f, **kwargs)
 
     @__call__.register
-    def _(self, f: pn.Function, /) -> np.ndarray:
+    def _(self, f: pn.functions.Function, /) -> np.ndarray:
         try:
             super().__call__(f)
         except NotImplementedError as err:

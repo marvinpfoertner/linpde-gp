@@ -13,7 +13,7 @@ class Basis(abc.ABC):
         return self._size
 
     @abc.abstractmethod
-    def __getitem__(self, idx: int) -> pn.Function:
+    def __getitem__(self, idx: int) -> pn.functions.Function:
         pass
 
     @abc.abstractmethod
@@ -23,7 +23,7 @@ class Basis(abc.ABC):
             np.ndarray,
             pn.randvars.RandomVariable,  # TODO: Add probnum type RandomVariableLike
         ],
-    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
+    ) -> Union[pn.functions.Function, pn.randprocs.RandomProcess]:
         pass
 
     def observation_operator(self, xs: np.ndarray):

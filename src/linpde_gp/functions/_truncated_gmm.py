@@ -8,7 +8,7 @@ import scipy.stats
 from linpde_gp import domains
 
 
-class TruncatedGaussianMixturePDF(pn.Function):
+class TruncatedGaussianMixturePDF(pn.functions.Function):
     def __init__(
         self,
         domain: domains.Interval,

@@ -17,7 +17,7 @@ from linpde_gp.typing import ArrayLike
 
 
 def plot_function(
-    f: pn.Function,
+    f: pn.functions.Function,
     /,
     ax: matplotlib.axes.Axes,
     xs: np.ndarray,
@@ -26,7 +26,7 @@ def plot_function(
     return ax.plot(xs, f(xs), **kwargs)
 
 
-pn.Function.plot = plot_function
+pn.functions.Function.plot = plot_function
 
 
 def plot_random_process(randproc: pn.randprocs.RandomProcess, *args, **kwargs):
@@ -465,7 +465,7 @@ def plot_local_taylor_processes(
 
         taylor_process_x = linpde_gp.randprocs.ParametricGaussianProcess(
             weights=coeffs_x,
-            feature_fn=pn.LambdaFunction(
+            feature_fn=pn.functions.LambdaFunction(
                 lambda x: (x - x0)[:, None] ** np.arange(coeffs_x.size),
                 input_shape=(),
                 output_shape=(coeffs_x.size,),

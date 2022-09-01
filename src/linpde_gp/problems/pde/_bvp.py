@@ -18,4 +18,4 @@ class DirichletBoundaryCondition:
 class BoundaryValueProblem:
     pde: LinearPDE
     boundary_conditions: Sequence[DirichletBoundaryCondition]
-    solution: pn.Function | None = None
+    solution: pn.functions.Function | None = None

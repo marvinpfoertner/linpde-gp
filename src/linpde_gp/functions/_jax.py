@@ -10,7 +10,7 @@ import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
 
 
-class JaxFunction(pn.Function):
+class JaxFunction(pn.functions.Function):
     def jax(self, x: ArrayLike) -> jnp.ndarray:
         x = jnp.asarray(x)
 

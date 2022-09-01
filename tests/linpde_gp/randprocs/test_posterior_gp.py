@@ -146,7 +146,7 @@ def posterior_gp(
     posterior_gp = prior
 
     for X, Y, Y_err in zip(Xs_batched, Ys_batched, Y_errs_batched):
-        posterior_gp = posterior_gp.condition_on_observations(X, Y, b=Y_err)
+        posterior_gp = posterior_gp.condition_on_observations(Y, X, b=Y_err)
 
     return posterior_gp
 

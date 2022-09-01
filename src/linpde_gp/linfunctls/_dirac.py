@@ -41,5 +41,5 @@ class DiracFunctional(_linfunctl.LinearFunctional):
         return super().__call__(f, **kwargs)
 
     @__call__.register
-    def _(self, f: pn.Function, /) -> np.ndarray:
+    def _(self, f: pn.functions.Function, /) -> np.ndarray:
         return f(self._X)

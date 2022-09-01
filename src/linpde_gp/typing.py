@@ -17,7 +17,7 @@ DomainLike = Union[
 ]
 
 RandomProcessLike = Union[
-    pn.Function,
+    pn.functions.Function,
     pn.randprocs.RandomProcess,
 ]
 

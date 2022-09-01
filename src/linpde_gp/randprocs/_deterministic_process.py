@@ -4,7 +4,7 @@ from probnum.typing import ArrayLike, ShapeLike
 
 
 class DeterministicProcess(pn.randprocs.RandomProcess[ArrayLike, np.ndarray]):
-    def __init__(self, fn: pn.Function):
+    def __init__(self, fn: pn.functions.Function):
         self._fn = fn
 
         super().__init__(
@@ -17,7 +17,7 @@ class DeterministicProcess(pn.randprocs.RandomProcess[ArrayLike, np.ndarray]):
         return pn.randvars.Constant(support=self._fn(np.asarray(args)))
 
     @property
-    def mean(self) -> pn.Function:
+    def mean(self) -> pn.functions.Function:
         return self._fn
 
     def _sample_at_input(

@@ -9,7 +9,7 @@ from linpde_gp import domains, linfuncops
 class LinearPDE:
     domain: domains.Domain
     diffop: linfuncops.LinearDifferentialOperator
-    rhs: pn.Function | pn.randprocs.RandomProcess
+    rhs: pn.functions.Function | pn.randprocs.RandomProcess
 
     def __post_init__(self):
         if self.diffop.input_domain_shape != self.domain.shape:

@@ -86,7 +86,7 @@ core_heat_dist_y = linpde_gp.functions.TruncatedGaussianMixturePDF(
     stds=core_height / 2.0,
 )
 
-q_dot_V_src_2D = pn.LambdaFunction(
+q_dot_V_src_2D = pn.functions.LambdaFunction(
     fn=lambda xy: (
         TDP / depth * core_heat_dist_x(xy[..., 0]) * core_heat_dist_y(xy[..., 1])
     ),

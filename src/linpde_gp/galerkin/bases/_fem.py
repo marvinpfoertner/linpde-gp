@@ -38,13 +38,13 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
     def grid(self) -> np.ndarray:
         return self._grid
 
-    def __getitem__(self, idx: int) -> pn.Function:
+    def __getitem__(self, idx: int) -> pn.functions.Function:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
             idx += len(self)
 
-        return pn.LambdaFunction(
+        return pn.functions.LambdaFunction(
             scipy.interpolate.interp1d(
                 x=self._grid[idx : idx + 3],
                 y=np.array((0.0, 1.0, 0.0)),
@@ -60,9 +60,9 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
+    ) -> Union[pn.functions.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return pn.LambdaFunction(
+            return pn.functions.LambdaFunction(
                 scipy.interpolate.interp1d(
                     x=self._grid,
                     y=np.hstack((0.0, coords, 0.0)),
@@ -84,7 +84,7 @@ class ZeroBoundaryFiniteElementBasis(_basis.Basis):
         if isinstance(coords, pn.randvars.Normal):
             return randprocs.ParametricGaussianProcess(
                 weights=coords,
-                feature_fn=pn.LambdaFunction(
+                feature_fn=pn.functions.LambdaFunction(
                     self._observation_operator_fn,
                     input_shape=(),
                     output_shape=coords.shape,
@@ -127,7 +127,7 @@ class FiniteElementBasis(_basis.Basis):
     def grid(self) -> np.ndarray:
         return self._grid
 
-    def __getitem__(self, idx: int) -> pn.Function:
+    def __getitem__(self, idx: int) -> pn.functions.Function:
         assert -len(self) <= idx < len(self)
 
         if idx < 0:
@@ -144,7 +144,7 @@ class FiniteElementBasis(_basis.Basis):
 
         ys = np.array(ys)
 
-        return pn.LambdaFunction(
+        return pn.functions.LambdaFunction(
             lambda x: np.interp(x, xs, ys),
             input_shape=(),
             output_shape=(),
@@ -153,9 +153,9 @@ class FiniteElementBasis(_basis.Basis):
     def coords2fn(
         self,
         coords: Union[np.ndarray, pn.randvars.RandomVariable],
-    ) -> Union[pn.Function, pn.randprocs.RandomProcess]:
+    ) -> Union[pn.functions.Function, pn.randprocs.RandomProcess]:
         if isinstance(coords, np.ndarray):
-            return pn.LambdaFunction(
+            return pn.functions.LambdaFunction(
                 scipy.interpolate.interp1d(
                     x=self._grid,
                     y=coords,
@@ -177,7 +177,7 @@ class FiniteElementBasis(_basis.Basis):
         if isinstance(coords, pn.randvars.Normal):
             return randprocs.ParametricGaussianProcess(
                 weights=coords,
-                feature_fn=pn.LambdaFunction(
+                feature_fn=pn.functions.LambdaFunction(
                     self._observation_operator_fn,
                     input_shape=(),
                     output_shape=coords.shape,

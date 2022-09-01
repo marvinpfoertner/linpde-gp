@@ -14,7 +14,7 @@ class PoissonEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: pn.Function | pn.randprocs.RandomProcess,
+        rhs: pn.functions.Function | pn.randprocs.RandomProcess,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
@@ -36,7 +36,7 @@ class HeatEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: pn.Function | pn.randprocs.RandomProcess,
+        rhs: pn.functions.Function | pn.randprocs.RandomProcess,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
@@ -55,7 +55,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         boundary_values: (
             ArrayLike
             | pn.randvars.RandomVariable
-            | pn.Function
+            | pn.functions.Function
             | pn.randprocs.RandomProcess
         ),
         solution=None,
@@ -99,7 +99,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         )
 
 
-class PoissonEquation1DConstRHSDirichletProblemSolution(pn.Function):
+class PoissonEquation1DConstRHSDirichletProblemSolution(pn.functions.Function):
     def __init__(
         self,
         domain: DomainLike,

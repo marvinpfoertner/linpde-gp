@@ -23,7 +23,7 @@ class Identity(_linfuncop.LinearFunctionOperator):
         super().__call__(f, **kwargs)
 
     @__call__.register
-    def _(self, f: pn.Function, /) -> pn.Function:
+    def _(self, f: pn.functions.Function, /) -> pn.functions.Function:
         if f.input_shape != self.input_domain_shape:
             raise ValueError()
 
