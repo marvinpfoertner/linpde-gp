@@ -38,6 +38,10 @@ disable = [
 ]
 
 [tool.pytest.ini_options]
+testpaths=[
+    "src",
+    "tests",
+]
 filterwarnings = [
     # "import jax" implies "import flatbuffers", which raises the following warning.
     # Ignore similar to https://github.com/google/jax/blob/main/pytest.ini
