@@ -4,4 +4,5 @@ from ._arithmetic import (
     ScaledProcessVectorCrossCovariance,
     SumProcessVectorCrossCovariance,
 )
+from ._parametric import ParametricProcessVectorCrossCovariance
 from ._pv_crosscov import ProcessVectorCrossCovariance

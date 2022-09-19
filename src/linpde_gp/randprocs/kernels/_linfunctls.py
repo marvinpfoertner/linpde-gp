@@ -11,6 +11,7 @@ from linpde_gp.linfunctls.projections.l2 import (
     L2Projection_UnivariateLinearInterpolationBasis,
 )
 
+from ._galerkin import GalerkinKernel
 from ._matern import Matern
 
 
@@ -110,4 +111,22 @@ def _(self, k: pn.randprocs.kernels.Matern, /, argnum: int = 0):
         kernel=k,
         proj=self,
         reverse=(argnum == 0),
+    )
+
+
+@L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
+    GalerkinKernel
+)
+def _(self, k: GalerkinKernel, /, argnum: int = 0):
+    if k._projection is self:
+        from ..crosscov import ParametricProcessVectorCrossCovariance
+
+        return ParametricProcessVectorCrossCovariance(
+            crosscov=k._PkPa,
+            basis=k._projection._basis,
+            reverse=(argnum == 0),
+        )
+
+    return super(L2Projection_UnivariateLinearInterpolationBasis, self).__call__(
+        k, argnum=argnum
     )

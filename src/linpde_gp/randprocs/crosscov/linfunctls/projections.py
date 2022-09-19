@@ -9,7 +9,7 @@ from linpde_gp.linfunctls.projections.l2 import (
     L2Projection_UnivariateLinearInterpolationBasis,
 )
 
-from .. import _pv_crosscov
+from .. import _parametric, _pv_crosscov
 
 
 class Kernel_L2Projection_UnivariateLinearInterpolationBasis(
@@ -106,6 +106,18 @@ def _(
     res = proj0.normalizer(res, axis=0)
 
     return res
+
+
+@L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
+    _parametric.ParametricProcessVectorCrossCovariance
+)
+def _(
+    self, pv_crosscov: _parametric.ParametricProcessVectorCrossCovariance, /
+) -> np.ndarray:
+    if self._basis is pv_crosscov._basis and self._normalized:
+        return pv_crosscov._crosscov.todense()
+
+    raise NotImplementedError()
 
 
 class Matern32_L2Projection_UnivariateLinearInterpolationBasis(
