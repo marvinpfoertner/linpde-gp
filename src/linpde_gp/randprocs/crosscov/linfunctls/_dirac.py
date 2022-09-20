@@ -7,6 +7,13 @@ from linpde_gp import linfunctls
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
 
+@linfunctls.DiracFunctional.__call__.register(  # pylint: disable=no-member
+    ProcessVectorCrossCovariance
+)
+def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> np.ndarray:
+    return pv_crosscov(self._X)
+
+
 class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
     def __init__(
         self,
