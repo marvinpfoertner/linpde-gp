@@ -1,5 +1,6 @@
-from . import linfunctls
+from . import linfuncops, linfunctls
 from ._arithmetic import (
+    LinOpProcessVectorCrossCovariance,
     ScaledProcessVectorCrossCovariance,
     SumProcessVectorCrossCovariance,
 )

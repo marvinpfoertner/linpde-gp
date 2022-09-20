@@ -1,3 +1,4 @@
+from . import projections
 from ._arithmetic import (
     CompositeLinearFunctional,
     ScaledLinearFunctional,

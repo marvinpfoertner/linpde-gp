@@ -1,3 +1,4 @@
+from ._arithmetic import ScaledLinearDifferentialOperator
 from ._directional_derivative import (
     DirectionalDerivative,
     PartialDerivative,

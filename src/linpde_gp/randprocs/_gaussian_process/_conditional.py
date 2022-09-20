@@ -287,7 +287,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         # Compute lower-left block in the new kernel gram matrix
         gram_L_La_prev_blocks = tuple(
-            L(kLa_prev, argnum=0).reshape((L.output_size, kLa_prev.randvar_size))
+            L(kLa_prev).reshape((L.output_size, kLa_prev.randvar_size))
             for kLa_prev in self._kLas
         )
         gram_L_row_blocks = gram_L_La_prev_blocks + (gram,)
@@ -403,21 +403,32 @@ pn.randprocs.GaussianProcess.condition_on_observations = (
 )
 
 
-@LinearFunctionOperator.__call__.register(
+@LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
     ConditionalGaussianProcess._PriorPredictiveCrossCovariance
-)  # pylint: disable=no-member
+)
 def _(
-    self,
-    crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
-    /,
-    argnum: int = 0,
+    self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
 ) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
     return ConditionalGaussianProcess._PriorPredictiveCrossCovariance(
-        (self(kLa, argnum=0) for kLa in crosscov)
+        (self(kLa) for kLa in crosscov)
     )
 
 
-@LinearFunctionOperator.__call__.register  # pylint: disable=no-member
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    ConditionalGaussianProcess._PriorPredictiveCrossCovariance
+)
+def _(
+    self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
+) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
+    return np.concatenate(
+        [self(kLa) for kLa in crosscov],
+        axis=-1,
+    )
+
+
+@LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
+    ConditionalGaussianProcess
+)
 def _(
     self, conditional_gp: ConditionalGaussianProcess, /
 ) -> ConditionalGaussianProcess:
@@ -430,11 +441,30 @@ def _(
         Ys=conditional_gp._Ys,
         Ls=conditional_gp._Ls,
         bs=conditional_gp._bs,
-        kLas=self(conditional_gp._kLas, argnum=0),
+        kLas=self(conditional_gp._kLas),
         gram_blocks=conditional_gp._gram_blocks,
         gram_cho=conditional_gp.gram_cho,
         representer_weights=conditional_gp.representer_weights,
     )
+
+
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    ConditionalGaussianProcess
+)
+def _(
+    self, conditional_gp: ConditionalGaussianProcess, /
+) -> ConditionalGaussianProcess:
+    # pylint: disable=protected-access
+
+    linfunctl_prior = self(conditional_gp._prior)
+    crosscov = self(conditional_gp._kLas)
+
+    mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
+    cov = linfunctl_prior.cov - crosscov @ scipy.linalg.cho_solve(
+        conditional_gp.gram_cho, crosscov.T
+    )
+
+    return pn.randvars.Normal(mean, cov)
 
 
 def cho_solve(L, b):

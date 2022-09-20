@@ -94,14 +94,7 @@ class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance
 @linfunctls.LebesgueIntegral.__call__.register(  # pylint: disable=no-member
     Matern_Identity_LebesgueIntegral
 )
-def _(
-    self, pv_crosscov: Matern_Identity_LebesgueIntegral, /, argnum: int = 0
-) -> ScalarType:
-    if (pv_crosscov.reverse and argnum == 0) or (
-        not pv_crosscov.reverse and argnum == 1
-    ):
-        raise ValueError("TODO")
-
+def _(self, pv_crosscov: Matern_Identity_LebesgueIntegral, /) -> ScalarType:
     if self.domain != pv_crosscov.integral.domain:
         raise NotImplementedError()
 

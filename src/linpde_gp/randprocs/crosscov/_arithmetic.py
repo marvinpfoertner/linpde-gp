@@ -1,10 +1,7 @@
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
-from probnum.typing import ScalarLike
-
-from linpde_gp.linfuncops import LinearFunctionOperator
-from linpde_gp.linfunctls import LinearFunctional
+from probnum.typing import ScalarLike, ScalarType
 
 from . import _pv_crosscov
 
@@ -25,26 +22,19 @@ class ScaledProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarian
             reverse=pv_crosscov.reverse,
         )
 
+    @property
+    def pv_crosscov(self) -> _pv_crosscov.ProcessVectorCrossCovariance:
+        return self._pv_crosscov
+
+    @property
+    def scalar(self) -> ScalarType:
+        return self._scalar
+
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         return self._scalar * self._pv_crosscov(x)
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return self._scalar * self._pv_crosscov.jax(x)
-
-
-@LinearFunctionOperator.__call__.register
-def _(
-    self, crosscov: ScaledProcessVectorCrossCovariance, /, **kwargs
-) -> ScaledProcessVectorCrossCovariance:
-    return ScaledProcessVectorCrossCovariance(
-        pv_crosscov=self(crosscov._pv_crosscov, **kwargs),
-        scalar=crosscov._scalar,
-    )
-
-
-@LinearFunctional.__call__.register
-def _(self, crosscov: ScaledProcessVectorCrossCovariance, /, **kwargs) -> np.ndarray:
-    return crosscov._scalar * self(crosscov._pv_crosscov, **kwargs)
 
 
 class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
@@ -74,3 +64,40 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return sum(pv_crosscov.jax(x) for pv_crosscov in self._pv_crosscovs)
+
+
+class LinOpProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
+    def __init__(
+        self,
+        linop: pn.linops.LinearOperator,
+        pv_crosscov: _pv_crosscov.ProcessVectorCrossCovariance,
+    ):
+        assert pv_crosscov.randvar_ndim == 1
+        assert linop.shape[1:] == pv_crosscov.randvar_shape
+
+        self._linop = linop
+        self._pv_crosscov = pv_crosscov
+
+        super().__init__(
+            randproc_input_shape=self._pv_crosscov.randproc_input_shape,
+            randproc_output_shape=self._pv_crosscov.randproc_output_shape,
+            randvar_shape=linop.shape[0:1],
+            reverse=self._pv_crosscov.reverse,
+        )
+
+    @property
+    def linop(self) -> pn.linops.LinearOperator:
+        return self._linop
+
+    @property
+    def pv_crosscov(self) -> _pv_crosscov.ProcessVectorCrossCovariance:
+        return self._pv_crosscov
+
+    def _evaluate(self, x: np.ndarray) -> np.ndarray:
+        return self._linop(
+            self._pv_crosscov(x),
+            axis=0 if self.reverse else -1,
+        )
+
+    def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
+        raise NotImplementedError()

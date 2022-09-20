@@ -9,7 +9,7 @@ from linpde_gp.linfunctls import LinearFunctional
 def _(self, gp: pn.randprocs.GaussianProcess, /) -> pn.randvars.Normal:
     mean = self(gp.mean)
     crosscov = self(gp.cov, argnum=1)
-    cov = self(crosscov, argnum=0)
+    cov = self(crosscov)
 
     assert isinstance(mean, (np.ndarray, np.number))
     assert isinstance(cov, (np.ndarray, np.number))

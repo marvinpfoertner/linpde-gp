@@ -2,8 +2,11 @@ import abc
 from collections.abc import Callable
 import functools
 
+import numpy as np
+import probnum as pn
 from probnum.typing import ShapeLike
 
+import linpde_gp  # pylint: disable=unused-import # for type hints
 from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
 from .._linfuncop import LinearFunctionOperator
@@ -53,6 +56,22 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     @abc.abstractmethod
     def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
         pass
+
+    def __rmul__(self, other) -> LinearFunctionOperator:
+        if np.ndim(other) == 0:
+            from ._arithmetic import (  # pylint: disable=import-outside-toplevel
+                ScaledLinearDifferentialOperator,
+            )
+
+            return ScaledLinearDifferentialOperator(self, scalar=other)
+
+        return NotImplemented
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
 
 
 class LambdaLinearDifferentialOperator(LinearDifferentialOperator):

@@ -92,30 +92,83 @@ class SumLinearFunctional(_linfunctl.LinearFunctional):
 class CompositeLinearFunctional(_linfunctl.LinearFunctional):
     def __init__(
         self,
+        *,
+        linop: pn.linops.LinearOperatorLike | None,
         linfunctl: _linfunctl.LinearFunctional,
-        *linfuncops: linfuncops.LinearFunctionOperator,
+        linfuncop: linfuncops.LinearFunctionOperator | None,
     ) -> None:
-        assert linfunctl.input_shapes == linfuncops[0].output_shapes
-        assert all(
-            L0.input_shape == L1.output_shape
-            for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
-        )
+        if linfuncop:
+            assert linfuncop.output_shapes == linfunctl.input_shapes
 
+        if linop is not None:
+            assert linfunctl.output_ndim == 1
+            assert linfunctl.output_shape == linop.shape[1:]
+
+        self._linop = pn.linops.aslinop(linop) if linop is not None else None
         self._linfunctl = linfunctl
-        self._linfuncops = tuple(linfuncops)
+        self._linfuncop = linfuncop
 
         super().__init__(
-            input_shapes=self._linfuncops[-1].input_shapes,
-            output_shape=self._linfunctl.output_shape,
+            input_shapes=(
+                self._linfunctl.input_shapes
+                if self._linfuncop is None
+                else self._linfuncop.input_shapes
+            ),
+            output_shape=(
+                self._linfunctl.output_shape
+                if self._linop is None
+                else self._linop.shape[0:1]
+            ),
         )
+
+    @property
+    def linop(self) -> pn.linops.LinearOperator | None:
+        return self._linop
+
+    @property
+    def linfunctl(self) -> _linfunctl.LinearFunctional:
+        return self._linfunctl
+
+    @property
+    def linfuncop(self) -> linfuncops.LinearFunctionOperator | None:
+        return self._linfuncop
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
-        return self._linfunctl(
-            functools.reduce(
-                lambda h, linfuncop: linfuncop(h, **kwargs),
-                reversed(self._linfuncops),
-                f,
-            ),
-            **kwargs,
-        )
+        return super().__call__(f, **kwargs)
+
+    @__call__.register
+    def _(self, f: pn.functions.Function, /, **kwargs):
+        Lf = f
+
+        if self._linfuncop is not None:
+            Lf = self._linfuncop(Lf, **kwargs)
+
+        Lf = self._linfunctl(Lf, **kwargs)
+
+        if self._linop is not None:
+            Lf = self._linop(Lf, axis=-1)
+
+        return Lf
+
+    def __matmul__(self, other):
+        if isinstance(other, linfuncops.LinearFunctionOperator):
+            return CompositeLinearFunctional(
+                linop=self._linop,
+                linfunctl=self._linfunctl,
+                linfuncop=(
+                    other if self._linfuncop is None else self._linfuncop @ other
+                ),
+            )
+
+        return super().__matmul__(other)
+
+    def __rmatmul__(self, other):
+        if isinstance(other, (np.ndarray, pn.linops.LinearOperator)):
+            return CompositeLinearFunctional(
+                linop=other if self._linop is None else other @ self._linop,
+                linfunctl=self._linfunctl,
+                linfuncop=self._linfuncop,
+            )
+
+        return super().__rmatmul__(other)

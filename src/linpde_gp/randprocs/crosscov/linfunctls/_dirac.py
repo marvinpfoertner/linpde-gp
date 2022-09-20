@@ -2,7 +2,7 @@ from jax import numpy as jnp
 import numpy as np
 import probnum as pn
 
-from linpde_gp import linfuncops, linfunctls
+from linpde_gp import linfunctls
 
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -26,6 +26,14 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
             randvar_shape=self._dirac.output_shape,
             reverse=False,
         )
+
+    @property
+    def kernel(self) -> pn.randprocs.kernels.Kernel:
+        return self._kernel
+
+    @property
+    def dirac(self) -> linfunctls.DiracFunctional:
+        return self._dirac
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         # `kxX.shape` layout:
@@ -134,6 +142,13 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
         return kxX
 
 
+@linfunctls.DiracFunctional.__call__.register(  # pylint: disable=no-member
+    Kernel_Identity_Dirac
+)
+def _(self, pv_crosscov: Kernel_Identity_Dirac, /) -> np.ndarray:
+    return pv_crosscov(self.X)
+
+
 class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
     def __init__(
         self,
@@ -153,6 +168,14 @@ class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
             randvar_shape=self._dirac.output_shape,
             reverse=False,
         )
+
+    @property
+    def kernel(self) -> pn.randprocs.kernels.Kernel:
+        return self._kernel
+
+    @property
+    def dirac(self) -> linfunctls.DiracFunctional:
+        return self._dirac
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         # `kXx.shape` layout:
@@ -257,30 +280,6 @@ class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
         return kxX
 
 
-@linfunctls.DiracFunctional.__call__.register(
-    Kernel_Identity_Dirac
-)  # pylint: disable=no-member
-def _(self, k_id_dirac: Kernel_Identity_Dirac, /, argnum: int = 0) -> np.ndarray:
-    if argnum != 0:
-        raise ValueError("TODO")
-
-    return k_id_dirac(self.X)
-
-
 @linfunctls.DiracFunctional.__call__.register  # pylint: disable=no-member
-def _(self, k_dirac_id: Kernel_Dirac_Indentity, /, argnum: int = 0) -> np.ndarray:
-    if argnum != 1:
-        raise ValueError("TODO")
-
-    return k_dirac_id(self.X)
-
-
-@linfuncops.LinearFunctionOperator.__call__.register(Kernel_Identity_Dirac)
-def _(self, k_id_dirac: Kernel_Identity_Dirac, /, argnum: int = 0) -> np.ndarray:
-    if argnum != 0:
-        raise ValueError("TODO")
-
-    return Kernel_Identity_Dirac(
-        self(k_id_dirac._kernel, argnum=0),
-        k_id_dirac._dirac,
-    )
+def _(self, pv_crosscov: Kernel_Dirac_Indentity, /) -> np.ndarray:
+    return pv_crosscov(self.X)

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import functools
-from multiprocessing.sharedctypes import Value
 from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
-import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike
+
+from linpde_gp import functions
 
 from ._lindiffop import LinearDifferentialOperator
 
@@ -35,6 +35,20 @@ class Laplacian(LinearDifferentialOperator):
             return jnp.trace(jnp.atleast_2d(f_hessian(*args, **kwargs)))
 
         return f_laplacian
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
+
+    @weak_form.register(functions.bases.UnivariateLinearInterpolationBasis)
+    def _(self, test_basis: functions.bases.UnivariateLinearInterpolationBasis):
+        from linpde_gp.linfunctls.weak_forms import (
+            WeakForm_Laplacian_UnivariateInterpolationBasis,
+        )
+
+        return WeakForm_Laplacian_UnivariateInterpolationBasis(test_basis)
 
 
 class SpatialLaplacian(LinearDifferentialOperator):

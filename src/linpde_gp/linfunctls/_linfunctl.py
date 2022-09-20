@@ -75,6 +75,8 @@ class LinearFunctional:
     def __neg__(self) -> LinearFunctional:
         return -1.0 * self
 
+    __array_ufunc__ = None
+
     def __add__(self, other) -> LinearFunctional | Type[NotImplemented]:
         if isinstance(other, LinearFunctional):
             from ._arithmetic import (  # pylint: disable=import-outside-toplevel
@@ -104,6 +106,24 @@ class LinearFunctional:
                 CompositeLinearFunctional,
             )
 
-            return CompositeLinearFunctional(self, other)
+            return CompositeLinearFunctional(
+                linop=None,
+                linfunctl=self,
+                linfuncop=other,
+            )
+
+        return NotImplemented
+
+    def __rmatmul__(self, other):
+        if isinstance(other, (np.ndarray, pn.linops.LinearOperator)):
+            from ._arithmetic import (  # pylint: disable=import-outside-toplevel
+                CompositeLinearFunctional,
+            )
+
+            return CompositeLinearFunctional(
+                linop=other,
+                linfunctl=self,
+                linfuncop=None,
+            )
 
         return NotImplemented

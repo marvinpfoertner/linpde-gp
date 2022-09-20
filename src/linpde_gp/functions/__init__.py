@@ -1,3 +1,4 @@
+from . import bases
 from ._affine import Affine
 from ._constant import Constant, Zero
 from ._jax import JaxFunction, JaxLambdaFunction
