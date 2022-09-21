@@ -4,6 +4,9 @@ import probnum as pn
 from pytest_cases import fixture
 
 import linpde_gp
+from linpde_gp.linfunctls.projections.l2 import (
+    L2Projection_UnivariateLinearInterpolationBasis,
+)
 
 
 @fixture
@@ -28,7 +31,7 @@ def kernel_lambda(
 
 
 @fixture
-def linfunctl() -> linpde_gp.linfunctls.LinearFunctional:
+def projection() -> L2Projection_UnivariateLinearInterpolationBasis:
     return linpde_gp.functions.bases.UnivariateLinearInterpolationBasis(
         np.linspace(-1.0, 1.0, 7),
         zero_boundary=False,
@@ -36,23 +39,22 @@ def linfunctl() -> linpde_gp.linfunctls.LinearFunctional:
 
 
 @fixture
-def kLa(
+def kPa(
     kernel: pn.randprocs.kernels.Kernel,
-    linfunctl: linpde_gp.linfunctls.LinearFunctional,
+    projection: L2Projection_UnivariateLinearInterpolationBasis,
 ) -> linpde_gp.randprocs.crosscov.ProcessVectorCrossCovariance:
-    return linfunctl(kernel, argnum=1)
+    return projection(kernel, argnum=1)
 
 
-def test_kLa_eval(
-    kLa,
-    kernel_lambda,
-    linfunctl: linpde_gp.functions.bases.UnivariateLinearInterpolationBasis,
+def test_kPa_eval(
+    kPa: linpde_gp.randprocs.crosscov.ProcessVectorCrossCovariance,
+    kernel_lambda: linpde_gp.randprocs.kernels.JaxLambdaKernel,
+    projection: L2Projection_UnivariateLinearInterpolationBasis,
 ):
-    bounds = linfunctl._phis._grid[[0, -1]]
-
+    bounds = projection.basis.grid[[0, -1]]
     xs = np.linspace(*bounds, 50)
 
     np.testing.assert_allclose(
-        kLa(xs),
-        linfunctl(kernel_lambda, argnum=1)(xs),
+        kPa(xs),
+        projection(kernel_lambda, argnum=1)(xs),
     )
