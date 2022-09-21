@@ -1,0 +1,3 @@
+[submodule "probnum"]
+	path = probnum
+	url = https://github.com/probabilistic-numerics/probnum.git
