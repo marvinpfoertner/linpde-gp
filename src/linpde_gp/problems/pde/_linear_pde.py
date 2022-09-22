@@ -1,40 +1,59 @@
-import dataclasses
-
 import probnum as pn
 
-from linpde_gp import domains, linfuncops
+from linpde_gp import domains, linfuncops, randprocs
+from linpde_gp.typing import DomainLike, RandomProcessLike
 
 
-@dataclasses.dataclass(frozen=True)
 class LinearPDE:
-    domain: domains.Domain
-    diffop: linfuncops.LinearDifferentialOperator
-    rhs: pn.functions.Function | pn.randprocs.RandomProcess
+    def __init__(
+        self,
+        domain: DomainLike,
+        diffop: linfuncops.LinearDifferentialOperator,
+        rhs: RandomProcessLike,
+    ):
+        self._domain = domains.asdomain(domain)
 
-    def __post_init__(self):
-        if self.diffop.input_domain_shape != self.domain.shape:
+        if diffop.input_domain_shape != self._domain.shape:
             raise ValueError(
                 "The shape of the domain of the differential operator's input "
                 "function is not equal to the shape of the given domain object "
-                f"({self.diffop.input_domain_shape} != {self.domain.shape})."
+                f"({diffop.input_domain_shape} != {self._domain.shape})."
             )
 
-        assert self.diffop.input_domain_shape == self.diffop.output_domain_shape, (
+        assert diffop.input_domain_shape == diffop.output_domain_shape, (
             "The domains of the input and output functions of a differential operator"
             "should be equal by definition."
         )
 
-        if self.rhs.input_shape != self.domain.shape:
+        self._diffop = diffop
+
+        rhs = randprocs.asrandproc(rhs)
+
+        if rhs.input_shape != self._domain.shape:
             raise ValueError(
                 "The shape of the right-hand side function's domain is not equal to "
                 "the shape of the given domain object "
-                f"({self.rhs.input_shape} != {self.domain.shape})."
+                f"({rhs.input_shape} != {self._domain.shape})."
             )
 
-        if self.rhs.output_shape != self.diffop.output_codomain_shape:
+        if rhs.output_shape != self._diffop.output_codomain_shape:
             raise ValueError(
                 "The shape of the right-hand side function's codomain is not equal to "
                 "the shape of the codomain of the differential operator's output "
-                f"function ({self.rhs.output_shape} != "
-                f"{self.diffop.output_codomain_shape})."
+                f"function ({rhs.output_shape} != "
+                f"{self._diffop.output_codomain_shape})."
             )
+
+        self._rhs = rhs
+
+    @property
+    def domain(self) -> domains.Domain:
+        return self._domain
+
+    @property
+    def diffop(self) -> linfuncops.LinearDifferentialOperator:
+        return self._diffop
+
+    @property
+    def rhs(self) -> pn.randprocs.RandomProcess:
+        return self._rhs
