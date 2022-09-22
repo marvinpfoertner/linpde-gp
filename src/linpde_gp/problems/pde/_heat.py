@@ -1,10 +1,10 @@
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike
+from probnum.typing import ArrayLike, FloatLike
 
-from linpde_gp import domains, functions
+from linpde_gp import domains, functions, randprocs
 from linpde_gp.linfuncops import diffops
-from linpde_gp.typing import DomainLike
+from linpde_gp.typing import DomainLike, RandomProcessLike, RandomVariableLike
 
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 from ._linear_pde import LinearPDE
@@ -14,7 +14,7 @@ class PoissonEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: pn.functions.Function | pn.randprocs.RandomProcess,
+        rhs: RandomProcessLike,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
@@ -36,7 +36,7 @@ class HeatEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: pn.functions.Function | pn.randprocs.RandomProcess,
+        rhs: RandomProcessLike,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
@@ -52,13 +52,8 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
     def __init__(
         self,
         pde: PoissonEquation,
-        boundary_values: (
-            ArrayLike
-            | pn.randvars.RandomVariable
-            | pn.functions.Function
-            | pn.randprocs.RandomProcess
-        ),
-        solution=None,
+        boundary_values: RandomProcessLike | RandomVariableLike,
+        solution: RandomProcessLike = None,
     ):
         if not isinstance(pde, PoissonEquation):
             raise TypeError("The given PDE must be a Poisson equation.")
@@ -69,21 +64,35 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
 
             assert isinstance(pde.domain.boundary, domains.PointSet)
 
+            if isinstance(
+                boundary_values, (pn.randprocs.RandomProcess, pn.functions.Function)
+            ):
+                raise TypeError(
+                    "In the scalar case, the boundary conditions must be "
+                    "`RandomVariableLike`."
+                )
+
             if not isinstance(boundary_values, pn.randvars.RandomVariable):
                 boundary_values = np.asarray(boundary_values)
+
+            boundary_values = pn.randvars.asrandvar(boundary_values)
 
             boundary_conditions = (
                 DirichletBoundaryCondition(pde.domain.boundary, boundary_values),
             )
 
             if solution is None:
-                if isinstance(pde.rhs, functions.Constant) and isinstance(
-                    boundary_values, np.ndarray
-                ):
+                rhs_is_deterministic_constant = isinstance(
+                    pde.rhs, randprocs.DeterministicProcess
+                ) and isinstance(pde.rhs.as_fn(), functions.Constant)
+
+                bc_is_deterministic = isinstance(boundary_values, pn.randvars.Constant)
+
+                if rhs_is_deterministic_constant and bc_is_deterministic:
                     solution = PoissonEquation1DConstRHSDirichletProblemSolution(
                         pde.domain,
-                        rhs=pde.rhs.value,
-                        boundary_values=boundary_values,
+                        rhs=pde.rhs.as_fn().value,
+                        boundary_values=boundary_values.support,
                         alpha=pde.alpha,
                     )
         else:
@@ -91,6 +100,9 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
                 DirichletBoundaryCondition(boundary_part, boundary_values)
                 for boundary_part in pde.domain.boundary
             )
+
+        if solution is not None:
+            solution = randprocs.asrandproc(solution)
 
         super().__init__(
             pde=pde,
@@ -103,9 +115,9 @@ class PoissonEquation1DConstRHSDirichletProblemSolution(pn.functions.Function):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: ArrayLike,
+        rhs: FloatLike,
         boundary_values: ArrayLike,
-        alpha: float = 1.0,
+        alpha: FloatLike = 1.0,
     ):
         super().__init__(input_shape=(), output_shape=())
 
@@ -115,9 +127,9 @@ class PoissonEquation1DConstRHSDirichletProblemSolution(pn.functions.Function):
             raise TypeError("We only support Interval domains.")
 
         self._l, self._r = domain
-        self._rhs = np.asarray(rhs)
+        self._rhs = float(rhs)
         self._u_l, self._u_r = np.asarray(boundary_values)
-        self._alpha = alpha
+        self._alpha = float(alpha)
 
         self._coeffs = [
             self._u_l,

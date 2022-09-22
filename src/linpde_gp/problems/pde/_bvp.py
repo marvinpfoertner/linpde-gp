@@ -19,3 +19,7 @@ class BoundaryValueProblem:
     pde: LinearPDE
     boundary_conditions: Sequence[DirichletBoundaryCondition]
     solution: pn.functions.Function | None = None
+
+    @property
+    def domain(self):
+        return self.pde.domain
