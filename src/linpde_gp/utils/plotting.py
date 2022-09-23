@@ -57,6 +57,7 @@ def _plot_1d_random_process(
     rel_sample_alpha: float = 0.1,
     label: Optional[str] = None,
     mean_line2d_kwargs: dict[str, Any] = {},
+    samples_kwargs: dict[str, Any] = {},
     vertical: bool = False,
     **kwargs,
 ) -> Tuple[
@@ -114,7 +115,7 @@ def _plot_1d_random_process(
             color=mean_line2d.get_color(),
             alpha=alpha * rel_sample_alpha,
             vertical=vertical,
-            **kwargs,
+            **(kwargs | samples_kwargs),
         )
 
     return mean_line2d, std_poly, samples_line2d

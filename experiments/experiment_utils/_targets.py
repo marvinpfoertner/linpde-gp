@@ -8,3 +8,13 @@ _tueplots_bundles = {
     "research_project": jmlr_bundle,
     "thesis_talk": beamer_moml_bundle,
 }
+
+_colors = {
+    "jmlr": {
+        "u": "C0",
+        "sol": "C1",
+        "bc": "C2",
+        "pde": "C3",
+        "u_meas": "C4",
+    },
+}

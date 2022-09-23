@@ -71,6 +71,12 @@ class Config:
 
         return _tueplots_bundles.get(self.target)
 
+    @property
+    def color(self) -> dict[str, str]:
+        from ._targets import _colors
+
+        return _colors.get(self.target)
+
 
 config = Config()
 
