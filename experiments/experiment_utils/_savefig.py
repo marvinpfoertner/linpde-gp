@@ -18,7 +18,7 @@ def savefig(
     if extension is None:
         extensions = config.savefig_default_extensions
     elif isinstance(extension, str):
-        extensions = extension
+        extensions = [extension]
     else:
         extensions = extension
 
