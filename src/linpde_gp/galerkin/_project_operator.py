@@ -19,6 +19,13 @@ def project(
 
 @dispatch
 def project(
+    linfuncop: linfuncops.diffops.ScaledLinearDifferentialOperator, basis: bases.Basis
+) -> pn.linops.LinearOperator:
+    return linfuncop.scalar * project(linfuncop.lindiffop, basis)
+
+
+@dispatch
+def project(
     linfuncop: linfuncops.diffops.Laplacian,
     basis: bases.ZeroBoundaryFiniteElementBasis,
 ) -> pn.linops.Matrix:
