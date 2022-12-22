@@ -238,11 +238,11 @@ def plot_schematic(ax: matplotlib.axes.Axes, show_dts: bool = False):
             ax.text(
                 core_center_x,
                 core_center_y,
-                "CPU Core",
+                "CPU\nCore",
                 rotation="vertical",
                 horizontalalignment="center",
                 verticalalignment="center",
-                fontsize="small",
+                fontsize="x-small",
             )
 
     adjust_xaxis(ax)
