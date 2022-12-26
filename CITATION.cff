@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: LinPDE-GP
+authors:
+- name: Marvin Pförtner
+license: MIT
+url: "https://github.com/marvinpfoertner/linpde-gp"
+preferred-citation:
+  type: generic
+  title: "Physics-Informed Gaussian Process Regression Generalizes Linear PDE Solvers"
+  authors:
+  - family-names: Pförtner
+    given-names: Marvin
+    orcid: "https://orcid.org/0000-0002-9005-2984"
+  - family-names: Steinwart
+    given-names: Ingo
+    orcid: "https://orcid.org/0000-0002-4436-7109"
+  - family-names: Hennig
+    given-names: Philipp
+  - family-names: Wenger
+    given-names: Jonathan
+    orcid: "https://orcid.org/0000-0003-2261-1331"
+  year: 2022
+  url: "https://arxiv.org/abs/2212.12474"
+  identifiers:
+    - type: other
+      value: "arXiv:2212.12474"
+      description: The arXiv preprint of the paper
