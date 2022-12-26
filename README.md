@@ -26,3 +26,18 @@ inside the repository.
 cd path/to/linpde-gp
 pip install -r dev-requirements.txt
 ```
+
+## Citation
+
+If you use this software, please cite our paper.
+
+```bibtex
+@misc{Pfoertner2022LinPDEGP,
+  author = {Pf\"ortner, Marvin and Steinwart, Ingo and Hennig, Philipp and Wenger, Jonathan},
+  title = {Physics-Informed Gaussian Process Regression Generalizes Linear PDE Solvers},
+  year = {2022},
+  publisher = {arXiv},
+  doi = {10.48550/arxiv.2212.12474},
+  url = {https://arxiv.org/abs/2212.12474}
+}
+```
