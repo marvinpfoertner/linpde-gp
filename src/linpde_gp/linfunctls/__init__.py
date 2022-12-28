@@ -4,6 +4,7 @@ from ._arithmetic import (
     ScaledLinearFunctional,
     SumLinearFunctional,
 )
+from ._flattened import FlattenedLinearFunctional
 from ._dirac import DiracFunctional
 from ._integrals import LebesgueIntegral
 from ._linfunctl import LinearFunctional

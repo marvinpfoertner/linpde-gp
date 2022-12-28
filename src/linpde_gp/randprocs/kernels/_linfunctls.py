@@ -4,6 +4,7 @@ from probnum.randprocs.kernels._arithmetic_fallbacks import ScaledKernel
 from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
     DiracFunctional,
+    FlattenedLinearFunctional,
     LebesgueIntegral,
     LinearFunctional,
 )
@@ -38,7 +39,6 @@ def _(self, k: pn.randprocs.kernels.Kernel, /, argnum: int = 0):
 
     return res
 
-
 @DiracFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
     match argnum:
@@ -55,6 +55,26 @@ def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
             return Kernel_Identity_Dirac(
                 kernel=k,
                 dirac=self,
+            )
+
+    raise ValueError("`argnum` must either be 0 or 1.")
+
+@FlattenedLinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
+    match argnum:
+        case 0:
+            from ..crosscov.linfunctls import Kernel_Flattened_Identity
+
+            return Kernel_Flattened_Identity(
+                kernel=k,
+                flatten=self,
+            )
+        case 1:
+            from ..crosscov.linfunctls import Kernel_Identity_Flattened
+
+            return Kernel_Identity_Flattened(
+                kernel=k,
+                flatten=self,
             )
 
     raise ValueError("`argnum` must either be 0 or 1.")
