@@ -6,3 +6,4 @@ from ._jax_arithmetic import JaxSumKernel
 from ._matern import Matern
 from ._parametric_kernel import ParametricKernel
 from ._product_matern import ProductMatern
+from ._multi_independent_product_matern import MultiIndependentProductMatern
