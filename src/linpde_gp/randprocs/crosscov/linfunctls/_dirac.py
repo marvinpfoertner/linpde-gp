@@ -165,13 +165,9 @@ class CovarianceFunction_Dirac_Identity(ProcessVectorCrossCovariance):
         self._covfunc = covfunc
         self._dirac = dirac
 
-        randproc_output_shape = self._covfunc.output_shape[
-            self._dirac.input_codomain_ndim :
-        ]
-
         super().__init__(
             randproc_input_shape=self._covfunc.input_shape,
-            randproc_output_shape=randproc_output_shape,
+            randproc_output_shape=self._covfunc.output_shape_1,
             randvar_shape=self._dirac.output_shape,
             reverse=True,
         )
