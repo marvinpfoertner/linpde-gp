@@ -156,7 +156,7 @@ def _(self, pv_crosscov: Kernel_Identity_Dirac, /) -> np.ndarray:
     return pv_crosscov(self.X)
 
 
-class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
+class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
     def __init__(
         self,
         kernel: pn.randprocs.kernels.Kernel,
@@ -173,7 +173,7 @@ class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
             randproc_input_shape=self._kernel.input_shape,
             randproc_output_shape=randproc_output_shape,
             randvar_shape=self._dirac.output_shape,
-            reverse=False,
+            reverse=True,
         )
 
     @property
@@ -288,5 +288,5 @@ class Kernel_Dirac_Indentity(ProcessVectorCrossCovariance):
 
 
 @linfunctls.DiracFunctional.__call__.register  # pylint: disable=no-member
-def _(self, pv_crosscov: Kernel_Dirac_Indentity, /) -> np.ndarray:
+def _(self, pv_crosscov: Kernel_Dirac_Identity, /) -> np.ndarray:
     return pv_crosscov(self.X)
