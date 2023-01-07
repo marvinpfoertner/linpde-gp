@@ -60,6 +60,25 @@ class ProductMatern(JaxKernel, JaxStationaryMixin):
         raise ValueError()
 
     @functools.partial(jax.jit, static_argnums=0)
+    def _evaluate_factors_jax(self, x0: ArrayLike, x1: ArrayLike | None) -> jnp.ndarray:
+        if x1 is None:
+            scaled_distances = jnp.zeros_like(x0)
+        else:
+            scaled_distances = self._scale_factors * jnp.abs(x0 - x1)
+
+        if self.p == 3:
+            return (
+                1.0
+                + scaled_distances
+                * (
+                    1.0
+                    + scaled_distances * (2.0 / 5.0 + scaled_distances * (1.0 / 15.0))
+                )
+            ) * jnp.exp(-scaled_distances)
+
+        raise ValueError()
+
+    @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
         if x1 is None:
             scaled_distances = jnp.zeros_like(x0)
