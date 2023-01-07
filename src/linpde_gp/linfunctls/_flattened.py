@@ -25,4 +25,8 @@ class FlattenedLinearFunctional(LinearFunctional):
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
-        return self._L(f, **kwargs).flatten()
+        return super().__call__(f, **kwargs)
+
+    @__call__.register
+    def _(self, f: pn.functions.Function, /) -> np.ndarray:
+        return self._L(f).flatten()

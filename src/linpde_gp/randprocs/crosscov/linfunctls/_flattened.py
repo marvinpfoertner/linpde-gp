@@ -61,7 +61,6 @@ class Kernel_Identity_Flattened(ProcessVectorCrossCovariance):
         x_output_shape = self.randproc_output_shape
 
         output_shape = x_batch_shape + x_output_shape + self._flatten.output_shape
-        print(output_shape)
         return inner_pv_crosscov(x).reshape(output_shape, order='C')
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -72,14 +71,13 @@ class Kernel_Identity_Flattened(ProcessVectorCrossCovariance):
         x_output_shape = self.randproc_output_shape
 
         output_shape = x_batch_shape + x_output_shape + self._flatten.output_shape
-        print(output_shape)
-        return inner_pv_crosscov(x).reshape(output_shape, order='C')
+        return inner_pv_crosscov.jax(x).reshape(output_shape, order='C')
 
 class Kernel_Flattened_Identity(ProcessVectorCrossCovariance):
     def __init__(
         self,
         kernel: pn.randprocs.kernels.Kernel,
-        flatten: linfunctls.DiracFunctional,
+        flatten: linfunctls.FlattenedLinearFunctional,
     ):
         self._kernel = kernel
         self._flatten = flatten
@@ -121,4 +119,4 @@ class Kernel_Flattened_Identity(ProcessVectorCrossCovariance):
         x_output_shape = self.randproc_output_shape
 
         output_shape = inner_functional.output_shape + x_batch_shape + x_output_shape
-        return inner_pv_crosscov(x).reshape(output_shape, order='C')
+        return inner_pv_crosscov.jax(x).reshape(output_shape, order='C')
