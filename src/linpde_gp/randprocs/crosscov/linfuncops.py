@@ -5,6 +5,7 @@ from linpde_gp.linfuncops import LinearFunctionOperator
 from ._arithmetic import ScaledProcessVectorCrossCovariance
 from .linfunctls._dirac import Kernel_Dirac_Identity, Kernel_Identity_Dirac
 from .linfunctls._flattened import Kernel_Flattened_Identity, Kernel_Identity_Flattened
+from .linfunctls._stacked import Kernel_Stacked_Identity, Kernel_Identity_Stacked
 
 
 
@@ -43,7 +44,7 @@ def _(self, pv_crosscov: Kernel_Dirac_Identity, /) -> np.ndarray:
 def _(self, pv_crosscov: Kernel_Identity_Flattened, /) -> np.ndarray:
     return Kernel_Identity_Flattened(
         self(pv_crosscov.kernel, argnum=0),
-        pv_crosscov.flatten,
+        pv_crosscov.flattened,
     )
 
 
@@ -53,5 +54,24 @@ def _(self, pv_crosscov: Kernel_Identity_Flattened, /) -> np.ndarray:
 def _(self, pv_crosscov: Kernel_Flattened_Identity, /) -> np.ndarray:
     return Kernel_Flattened_Identity(
         self(pv_crosscov, argnum=1),
-        pv_crosscov.flatten,
+        pv_crosscov.flattened,
+    )
+
+@LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
+    Kernel_Identity_Stacked
+)
+def _(self, pv_crosscov: Kernel_Identity_Stacked, /) -> np.ndarray:
+    return Kernel_Identity_Stacked(
+        self(pv_crosscov.kernel, argnum=0),
+        pv_crosscov.stacked,
+    )
+
+
+@LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
+    Kernel_Stacked_Identity
+)
+def _(self, pv_crosscov: Kernel_Stacked_Identity, /) -> np.ndarray:
+    return Kernel_Stacked_Identity(
+        self(pv_crosscov, argnum=1),
+        pv_crosscov.stacked,
     )
