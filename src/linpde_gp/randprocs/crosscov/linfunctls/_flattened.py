@@ -29,15 +29,15 @@ class CovarianceFunction_Identity_Flattened(ProcessVectorCrossCovariance):
     def __init__(
         self,
         covfunc: pn.randprocs.covfuncs.CovarianceFunction,
-        flatten: linfunctls.FlattenedLinearFunctional,
+        flattened: linfunctls.FlattenedLinearFunctional,
     ):
         self._covfunc = covfunc
-        self._flatten = flatten
+        self._flattened = flattened
 
         super().__init__(
             randproc_input_shape=self._covfunc.input_shape,
             randproc_output_shape=self._covfunc.output_shape_0,
-            randvar_shape=self._flatten.output_shape,
+            randvar_shape=self._flattened.output_shape,
             reverse=False,
         )
 
@@ -46,42 +46,42 @@ class CovarianceFunction_Identity_Flattened(ProcessVectorCrossCovariance):
         return self._covfunc
 
     @property
-    def flatten(self) -> linfunctls.FlattenedLinearFunctional:
-        return self._flatten
+    def flattened(self) -> linfunctls.FlattenedLinearFunctional:
+        return self._flattened
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        inner_functional = self._flatten.inner_functional
+        inner_functional = self._flattened.inner_functional
         inner_pv_crosscov = inner_functional(self._covfunc, argnum=1)
         assert isinstance(inner_pv_crosscov, ProcessVectorCrossCovariance)
         x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_output_shape = self.randproc_output_shape
 
-        output_shape = x_batch_shape + x_output_shape + self._flatten.output_shape
+        output_shape = x_batch_shape + x_output_shape + self._flattened.output_shape
         return inner_pv_crosscov(x).reshape(output_shape, order='C')
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        inner_functional = self._flatten.inner_functional
+        inner_functional = self._flattened.inner_functional
         inner_pv_crosscov = inner_functional(self._covfunc, argnum=1)
         assert isinstance(inner_pv_crosscov, ProcessVectorCrossCovariance)
         x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_output_shape = self.randproc_output_shape
 
-        output_shape = x_batch_shape + x_output_shape + self._flatten.output_shape
+        output_shape = x_batch_shape + x_output_shape + self._flattened.output_shape
         return inner_pv_crosscov.jax(x).reshape(output_shape, order='C')
 
 class CovarianceFunction_Flattened_Identity(ProcessVectorCrossCovariance):
     def __init__(
         self,
         covfunc: pn.randprocs.covfuncs.CovarianceFunction,
-        flatten: linfunctls.FlattenedLinearFunctional,
+        flattened: linfunctls.FlattenedLinearFunctional,
     ):
         self._covfunc = covfunc
-        self._flatten = flatten
+        self._flattened = flattened
 
         super().__init__(
             randproc_input_shape=self._covfunc.input_shape,
             randproc_output_shape=self._covfunc.output_shape_1,
-            randvar_shape=self._flatten.output_shape,
+            randvar_shape=self._flattened.output_shape,
             reverse=True,
         )
 
@@ -90,25 +90,25 @@ class CovarianceFunction_Flattened_Identity(ProcessVectorCrossCovariance):
         return self._covfunc
 
     @property
-    def flatten(self) -> linfunctls.FlattenedLinearFunctional:
-        return self._flatten
+    def flattened(self) -> linfunctls.FlattenedLinearFunctional:
+        return self._flattened
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        inner_functional = self._flatten.inner_functional
+        inner_functional = self._flattened.inner_functional
         inner_pv_crosscov = inner_functional(self._covfunc, argnum=0)
         assert isinstance(inner_pv_crosscov, ProcessVectorCrossCovariance)
         x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_output_shape = self.randproc_output_shape
 
-        output_shape = inner_functional.output_shape + x_batch_shape + x_output_shape
+        output_shape = self._flattened.output_shape + x_batch_shape + x_output_shape
         return inner_pv_crosscov(x).reshape(output_shape, order='C')
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        inner_functional = self._flatten.inner_functional
+        inner_functional = self._flattened.inner_functional
         inner_pv_crosscov = inner_functional(self._covfunc, argnum=0)
         assert isinstance(inner_pv_crosscov, ProcessVectorCrossCovariance)
         x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_output_shape = self.randproc_output_shape
 
-        output_shape = inner_functional.output_shape + x_batch_shape + x_output_shape
+        output_shape = self._flattened.output_shape + x_batch_shape + x_output_shape
         return inner_pv_crosscov.jax(x).reshape(output_shape, order='C')

@@ -5,6 +5,7 @@ from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
     DiracFunctional,
     FlattenedLinearFunctional,
+    StackedLinearFunctional,
     LebesgueIntegral,
     LinearFunctional,
 )
@@ -67,14 +68,34 @@ def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
 
             return CovarianceFunction_Flattened_Identity(
                 covfunc=k,
-                flatten=self,
+                flattened=self,
             )
         case 1:
             from ..crosscov.linfunctls import CovarianceFunction_Identity_Flattened
 
             return CovarianceFunction_Identity_Flattened(
                 covfunc=k,
-                flatten=self,
+                flattened=self
+            )
+
+    raise ValueError("`argnum` must either be 0 or 1.")
+
+@StackedLinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
+    match argnum:
+        case 0:
+            from ..crosscov.linfunctls import CovarianceFunction_Stacked_Identity
+
+            return CovarianceFunction_Stacked_Identity(
+                covfunc=k,
+                stacked=self,
+            )
+        case 1:
+            from ..crosscov.linfunctls import CovarianceFunction_Identity_Stacked
+
+            return CovarianceFunction_Identity_Stacked(
+                covfunc=k,
+                stacked=self,
             )
 
     raise ValueError("`argnum` must either be 0 or 1.")
