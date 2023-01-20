@@ -13,7 +13,8 @@ import scipy.linalg
 from linpde_gp import linfunctls
 from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
-from linpde_gp.linfunctls import LinearFunctional
+from linpde_gp.linfunctls import LinearFunctional, FlattenedLinearFunctional
+from linpde_gp.linops import SymmetricBlockMatrix
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 from linpde_gp.randprocs.kernels import JaxKernel
 from linpde_gp.typing import RandomVariableLike
@@ -38,13 +39,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             b=b,
         )
 
-        # Compute representer weights
-        gram_cho = scipy.linalg.cho_factor(gram)
-
-        representer_weights = scipy.linalg.cho_solve(
-            gram_cho,
-            (Y - Lm).reshape((-1,), order="C"),
-        )
+        representer_weights = gram.inv() @ (Y - Lm).reshape((-1,), order="C")
 
         return cls(
             prior=prior,
@@ -52,8 +47,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             Ls=(L,),
             bs=(b,),
             kLas=ConditionalGaussianProcess._PriorPredictiveCrossCovariance((kLa,)),
-            gram_blocks=((gram,),),
-            gram_cho=gram_cho,
+            gram_matrix=gram,
             representer_weights=representer_weights,
         )
 
@@ -65,8 +59,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         Ls: Sequence[LinearFunctional],
         bs: Sequence[pn.randvars.Normal | pn.randvars.Constant | None],
         kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
-        gram_blocks: Sequence[Sequence[np.ndarray]],
-        gram_cho: tuple[np.ndarray, bool] | None = None,
+        gram_matrix: pn.linops.LinearOperator,
         representer_weights: np.ndarray | None = None,
     ):
         self._prior = prior
@@ -77,8 +70,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         self._kLas = kLas
 
-        self._gram_blocks = tuple(tuple(row) for row in gram_blocks)
-        self._gram_cho = gram_cho
+        self._gram_matrix = gram_matrix
 
         self._representer_weights = representer_weights
 
@@ -91,50 +83,33 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             cov=ConditionalGaussianProcess.Kernel(
                 prior_kernel=self._prior.cov,
                 kLas=self._kLas,
-                gram_cho=self.gram_cho,
+                gram_matrix=self.gram,
             ),
         )
 
     @functools.cached_property
-    def gram(self) -> np.ndarray:
-        return np.block(
-            [
-                [
-                    self._gram_blocks[i][j] if i >= j else self._gram_blocks[j][i].T
-                    for j in range(len(self._Ys))
-                ]
-                for i in range(len(self._Ys))
-            ]
-        )
-
-    @property
-    def gram_cho(self) -> tuple[np.ndarray, bool]:
-        if self._gram_cho is None:
-            self._gram_cho = scipy.linalg.cho_factor(self.gram)
-
-        return self._gram_cho
+    def gram(self) -> pn.linops.LinearOperator:
+        return self._gram_matrix
 
     @property
     def representer_weights(self) -> np.ndarray:
         if self._representer_weights is None:
-            self._representer_weights = scipy.linalg.cho_solve(
-                self.gram_cho,
-                np.concatenate(
-                    [
-                        np.reshape(
-                            (
-                                (Y - L(self._prior.mean))
-                                if b is None
-                                else (Y - L(self._prior.mean) - b.mean)
-                            ),
-                            (-1,),
-                            order="C",
-                        )
-                        for Y, L, b in zip(self._Ys, self._Ls, self._bs)
-                    ],
-                    axis=-1,
-                ),
+            y = np.concatenate(
+                [
+                    np.reshape(
+                        (
+                            (Y - L(self._prior.mean))
+                            if b is None
+                            else (Y - L(self._prior.mean) - b.mean)
+                        ),
+                        (-1,),
+                        order="C",
+                    )
+                    for Y, L, b in zip(self._Ys, self._Ls, self._bs)
+                ],
+                axis=-1,
             )
+            self._representer_weights = self.gram.inv() @ y
 
         return self._representer_weights
 
@@ -234,11 +209,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             self,
             prior_kernel: JaxKernel,
             kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
-            gram_cho: np.ndarray,
+            gram_matrix: pn.linops.LinearOperator,
         ):
             self._prior_kernel = prior_kernel
             self._kLas = kLas
-            self._gram_cho = gram_cho
+            self._gram_matrix = gram_matrix
 
             super().__init__(
                 input_shape=self._prior_kernel.input_shape,
@@ -254,9 +229,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 k_xx
                 - (
                     kLas_x0[..., None, :]
-                    @ cho_solve(
-                        self._gram_cho,
-                        kLas_x1.transpose(),
+                    @ (
+                        self._gram_matrix.inv() @ kLas_x1.transpose()
                     ).transpose()[..., :, None]
                 )[..., 0, 0]
             )
@@ -267,7 +241,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             kLas_x0 = self._kLas.jax(x0)
             kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
 
-            return k_xx - kLas_x0 @ jax.scipy.linalg.cho_solve(self._gram_cho, kLas_x1)
+            return k_xx - kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
 
     def condition_on_observations(
         self,
@@ -290,19 +264,16 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             L(kLa_prev).reshape((L.output_size, kLa_prev.randvar_size))
             for kLa_prev in self._kLas
         )
-        gram_L_row_blocks = gram_L_La_prev_blocks + (gram,)
 
         # Update the Cholesky decomposition of the previous kernel Gram matrix and the
         # representer weights
-        gram_cho, representer_weights = _block_cholesky(
-            A_cho=self.gram_cho,
+
+        gram_matrix = SymmetricBlockMatrix(
+            A=self.gram,
             B=np.concatenate(gram_L_La_prev_blocks, axis=-1).T,
-            D=gram,
-            sol_update=(
-                self.representer_weights,
-                (Y - pred_mean).reshape((-1,), order="C"),
-            ),
+            D=gram
         )
+        representer_weights = gram_matrix.schur_update(self.representer_weights, (Y - pred_mean).reshape((-1,), order="C"))
 
         return ConditionalGaussianProcess(
             prior=self._prior,
@@ -310,11 +281,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             Ls=self._Ls + (L,),
             bs=self._bs + (b,),
             kLas=self._kLas.append(kLa),
-            gram_blocks=self._gram_blocks + (gram_L_row_blocks,),
-            gram_cho=gram_cho,
+            gram_matrix=gram_matrix,
+            # gram_blocks=self._gram_blocks + (gram_L_row_blocks,),
+            # gram_cho=gram_cho,
             representer_weights=representer_weights,
         )
-
     @classmethod
     def _preprocess_observations(
         cls,
@@ -361,6 +332,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 raise TypeError("TODO")
 
         assert isinstance(L, LinearFunctional)
+        L = FlattenedLinearFunctional(L)
 
         # Check measurement noise model
         if b is not None:
@@ -372,11 +344,12 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                     f"({type(b)=})"
                 )
 
+            # TODO: Flatten b
             if b.shape != L.output_shape:
                 raise ValueError(f"{b.shape=} must be equal to {L.output_shape}")
 
         # Check observations
-        Y = np.asarray(Y)
+        Y = np.asarray(Y).flatten()
 
         if Y.shape != L.output_shape:
             raise ValueError(f"{Y.shape=} must be equal to {L.output_shape}.")
@@ -392,6 +365,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         if b is not None:
             pred_mean = pred_mean + b.mean
             gram = gram + b.cov
+
+        gram = pn.linops.Matrix(gram)
+        gram.is_symmetric = True
+        gram.is_positive_definite = True
 
         return Y, L, b, kLa, pred_mean, gram
 
@@ -442,8 +419,7 @@ def _(
         Ls=conditional_gp._Ls,
         bs=conditional_gp._bs,
         kLas=self(conditional_gp._kLas),
-        gram_blocks=conditional_gp._gram_blocks,
-        gram_cho=conditional_gp.gram_cho,
+        gram_matrix=conditional_gp.gram,
         representer_weights=conditional_gp.representer_weights,
     )
 
@@ -460,9 +436,8 @@ def _(
     crosscov = self(conditional_gp._kLas)
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
-    cov = linfunctl_prior.cov - crosscov @ scipy.linalg.cho_solve(
-        conditional_gp.gram_cho, crosscov.T
-    )
+    cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T
+
 
     return pn.randvars.Normal(mean, cov)
 
@@ -475,89 +450,3 @@ def cho_solve(L, b):
         return b / L[0, 0] ** 2
 
     return scipy.linalg.cho_solve((L, lower), b)
-
-
-def _schur_update(A_cho, B, C, D, A_inv_u, v):
-    """
-    This function solves the linear system
-
-    [[A, B], @ [[x], = [[u],
-     [C, D]]    [y]]    [v]]
-
-    given the Cholesky factor of A, the matrices B, C, and D, and the vectors A^{-1} u, and v.
-    """
-    A_inv_B = jax.scipy.linalg.cho_solve(A_cho, B)
-
-    S = D - C @ A_inv_B
-
-    y = jax.scipy.linalg.solve(S, v - C @ A_inv_u)
-    x = A_inv_u - A_inv_B @ y
-
-    return jnp.concatenate((x, y))
-
-
-def _block_cholesky(
-    A_cho: tuple[np.ndarray, bool],
-    B: np.ndarray,
-    D: np.ndarray,
-    sol_update: tuple[np.ndarray, np.ndarray] | None = None,
-) -> tuple[np.ndarray, bool]:
-    A_sqrt, lower = A_cho
-
-    tri = np.tril if lower else np.triu
-
-    A_sqrt = tri(A_sqrt)
-
-    L_A_inv_B = scipy.linalg.solve_triangular(
-        A_sqrt,
-        B,
-        lower=lower,
-        trans="N" if lower else "T",
-    )
-
-    # Compute the Schur complement of A in the block matrix
-    S = D - L_A_inv_B.T @ L_A_inv_B
-    S_sqrt = scipy.linalg.cholesky(S, lower=lower)
-    S_cho = (S_sqrt, lower)
-
-    # Assemble the block Cholesky factor
-    block_sqrt = np.empty_like(
-        A_sqrt,
-        shape=(
-            A_sqrt.shape[0] + D.shape[0],
-            A_sqrt.shape[1] + D.shape[1],
-        ),
-    )
-
-    A_i_end, A_j_end = A_sqrt.shape
-    D_i_start, D_j_start = A_sqrt.shape
-
-    # A-block
-    block_sqrt[:A_i_end, :A_j_end] = A_sqrt
-
-    # B-block
-    block_sqrt[:A_i_end, D_j_start:] = 0 if lower else L_A_inv_B
-
-    # C-block
-    block_sqrt[D_i_start:, :A_j_end] = L_A_inv_B.T if lower else 0
-
-    # D-block
-    block_sqrt[D_i_start:, D_j_start:] = S_sqrt
-
-    block_cho = (block_sqrt, lower)
-
-    if sol_update is not None:
-        C = B.T
-        A_inv_u, v = sol_update
-
-        y = scipy.linalg.cho_solve(S_cho, v - C @ A_inv_u)
-        x = A_inv_u - scipy.linalg.solve_triangular(  # A^{-1} @ B @ y
-            A_sqrt,
-            L_A_inv_B @ y,
-            lower=lower,
-            trans="T" if lower else "N",
-        )
-
-        return block_cho, np.concatenate((x, y))
-
-    return block_cho
