@@ -3,7 +3,7 @@ import numpy as np
 from linpde_gp.linfuncops import LinearFunctionOperator
 
 from ._arithmetic import ScaledProcessVectorCrossCovariance
-from .linfunctls._dirac import Kernel_Dirac_Indentity, Kernel_Identity_Dirac
+from .linfunctls._dirac import Kernel_Dirac_Identity, Kernel_Identity_Dirac
 
 
 @LinearFunctionOperator.__call__.register  # pylint: disable=no-member
@@ -27,10 +27,10 @@ def _(self, pv_crosscov: Kernel_Identity_Dirac, /) -> np.ndarray:
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
-    Kernel_Dirac_Indentity
+    Kernel_Dirac_Identity
 )
-def _(self, pv_crosscov: Kernel_Dirac_Indentity, /) -> np.ndarray:
-    return Kernel_Dirac_Indentity(
+def _(self, pv_crosscov: Kernel_Dirac_Identity, /) -> np.ndarray:
+    return Kernel_Dirac_Identity(
         self(pv_crosscov, argnum=1),
         pv_crosscov.dirac,
     )

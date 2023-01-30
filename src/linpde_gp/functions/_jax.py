@@ -68,13 +68,12 @@ class JaxLambdaFunction(JaxFunction):
     ) -> None:
         super().__init__(input_shape, output_shape)
 
-        if len(input_shape) > 1:
-            raise ValueError("The input shape must be at most one-dimensional")
-
+        input_signature_component = ",".join(f"i_{j}" for j in range(len(input_shape)))
+        output_signature_component = ",".join(f"o_{j}" for j in range(len(output_shape)))
         if vectorize:
             fn = jnp.vectorize(
                 fn,
-                signature="()->()" if input_shape == () else "(d)->()",
+                signature=f"({input_signature_component})->({output_signature_component})",
             )
 
         self._fn = fn
