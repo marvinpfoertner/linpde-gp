@@ -6,5 +6,4 @@ from ._jax import JaxKernel, JaxLambdaKernel
 from ._jax_arithmetic import JaxSumKernel
 from ._matern import Matern
 from ._parametric_kernel import ParametricKernel
-from ._product_matern import ProductMatern
 from ._tensor_product import TensorProductKernel
