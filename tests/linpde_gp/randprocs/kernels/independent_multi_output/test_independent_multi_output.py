@@ -1,9 +1,12 @@
+import numpy as np
+
 import pytest
 from pytest_cases import parametrize_with_cases
-import numpy as np
+
 from linpde_gp.randprocs.kernels import (
     IndependentMultiOutputKernel,
-    ProductMatern,
+    Matern,
+    TensorProductKernel,
 )
 
 
@@ -22,7 +25,12 @@ def inputs_unbatched():
 @pytest.fixture
 def random_product_materns(random_lengthscales):
     return [
-        ProductMatern((random_lengthscales.shape[1],), lengthscales=cur_lengthscales)
+        TensorProductKernel(
+            *(
+                Matern((), p=3, lengthscale=lengthscale)
+                for lengthscale in cur_lengthscales
+            )
+        )
         for cur_lengthscales in random_lengthscales
     ]
 
