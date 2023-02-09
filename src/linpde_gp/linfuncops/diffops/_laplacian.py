@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
+import numpy as np
 import probnum as pn
-from probnum.typing import ShapeLike
+from probnum.typing import ArrayLike, ShapeLike
 
 from linpde_gp import functions
 
@@ -17,9 +18,30 @@ if TYPE_CHECKING:
     import linpde_gp
 
 
-class Laplacian(LinearDifferentialOperator):
-    def __init__(self, domain_shape: ShapeLike) -> None:
-        super().__init__(input_shapes=(domain_shape, ()))
+class WeightedLaplacian(LinearDifferentialOperator):
+    r"""Generalization of the Laplacian operator, which multiplies each partial
+    derivative with an individual weight.
+
+    .. math::
+        \Delta_w := \sum_{i = 1}^d w_i \frac{\partial^2}{\partial x_i^2}
+    """
+
+    def __init__(self, weights: ArrayLike) -> None:
+        weights = np.asarray(weights)
+
+        if weights.ndim > 1:
+            raise ValueError(
+                "The Laplacian operator only supports functions with input ndim of at "
+                "most 1."
+            )
+
+        super().__init__(input_shapes=(weights.shape, ()))
+
+        self._weights = weights
+
+    @property
+    def weights(self) -> np.ndarray:
+        return self._weights
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
@@ -28,13 +50,24 @@ class Laplacian(LinearDifferentialOperator):
     def _jax_fallback(  # pylint: disable=arguments-differ
         self, f: Callable, /, *, argnum: int = 0, **kwargs
     ) -> Callable:
-        f_hessian = jax.jit(jax.hessian(f, argnums=argnum))
+        f_hessian = jax.hessian(f, argnums=argnum)
 
         @jax.jit
         def f_laplacian(*args, **kwargs):
-            return jnp.trace(jnp.atleast_2d(f_hessian(*args, **kwargs)))
+            f_hessian_diag = jnp.diag(jnp.atleast_2d(f_hessian(*args, **kwargs)))
+
+            return jnp.sum(self._weights * f_hessian_diag)
 
         return f_laplacian
+
+
+class Laplacian(WeightedLaplacian):
+    def __init__(self, domain_shape: ShapeLike) -> None:
+        super().__init__(np.ones(domain_shape, dtype=np.double))
+
+    @functools.singledispatchmethod
+    def __call__(self, f, /, **kwargs):
+        return super().__call__(f, **kwargs)
 
     @functools.singledispatchmethod
     def weak_form(
@@ -51,34 +84,20 @@ class Laplacian(LinearDifferentialOperator):
         return WeakForm_Laplacian_UnivariateInterpolationBasis(test_basis)
 
 
-class SpatialLaplacian(LinearDifferentialOperator):
+class SpatialLaplacian(WeightedLaplacian):
     def __init__(self, domain_shape: ShapeLike) -> None:
         domain_shape = pn.utils.as_shape(domain_shape)
 
-        if domain_shape in ((), (1,)) or len(domain_shape) > 1:
+        if len(domain_shape) != 1 or domain_shape[0] < 2:
             raise ValueError()
 
-        (self._D,) = domain_shape
+        self._laplacian = Laplacian(domain_shape=(domain_shape[0] - 1,))
 
-        self._laplacian = Laplacian(domain_shape=(self._D - 1,))
+        weights = np.ones(domain_shape, dtype=np.double)
+        weights[0] = 0
 
-        super().__init__(input_shapes=((self._D,), ()))
+        super().__init__(weights)
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
-
-    def _jax_fallback(  # pylint: disable=arguments-differ
-        self, f, /, *, argnum: int = 0
-    ):
-        f_hessian = jax.jit(jax.hessian(f, argnums=argnum))
-
-        @jax.jit
-        def f_spatial_laplacian(*args, **kwargs) -> jnp.ndarray:
-            return jnp.sum(
-                jnp.diag(
-                    f_hessian(*args, **kwargs),
-                )[1:],
-            )
-
-        return f_spatial_laplacian
