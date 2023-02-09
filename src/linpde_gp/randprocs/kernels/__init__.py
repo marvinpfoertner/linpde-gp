@@ -1,4 +1,4 @@
-from . import _linfunctls, diffops, linfuncops
+from . import _linfunctls, linfuncops
 from ._expquad import ExpQuad
 from ._galerkin import GalerkinKernel
 from ._independent_multi_output import IndependentMultiOutputKernel
