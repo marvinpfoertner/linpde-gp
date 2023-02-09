@@ -138,7 +138,7 @@ class Matern32_L2Projection_UnivariateLinearInterpolationBasis(
         x_i = self.projection.basis.x_i
         x_ip1 = self.projection.basis.x_ip1
 
-        alpha = np.sqrt(3) / self._kernel.lengthscale
+        alpha = np.sqrt(3) / self._kernel.lengthscales
 
         int_im1_i = (
             _aux_int(np.maximum(x_im1, x), np.maximum(x_i, x), x_im1, alpha)

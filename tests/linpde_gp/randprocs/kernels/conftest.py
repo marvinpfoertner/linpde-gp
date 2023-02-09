@@ -16,9 +16,9 @@ def input_shape(input_shape: ShapeType) -> ShapeType:
     return input_shape
 
 
-@pytest_cases.parametrize(lengthscale=(0.4, 1.0, 3.0))
-def case_lengthscales_scalar(lengthscale) -> float:
-    return lengthscale
+@pytest_cases.parametrize(lengthscales=(0.4, 1.0, 3.0))
+def case_lengthscales_scalar(lengthscales) -> float:
+    return lengthscales
 
 
 def case_lengthscales_diagonal(input_shape: ShapeType) -> np.ndarray:

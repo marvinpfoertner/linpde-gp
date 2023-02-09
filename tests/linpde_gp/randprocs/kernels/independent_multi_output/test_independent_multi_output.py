@@ -27,7 +27,7 @@ def random_product_materns(random_lengthscales):
     return [
         TensorProductKernel(
             *(
-                Matern((), p=3, lengthscale=lengthscale)
+                Matern((), nu=2.5, lengthscales=lengthscale)
                 for lengthscale in cur_lengthscales
             )
         )

@@ -12,12 +12,3 @@ from ._expquad_spatial_laplacian import (
     ExpQuad_Identity_SpatialLaplacian,
     ExpQuad_SpatialLaplacian_SpatialLaplacian,
 )
-from ._matern_directional_derivative import (
-    Matern_DirectionalDerivative_DirectionalDerivative,
-    Matern_Identity_DirectionalDerivative,
-)
-from ._matern_laplacian import (
-    Matern_DirectionalDerivative_Laplacian,
-    Matern_Identity_Laplacian,
-    Matern_Laplacian_Laplacian,
-)

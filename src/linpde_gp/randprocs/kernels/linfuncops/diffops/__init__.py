@@ -1,6 +1,16 @@
+from probnum.randprocs import kernels as _kernels
+
 from linpde_gp.linfuncops import diffops
 
 from ... import _tensor_product
+from ._matern import (
+    HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative,
+    HalfIntegerMatern_Identity_DirectionalDerivative,
+    UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative,
+    UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian,
+    UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
+    UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian,
+)
 from ._tensor_product import (
     TensorProductKernel_DirectionalDerivative_DirectionalDerivative,
     TensorProductKernel_DirectionalDerivative_WeightedLaplacian,
@@ -51,6 +61,68 @@ def _(self, k: TensorProductKernel_Identity_WeightedLaplacian, /, *, argnum: int
     return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
 
 
+@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: _kernels.Matern, /, *, argnum: int = 0):
+    if k.p is not None:
+        return HalfIntegerMatern_Identity_DirectionalDerivative(
+            k,
+            direction=self.direction,
+            reverse=(argnum == 0),
+        )
+
+    return super(diffops.DirectionalDerivative, self).__init__(k, argnum=argnum)
+
+
+@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: int = 0):
+    assert k.matern.p is not None
+
+    if argnum == 0 and not k.reverse:
+        return (
+            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+            if k.matern.input_size == 1
+            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+        )(
+            k.matern,
+            direction0=self.direction,
+            direction1=k.direction,
+        )
+
+    if argnum == 1 and k.reverse:
+        return (
+            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+            if k.matern.input_size == 1
+            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+        )(
+            k.matern,
+            direction0=k.direction,
+            direction1=self.direction,
+        )
+
+    return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
+
+
+@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
+    /,
+    *,
+    argnum: int = 0,
+):
+    assert k.matern.p is not None
+
+    if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
+        return UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
+            k.matern,
+            direction=self.direction,
+            L1=k._L,
+            reverse=(argnum == 1),
+        )
+
+    return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
+
+
 ########################################################################################
 # (Weighted) Laplacian #################################################################
 ########################################################################################
@@ -79,7 +151,7 @@ def _(self, k: TensorProductKernel_Identity_WeightedLaplacian, /, *, argnum: int
             L1=self,
         )
 
-    return super(diffops.Laplacian, self).__call__(k, argnum=argnum)
+    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
 
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
@@ -94,4 +166,57 @@ def _(
             reverse=not k.reverse,
         )
 
-    return super(diffops.Laplacian, self).__call__(k, argnum=argnum)
+    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
+
+
+@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
+def _(self, k: _kernels.Matern, /, *, argnum: int = 0):
+    if k.input_size == 1:
+
+        if k.p is not None:
+            return UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
+                k, L=self, reverse=(argnum == 0)
+            )
+
+    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
+
+
+@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
+    /,
+    *,
+    argnum: int = 0,
+):
+    assert k.matern.p is not None
+    assert k.input_size == 1
+
+    if argnum == 0 and not k.reverse:
+        return UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
+            k.matern, L0=self, L1=k._L
+        )
+
+    if argnum == 1 and k.reverse:
+        return UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
+            k.matern, L0=k._L, L1=self
+        )
+
+    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
+
+
+@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
+def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: int = 0):
+    assert k.matern.p is not None
+    assert k.input_size == 1
+
+    if k.input_size == 1:
+        if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
+            return UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
+                k.matern,
+                direction=k.direction,
+                L1=self,
+                reverse=(argnum == 0),
+            )
+
+    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
