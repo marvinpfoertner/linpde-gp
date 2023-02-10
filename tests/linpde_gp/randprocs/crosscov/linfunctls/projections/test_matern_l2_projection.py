@@ -13,8 +13,8 @@ from linpde_gp.linfunctls.projections.l2 import (
 def kernel() -> pn.randprocs.kernels.Kernel:
     return pn.randprocs.kernels.Matern(
         input_shape=(),
-        lengthscale=1.0,
         nu=1.5,
+        lengthscales=1.0,
     )
 
 

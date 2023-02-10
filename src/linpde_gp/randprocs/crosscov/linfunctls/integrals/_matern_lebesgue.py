@@ -37,7 +37,7 @@ class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance
         return self._integral
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        ell = self._matern.lengthscale
+        ell = self._matern.lengthscales
         a, b = self._integral.domain
 
         # adapted from `probnum.quad.kernel_embeddings._matern_lebesgue`
@@ -64,7 +64,7 @@ class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance
         )
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        ell = self._matern.lengthscale
+        ell = self._matern.lengthscales
         a, b = self._integral.domain
 
         # adapted from `probnum.quad.kernel_embeddings._matern_lebesgue`
@@ -99,7 +99,7 @@ def _(self, pv_crosscov: Matern_Identity_LebesgueIntegral, /) -> ScalarType:
         raise NotImplementedError()
 
     # adapted from `probnum.quad.kernel_embeddings._matern_lebesgue`
-    ell = pv_crosscov.matern.lengthscale
+    ell = pv_crosscov.matern.lengthscales
     a, b = self.domain
     c = np.sqrt(7.0) * (b - a)
 

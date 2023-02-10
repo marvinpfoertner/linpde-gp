@@ -14,7 +14,7 @@ case_modules = [
 
 
 def X(input_shape: ShapeType) -> np.ndarray:
-    rng = np.random.default_rng(198748)
+    rng = np.random.default_rng(897523)
 
     return rng.normal(scale=2.0, size=(100,) + input_shape)
 

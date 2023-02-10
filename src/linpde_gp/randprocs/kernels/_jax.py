@@ -38,7 +38,7 @@ Kernel._batched_euclidean_norm = (  # pylint: disable=protected-access
 )
 
 
-class JaxKernelMixin:
+class JaxKernelMixin(abc.ABC):
     """Careful: Must come before Kernel in inheritance"""
 
     def jax(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> jnp.ndarray:
@@ -93,6 +93,53 @@ class JaxKernelMixin:
 
 class JaxKernel(JaxKernelMixin, Kernel):
     ...
+
+
+class JaxIsotropicMixin:
+    def _squared_euclidean_distances_jax(
+        self: JaxKernelMixin,
+        x0: jnp.ndarray,
+        x1: Optional[jnp.ndarray],
+        *,
+        scale_factors: Optional[jnp.ndarray] = None,
+    ) -> jnp.ndarray:
+        """Implementation of the squared (modified) Euclidean distance, which supports
+        scalar inputs, an optional second argument, and different scale factors along
+        all input dimensions."""
+
+        if x1 is None:
+            return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
+                x0,
+                shape=x0.shape[: x0.ndim - self._input_ndim],
+            )
+
+        diffs = x0 - x1
+
+        if scale_factors is not None:
+            diffs *= scale_factors
+
+        return jnp.sum(diffs**2, axis=tuple(range(-self.input_ndim, 0)))
+
+    def _euclidean_distances_jax(
+        self: JaxKernelMixin,
+        x0: np.ndarray,
+        x1: Optional[np.ndarray],
+        *,
+        scale_factors: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """Implementation of the (modified) Euclidean distance, which supports scalar
+        inputs, an optional second argument, and different scale factors along all input
+        dimensions."""
+
+        if x1 is None:
+            return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
+                x0,
+                shape=x0.shape[: x0.ndim - self._input_ndim],
+            )
+
+        return jnp.sqrt(
+            self._squared_euclidean_distances_jax(x0, x1, scale_factors=scale_factors)
+        )
 
 
 @linfuncops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
