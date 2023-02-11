@@ -3,7 +3,11 @@ from ._bvp import (
     DirichletBoundaryCondition,
     get_1d_dirichlet_boundary_observations,
 )
-from ._heat import HeatEquation, heat_1d_bvp
+from ._heat import (
+    HeatEquation,
+    HeatEquationDirichletProblem,
+    Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_BoundaryZero,
+)
 from ._linear_pde import LinearPDE
 from ._poisson import (
     PoissonEquation,

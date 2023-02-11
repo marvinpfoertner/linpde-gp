@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 import dataclasses
+import functools
 
 import numpy as np
 import probnum as pn
@@ -82,3 +83,49 @@ class BoundaryValueProblem:
                     "The output shape of the solution function should be equal to the "
                     "output shape of the differential operator's input function."
                 )
+
+
+class InitialBoundaryValueProblem(BoundaryValueProblem):
+    def __init__(
+        self,
+        pde: LinearPDE,
+        initial_condition: DirichletBoundaryCondition,
+        boundary_conditions: Sequence[DirichletBoundaryCondition],
+        solution: pn.functions.Function | None = None,
+    ):
+        if not isinstance(pde.domain, domains.CartesianProduct) or len(pde.domain) != 2:
+            raise ValueError()
+
+        if initial_condition.boundary != pde.domain[1]:
+            raise ValueError()
+
+        self._initial_condition = initial_condition
+
+        super().__init__(
+            pde=pde,
+            boundary_conditions=boundary_conditions,
+            solution=solution,
+        )
+
+    @property
+    def t0(self) -> float:
+        return self.domain[0][0]
+
+    @property
+    def T(self) -> float:
+        return self.domain[0][1]
+
+    @property
+    def spatial_domain(self) -> domains.Domain:
+        return self.domain[1]
+
+    @functools.cached_property
+    def initial_domain(self) -> domains.CartesianProduct:
+        return domains.CartesianProduct(
+            domains.Point(self.t0),
+            self.spatial_domain,
+        )
+
+    @property
+    def initial_condition(self) -> DirichletBoundaryCondition:
+        return self._initial_condition
