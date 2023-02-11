@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 import functools
+import operator
 
 from jax import numpy as jnp
 import numpy as np
@@ -67,12 +68,9 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         res = 0.0
 
         for dim_idx, kL_or_Lk_x0_x1 in kLs_or_Lks_x0_x1.items():
-            res += np.prod(
-                np.stack(
-                    ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :],
-                    axis=-1,
-                ),
-                axis=-1,
+            res += functools.reduce(
+                operator.mul,
+                ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :],
             )
 
         return res
@@ -89,12 +87,9 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         res = 0.0
 
         for dim_idx, kL_or_Lk_x0_x1 in kLs_or_Lks_x0_x1.items():
-            res += jnp.prod(
-                jnp.stack(
-                    ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :],
-                    axis=-1,
-                ),
-                axis=-1,
+            res += functools.reduce(
+                operator.mul,
+                ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :],
             )
 
         return res
@@ -178,26 +173,22 @@ class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
         for i, L0k_x0_x1 in L0ks_x0_x1.items():
             for j, kL1_x0_x1 in kL1s_x0_x1.items():
                 if i == j:
-                    res += np.prod(
-                        np.stack(
-                            ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :],
-                            axis=-1,
-                        ),
-                        axis=-1,
+                    res += functools.reduce(
+                        operator.mul,
+                        ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :],
                     )
                 else:
                     m = min(i, j)
                     n = max(i, j)
 
-                    res += np.prod(
-                        np.stack(
+                    res += functools.reduce(
+                        operator.mul,
+                        (
                             ks_x0_x1[:m]
                             + ks_x0_x1[m + 1 : n]
                             + ks_x0_x1[n + 1 :]
-                            + (L0k_x0_x1, kL1_x0_x1),
-                            axis=-1,
+                            + (L0k_x0_x1, kL1_x0_x1)
                         ),
-                        axis=-1,
                     )
 
         return res
@@ -228,27 +219,22 @@ class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
         for i, L0k_x0_x1 in L0ks_x0_x1.items():
             for j, kL1_x0_x1 in kL1s_x0_x1.items():
                 if i == j:
-                    res += jnp.prod(
-                        jnp.stack(
-                            ks_x0_x1[:i] + [L0kL1s_x0_x1[i]] + ks_x0_x1[i + 1 :],
-                            axis=-1,
-                        ),
-                        axis=-1,
+                    res += functools.reduce(
+                        operator.mul,
+                        ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :],
                     )
                 else:
                     m = min(i, j)
                     n = max(i, j)
 
-                    res += jnp.prod(
-                        jnp.stack(
+                    res += functools.reduce(
+                        operator.mul,
+                        (
                             ks_x0_x1[:m]
                             + ks_x0_x1[m + 1 : n]
                             + ks_x0_x1[n + 1 :]
-                            + L0k_x0_x1
-                            + kL1_x0_x1,
-                            axis=-1,
+                            + (L0k_x0_x1, kL1_x0_x1)
                         ),
-                        axis=-1,
                     )
 
         return res
