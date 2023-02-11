@@ -1,7 +1,7 @@
 import probnum as pn
 
-from linpde_gp import domains, linfuncops, randprocs
-from linpde_gp.typing import DomainLike, RandomProcessLike
+from linpde_gp import domains, functions, linfuncops
+from linpde_gp.typing import DomainLike
 
 
 class LinearPDE:
@@ -9,7 +9,7 @@ class LinearPDE:
         self,
         domain: DomainLike,
         diffop: linfuncops.LinearDifferentialOperator,
-        rhs: RandomProcessLike,
+        rhs: pn.functions.Function | None = None,
     ):
         self._domain = domains.asdomain(domain)
 
@@ -27,7 +27,11 @@ class LinearPDE:
 
         self._diffop = diffop
 
-        rhs = randprocs.asrandproc(rhs)
+        if rhs is None:
+            rhs = functions.Zero(
+                self._domain.shape,
+                output_shape=self._diffop.output_codomain_shape,
+            )
 
         if rhs.input_shape != self._domain.shape:
             raise ValueError(
@@ -55,5 +59,5 @@ class LinearPDE:
         return self._diffop
 
     @property
-    def rhs(self) -> pn.randprocs.RandomProcess:
+    def rhs(self) -> pn.functions.Function:
         return self._rhs

@@ -2,9 +2,9 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, FloatLike
 
-from linpde_gp import domains, functions, randprocs
+from linpde_gp import domains, functions
 from linpde_gp.linfuncops import diffops
-from linpde_gp.typing import DomainLike, RandomProcessLike, RandomVariableLike
+from linpde_gp.typing import DomainLike
 
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 from ._linear_pde import LinearPDE
@@ -14,7 +14,7 @@ class PoissonEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: RandomProcessLike,
+        rhs: pn.functions.Function | None = None,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
@@ -35,12 +35,23 @@ class PoissonEquation(LinearPDE):
 class PoissonEquationDirichletProblem(BoundaryValueProblem):
     def __init__(
         self,
-        pde: PoissonEquation,
-        boundary_values: RandomProcessLike | RandomVariableLike,
-        solution: RandomProcessLike = None,
+        domain: DomainLike,
+        *,
+        rhs: pn.functions.Function | None = None,
+        alpha: float = 1.0,
+        boundary_values: pn.functions.Function | np.ndarray | None = None,
+        solution: pn.functions.Function = None,
     ):
-        if not isinstance(pde, PoissonEquation):
-            raise TypeError("The given PDE must be a Poisson equation.")
+        pde = PoissonEquation(
+            domain,
+            rhs=rhs,
+            alpha=alpha,
+        )
+
+        if boundary_values is None:
+            boundary_values = functions.Zero(
+                pde.domain.shape, pde.diffop.input_codomain_shape
+            )
 
         if pde.domain.shape == ():
             if not isinstance(pde.domain, domains.Interval):
@@ -48,45 +59,39 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
 
             assert isinstance(pde.domain.boundary, domains.PointSet)
 
-            if isinstance(
-                boundary_values, (pn.randprocs.RandomProcess, pn.functions.Function)
-            ):
-                raise TypeError(
-                    "In the scalar case, the boundary conditions must be "
-                    "`RandomVariableLike`."
-                )
+            if isinstance(boundary_values, pn.functions.Function):
+                a, b = pde.domain
+                boundary_values = (boundary_values(a), boundary_values(b))
 
-            if not isinstance(boundary_values, pn.randvars.RandomVariable):
-                boundary_values = np.asarray(boundary_values)
-
-            boundary_values = pn.randvars.asrandvar(boundary_values)
+            boundary_values = np.asarray(boundary_values)
 
             boundary_conditions = (
-                DirichletBoundaryCondition(pde.domain.boundary, boundary_values),
+                DirichletBoundaryCondition(pde.domain.boundary, values=boundary_values),
             )
 
             if solution is None:
-                rhs_is_deterministic_constant = isinstance(
-                    pde.rhs, randprocs.DeterministicProcess
-                ) and isinstance(pde.rhs.as_fn(), functions.Constant)
-
-                bc_is_deterministic = isinstance(boundary_values, pn.randvars.Constant)
-
-                if rhs_is_deterministic_constant and bc_is_deterministic:
-                    solution = PoissonEquation1DConstRHSDirichletProblemSolution(
+                if isinstance(pde.rhs, functions.Constant):
+                    solution = Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(
                         pde.domain,
-                        rhs=pde.rhs.as_fn().value,
-                        boundary_values=boundary_values.support,
+                        rhs=pde.rhs.value,
+                        boundary_values=boundary_values,
                         alpha=pde.alpha,
                     )
         else:
-            boundary_conditions = tuple(
-                DirichletBoundaryCondition(boundary_part, boundary_values)
-                for boundary_part in pde.domain.boundary
-            )
+            if isinstance(boundary_values, pn.functions.Function):
+                boundary_conditions = tuple(
+                    DirichletBoundaryCondition(boundary_part, boundary_values)
+                    for boundary_part in pde.domain.boundary
+                )
+            else:
+                boundary_values = np.asarray(boundary_values)
 
-        if solution is not None:
-            solution = randprocs.asrandproc(solution)
+                boundary_conditions = tuple(
+                    DirichletBoundaryCondition(boundary_part, boundary_value)
+                    for boundary_part, boundary_value in zip(
+                        pde.domain.boundary, boundary_values
+                    )
+                )
 
         super().__init__(
             pde=pde,
@@ -95,7 +100,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         )
 
 
-class PoissonEquation1DConstRHSDirichletProblemSolution(pn.functions.Function):
+class Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(pn.functions.Function):
     def __init__(
         self,
         domain: DomainLike,

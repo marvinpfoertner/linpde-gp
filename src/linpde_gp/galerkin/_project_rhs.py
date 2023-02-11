@@ -1,6 +1,5 @@
 import numpy as np
 from plum import Dispatcher
-import probnum as pn
 
 from linpde_gp import functions, problems, randprocs
 
@@ -10,9 +9,7 @@ dispatch = Dispatcher()
 
 
 @dispatch
-def project(
-    f: randprocs.DeterministicProcess, basis
-) -> np.ndarray:
+def project(f: randprocs.DeterministicProcess, basis) -> np.ndarray:
     return project(f.as_fn(), basis)
 
 
@@ -30,9 +27,9 @@ def project(f: functions.Constant, basis: bases.FiniteElementBasis) -> np.ndarra
     boundary_condition = basis._boundary_conditions[0]
 
     assert isinstance(boundary_condition, problems.pde.DirichletBoundaryCondition)
-    assert isinstance(boundary_condition.values, (np.ndarray, pn.randvars.Constant))
+    assert isinstance(boundary_condition.values, np.ndarray)
 
-    u_l, u_r = basis._boundary_conditions[0].values.mean
+    u_l, u_r = basis._boundary_conditions[0].values
 
     rhs = np.empty_like(basis.grid)
 
