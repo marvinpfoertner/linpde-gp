@@ -39,7 +39,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         *,
         rhs: pn.functions.Function | None = None,
         alpha: float = 1.0,
-        boundary_values: pn.functions.Function | np.ndarray | None = None,
+        boundary_values: pn.functions.Function | ArrayLike | None = None,
         solution: pn.functions.Function = None,
     ):
         pde = PoissonEquation(
@@ -65,10 +65,6 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
 
             boundary_values = np.asarray(boundary_values)
 
-            boundary_conditions = (
-                DirichletBoundaryCondition(pde.domain.boundary, values=boundary_values),
-            )
-
             if solution is None:
                 if isinstance(pde.rhs, functions.Constant):
                     solution = Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(
@@ -77,21 +73,21 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
                         boundary_values=boundary_values,
                         alpha=pde.alpha,
                     )
-        else:
-            if isinstance(boundary_values, pn.functions.Function):
-                boundary_conditions = tuple(
-                    DirichletBoundaryCondition(boundary_part, boundary_values)
-                    for boundary_part in pde.domain.boundary
-                )
-            else:
-                boundary_values = np.asarray(boundary_values)
 
-                boundary_conditions = tuple(
-                    DirichletBoundaryCondition(boundary_part, boundary_value)
-                    for boundary_part, boundary_value in zip(
-                        pde.domain.boundary, boundary_values
-                    )
+        if isinstance(boundary_values, pn.functions.Function):
+            boundary_conditions = tuple(
+                DirichletBoundaryCondition(boundary_part, boundary_values)
+                for boundary_part in pde.domain.boundary
+            )
+        else:
+            boundary_values = np.asarray(boundary_values)
+
+            boundary_conditions = tuple(
+                DirichletBoundaryCondition(boundary_part, boundary_value)
+                for boundary_part, boundary_value in zip(
+                    pde.domain.boundary, boundary_values
                 )
+            )
 
         super().__init__(
             pde=pde,
