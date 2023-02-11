@@ -1,6 +1,8 @@
+import probnum as pn
+
 from linpde_gp import domains, functions
 from linpde_gp.linfuncops import diffops
-from linpde_gp.typing import DomainLike, RandomProcessLike
+from linpde_gp.typing import DomainLike
 
 from ._bvp import BoundaryValueProblem, DirichletBoundaryCondition
 from ._linear_pde import LinearPDE
@@ -10,7 +12,7 @@ class HeatEquation(LinearPDE):
     def __init__(
         self,
         domain: DomainLike,
-        rhs: RandomProcessLike,
+        rhs: pn.functions.Function | None = None,
         alpha: float = 1.0,
     ):
         domain = domains.asdomain(domain)
