@@ -60,7 +60,7 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         ks_x0_x1 = evaluate_dimensionwise(self._k.factors, x0, x1)
         kLs_or_Lks_x0_x1 = {
             dim_idx: kL_or_Lk(
-                x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
             )
             for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
         }
@@ -79,7 +79,7 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         ks_x0_x1 = evaluate_dimensionwise_jax(self._k.factors, x0, x1)
         kLs_or_Lks_x0_x1 = {
             dim_idx: kL_or_Lk.jax(
-                x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
             )
             for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
         }
@@ -150,20 +150,16 @@ class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         ks_x0_x1 = evaluate_dimensionwise(self._k.factors, x0, x1)
         L0ks_x0_x1 = {
-            dim_idx: L0k(
-                x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
-            )
+            dim_idx: L0k(x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None)
             for dim_idx, L0k in self._L0ks.items()
         }
         kL1s_x0_x1 = {
-            dim_idx: kL1(
-                x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
-            )
+            dim_idx: kL1(x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None)
             for dim_idx, kL1 in self._kL1s.items()
         }
         L0kL1s_x0_x1 = {
             dim_idx: L0kL1(
-                x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
             )
             for dim_idx, L0kL1 in self._L0kL1s.items()
         }
