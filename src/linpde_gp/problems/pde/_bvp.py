@@ -93,7 +93,11 @@ class InitialBoundaryValueProblem(BoundaryValueProblem):
         boundary_conditions: Sequence[DirichletBoundaryCondition],
         solution: pn.functions.Function | None = None,
     ):
-        if not isinstance(pde.domain, domains.CartesianProduct) or len(pde.domain) != 2:
+        if (
+            not isinstance(pde.domain, domains.CartesianProduct)
+            or len(pde.domain) != 2
+            or not isinstance(pde.domain[0], domains.Interval)
+        ):
             raise ValueError()
 
         if initial_condition.boundary != pde.domain[1]:
@@ -108,12 +112,16 @@ class InitialBoundaryValueProblem(BoundaryValueProblem):
         )
 
     @property
+    def temporal_domain(self) -> domains.Interval:
+        return self.domain[0]
+
+    @property
     def t0(self) -> float:
-        return self.domain[0][0]
+        return self.temporal_domain[0]
 
     @property
     def T(self) -> float:
-        return self.domain[0][1]
+        return self.temporal_domain[1]
 
     @property
     def spatial_domain(self) -> domains.Domain:

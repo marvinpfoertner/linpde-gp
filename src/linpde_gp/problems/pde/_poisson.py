@@ -57,8 +57,6 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
             if not isinstance(pde.domain, domains.Interval):
                 raise TypeError("In the scalar case, we only support Interval domains.")
 
-            assert isinstance(pde.domain.boundary, domains.PointSet)
-
             if isinstance(boundary_values, pn.functions.Function):
                 a, b = pde.domain
                 boundary_values = (boundary_values(a), boundary_values(b))

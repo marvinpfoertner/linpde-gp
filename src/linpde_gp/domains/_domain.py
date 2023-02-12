@@ -53,7 +53,3 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def __eq__(self, other) -> bool:
         pass
-
-    @abc.abstractmethod
-    def uniform_grid(self, shape: ShapeLike, inset: ArrayLike = 0.0) -> np.ndarray:
-        pass
