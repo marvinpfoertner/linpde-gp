@@ -73,16 +73,17 @@ class HeatEquationDirichletProblem(InitialBoundaryValueProblem):
         if solution is None:
             if isinstance(initial_values, functions.Zero):
                 solution = functions.Zero(domain.shape, output_shape=())
-            elif (
-                isinstance(initial_values, functions.TruncatedSineSeries)
-                and initial_values.domain == domain[1]
-            ):
-                solution = Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_BoundaryZero(
-                    t0=t0,
-                    spatial_domain=spatial_domain,
-                    initial_values=initial_values,
-                    alpha=alpha,
-                )
+            elif isinstance(domain[1], domains.Interval):
+                if (
+                    isinstance(initial_values, functions.TruncatedSineSeries)
+                    and initial_values.domain == domain[1]
+                ):
+                    solution = Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_BoundaryZero(
+                        t0=t0,
+                        spatial_domain=spatial_domain,
+                        initial_values=initial_values,
+                        alpha=alpha,
+                    )
 
         super().__init__(
             pde=pde,
