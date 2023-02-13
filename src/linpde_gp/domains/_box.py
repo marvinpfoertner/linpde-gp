@@ -49,7 +49,7 @@ class Box(CartesianProduct):
 
     def __getitem__(self, idx) -> Interval | Box:
         if isinstance(idx, int):
-            return super().__getitem__(self, idx)
+            return super().__getitem__(idx)
 
         return Box(self._bounds[idx, :])
 
