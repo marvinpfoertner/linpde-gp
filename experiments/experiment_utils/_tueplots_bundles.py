@@ -13,6 +13,7 @@ def jmlr(*, rel_width=1.0, nrows=1, ncols=1, family="serif", **kwargs):
 
     tueplots_rcparams = {**font_config, **size, **fontsize_config}
 
+    tueplots_rcparams["text.latex.preamble"] += r"\usepackage{amsfonts}" + "\n"
     tueplots_rcparams["text.latex.preamble"] += r"\usepackage{siunitx}" + "\n"
     tueplots_rcparams["text.latex.preamble"] += r"\usepackage{bm}" + "\n"
 
