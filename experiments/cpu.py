@@ -36,6 +36,7 @@ A_side_NS = width * depth  # mm^2
 A_side_EW = height * depth  # mm^2
 
 A_sink = A_top_bottom + 2 * A_side_NS + 2 * A_side_EW  # mm^2, heat sink interface area
+A_sink_1D = A_top_bottom + 2 * A_side_EW  # mm^2, in 1D we assume no vertical flow
 
 # Volume
 V = width * height * depth  # mm^3
@@ -107,7 +108,7 @@ q_dot_V_sink_2D = linpde_gp.functions.Constant(
 
 q_dot_V_sink_1D = linpde_gp.functions.Constant(
     input_shape=(),
-    value=-TDP / A_sink / depth,
+    value=-TDP / A_sink_1D / depth,
 )
 
 # Boundary function for all boundary parts in a row (order NESW)
@@ -116,7 +117,7 @@ q_dot_A_2D = linpde_gp.functions.Constant(
     value=-TDP / A_sink,
 )
 
-q_dot_A_1D = np.full(2, -TDP / A_sink)
+q_dot_A_1D = np.full(2, -TDP / A_sink_1D)
 
 ########################################################################################
 # Stationary PDE
@@ -133,21 +134,20 @@ q_dot_V_1D = q_dot_V_src_1D + q_dot_V_sink_1D
 ########################################################################################
 
 X_dts_2D = core_centers
-u_X_dts_2D = np.array(
+y_dts_2D = np.array(
     # fmt: off
     [[59.6, 60.1, 58.5],
      [61.03, 60.36, 59.22]],
-    # [60.68, 60.51, 59.46]
     # fmt: on
 )
-u_X_dts_2D_noise = pn.randvars.Normal(
-    mean=np.zeros_like(u_X_dts_2D),
-    cov=0.5**2 * np.eye(u_X_dts_2D.size),
+noise_dts_2D = pn.randvars.Normal(
+    mean=np.zeros_like(y_dts_2D),
+    cov=1.0**2 * np.eye(y_dts_2D.size),
 )
 
 X_dts_1D = X_dts_2D[1, :, 0]
-u_X_dts_1D = u_X_dts_2D[1, :]
-u_X_dts_1D_noise = u_X_dts_2D_noise[1, :]
+y_dts_1D = y_dts_2D[1, :]
+noise_dts_1D = 0.5 * noise_dts_2D[1, :]
 
 ########################################################################################
 # Mock Dirichlet Boundary Conditions
