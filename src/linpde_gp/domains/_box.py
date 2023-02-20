@@ -81,7 +81,8 @@ class Box(CartesianProduct):
             *(
                 self[int(idx)].uniform_grid(num_points, inset=inset)
                 for idx, num_points, inset in zip(self._interior_idcs, shape, insets)
-            )
+            ),
+            indexing="ij",
         )
 
         grids = [

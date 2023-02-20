@@ -28,8 +28,8 @@ def prior(input_shape: ShapeType) -> pn.randprocs.GaussianProcess:
     return pn.randprocs.GaussianProcess(
         mean=linpde_gp.functions.Zero(input_shape=input_shape),
         cov=(
-            2.0 ** 2
-            * linpde_gp.randprocs.kernels.ExpQuad(
+            2.0**2
+            * linpde_gp.randprocs.covfuncs.ExpQuad(
                 input_shape=input_shape,
                 lengthscales=0.25,
             )
@@ -83,10 +83,10 @@ def Ys_batched(Ys: np.ndarray, batch_sizes: tuple[int]) -> list[np.ndarray]:
 @pytest.fixture
 def Y_errs_batched(batch_sizes: tuple[int]) -> tuple[pn.randvars.Normal]:
     return (
-        pn.randvars.Normal(np.ones(batch_sizes[0]), 0.6 ** 2 * np.eye(batch_sizes[0])),
+        pn.randvars.Normal(np.ones(batch_sizes[0]), 0.6**2 * np.eye(batch_sizes[0])),
         None,
         None,
-        pn.randvars.Normal(np.zeros(batch_sizes[3]), 0.3 ** 2 * np.eye(batch_sizes[3])),
+        pn.randvars.Normal(np.zeros(batch_sizes[3]), 0.3**2 * np.eye(batch_sizes[3])),
     )
 
 
@@ -132,7 +132,7 @@ def naive_posterior_gp(
 def naive_posterior_gp_linop(
     naive_posterior_gp: pn.randprocs.GaussianProcess,
     L: linpde_gp.linfuncops.LinearFunctionOperator,
-) -> tuple[pn.randprocs.GaussianProcess, pn.randprocs.kernels.Kernel]:
+) -> tuple[pn.randprocs.GaussianProcess, pn.randprocs.covfuncs.CovarianceFunction]:
     return L(naive_posterior_gp)
 
 
@@ -215,7 +215,7 @@ def condition_gp_on_observations(
         mean=linpde_gp.functions.JaxLambdaFunction(
             cond_mean, input_shape=gp.input_shape, vectorize=True
         ),
-        cov=linpde_gp.randprocs.kernels.JaxLambdaKernel(
+        cov=linpde_gp.randprocs.covfuncs.JaxLambdaCovarianceFunction(
             cond_cov, input_shape=gp.input_shape, vectorize=True
         ),
     )

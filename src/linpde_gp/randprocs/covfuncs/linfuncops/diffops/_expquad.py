@@ -9,7 +9,7 @@ from ... import _jax
 from ..._expquad import ExpQuad
 
 
-class ExpQuad_Identity_DirectionalDerivative(_jax.JaxKernel):
+class ExpQuad_Identity_DirectionalDerivative(_jax.JaxCovarianceFunction):
     def __init__(
         self,
         expquad: ExpQuad,
@@ -18,7 +18,7 @@ class ExpQuad_Identity_DirectionalDerivative(_jax.JaxKernel):
     ):
         self._expquad = expquad
 
-        super().__init__(self._expquad.input_shape, output_shape=())
+        super().__init__(input_shape=self._expquad.input_shape)
 
         self._direction = direction
 
@@ -73,7 +73,7 @@ class ExpQuad_Identity_DirectionalDerivative(_jax.JaxKernel):
         return proj_diffs * jnp.exp(-0.5 * dists_sq)
 
 
-class ExpQuad_DirectionalDerivative_DirectionalDerivative(_jax.JaxKernel):
+class ExpQuad_DirectionalDerivative_DirectionalDerivative(_jax.JaxCovarianceFunction):
     def __init__(
         self,
         expquad: ExpQuad,
@@ -82,7 +82,7 @@ class ExpQuad_DirectionalDerivative_DirectionalDerivative(_jax.JaxKernel):
     ):
         self._expquad = expquad
 
-        super().__init__(self._expquad.input_shape, output_shape=())
+        super().__init__(input_shape=self._expquad.input_shape)
 
         self._direction0 = direction0
         self._direction1 = direction1
@@ -142,7 +142,7 @@ class ExpQuad_DirectionalDerivative_DirectionalDerivative(_jax.JaxKernel):
         )
 
 
-class ExpQuad_Identity_WeightedLaplacian(_jax.JaxKernel):
+class ExpQuad_Identity_WeightedLaplacian(_jax.JaxCovarianceFunction):
     def __init__(
         self,
         expquad: ExpQuad,
@@ -152,7 +152,7 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxKernel):
         self._expquad = expquad
         self._L = L
 
-        super().__init__(self._expquad.input_shape, output_shape=())
+        super().__init__(input_shape=self._expquad.input_shape)
 
         self._reverse = bool(reverse)
 
@@ -212,14 +212,14 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxKernel):
         )
 
 
-class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxKernel):
+class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
     def __init__(
         self,
         expquad: ExpQuad,
         L0: diffops.WeightedLaplacian,
         L1: diffops.WeightedLaplacian,
     ):
-        super().__init__(expquad.input_shape, output_shape=())
+        super().__init__(input_shape=expquad.input_shape)
 
         self._expquad = expquad
         self._L0 = L0
@@ -263,7 +263,7 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxKernel):
                     * self._expquad_laplacian_1._trace_term
                     + 2 * self._trace_term
                 ),
-                shape=x0.shape[: x0.ndim - self._input_ndim],
+                shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
         diffs = x0 - x1
@@ -296,7 +296,7 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxKernel):
                     * self._expquad_laplacian_1._trace_term
                     + 2 * self._trace_term
                 ),
-                shape=x0.shape[: x0.ndim - self._input_ndim],
+                shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
         diffs = x0 - x1
@@ -321,7 +321,7 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxKernel):
         )
 
 
-class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxKernel):
+class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxCovarianceFunction):
     def __init__(
         self,
         expquad: ExpQuad,
@@ -331,7 +331,7 @@ class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxKernel):
     ):
         self._expquad = expquad
 
-        super().__init__(self._expquad.input_shape, output_shape=())
+        super().__init__(input_shape=self._expquad.input_shape)
 
         self._direction = direction
         self._L1 = L1

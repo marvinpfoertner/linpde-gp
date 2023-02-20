@@ -14,29 +14,25 @@ def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> np.ndarray:
     return pv_crosscov(self._X)
 
 
-class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
+class CovarianceFunction_Identity_Dirac(ProcessVectorCrossCovariance):
     def __init__(
         self,
-        kernel: pn.randprocs.kernels.Kernel,
+        covfunc: pn.randprocs.covfuncs.CovarianceFunction,
         dirac: linfunctls.DiracFunctional,
     ):
-        self._kernel = kernel
+        self._covfunc = covfunc
         self._dirac = dirac
 
-        randproc_output_shape = self._kernel.output_shape[
-            : self._kernel.output_ndim - self._dirac.input_codomain_ndim
-        ]
-
         super().__init__(
-            randproc_input_shape=self._kernel.input_shape,
-            randproc_output_shape=randproc_output_shape,
+            randproc_input_shape=self._covfunc.input_shape,
+            randproc_output_shape=self._covfunc.output_shape_0,
             randvar_shape=self._dirac.output_shape,
             reverse=False,
         )
 
     @property
-    def kernel(self) -> pn.randprocs.kernels.Kernel:
-        return self._kernel
+    def covfunc(self) -> pn.randprocs.covfuncs.CovarianceFunction:
+        return self._covfunc
 
     @property
     def dirac(self) -> linfunctls.DiracFunctional:
@@ -45,7 +41,7 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         # `kxX.shape` layout:
         # x_batch_shape + X_batch_shape + x_output_shape + X_output_shape
-        x_batch_shape = x.shape[: x.ndim - self._kernel.input_ndim]
+        x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_batch_ndim = len(x_batch_shape)
         x_batch_offset = 0
 
@@ -61,20 +57,22 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
         X_output_ndim = self._dirac.input_codomain_ndim
         X_output_offset = x_output_offset + x_output_ndim
 
-        assert x.shape == x_batch_shape + self._kernel.input_shape
+        assert x.shape == x_batch_shape + self._covfunc.input_shape
 
         x = np.expand_dims(
             x,
             axis=tuple(range(X_batch_offset, X_batch_offset + X_batch_ndim)),
         )
 
-        assert x.shape == x_batch_shape + X_batch_ndim * (1,) + self._kernel.input_shape
+        assert (
+            x.shape == x_batch_shape + X_batch_ndim * (1,) + self._covfunc.input_shape
+        )
 
         X = self._dirac.X
 
-        assert X.shape == X_batch_shape + self._kernel.input_shape
+        assert X.shape == X_batch_shape + self._covfunc.input_shape
 
-        kxX = self._kernel(x, X)
+        kxX = self._covfunc(x, X)
 
         assert kxX.shape == (
             x_batch_shape + X_batch_shape + x_output_shape + X_output_shape
@@ -98,7 +96,7 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         # `kxX.shape` layout:
         # x_batch_shape + X_batch_shape + x_output_shape + X_output_shape
-        x_batch_shape = x.shape[: x.ndim - self._kernel.input_ndim]
+        x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_batch_ndim = len(x_batch_shape)
         x_batch_offset = 0
 
@@ -114,20 +112,22 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
         X_output_ndim = self._dirac.input_codomain_ndim
         X_output_offset = x_output_offset + x_output_ndim
 
-        assert x.shape == x_batch_shape + self._kernel.input_shape
+        assert x.shape == x_batch_shape + self._covfunc.input_shape
 
         x = jnp.expand_dims(
             x,
             axis=tuple(range(X_batch_offset, X_batch_offset + X_batch_ndim)),
         )
 
-        assert x.shape == x_batch_shape + X_batch_ndim * (1,) + self._kernel.input_shape
+        assert (
+            x.shape == x_batch_shape + X_batch_ndim * (1,) + self._covfunc.input_shape
+        )
 
         X = self._dirac.X
 
-        assert X.shape == X_batch_shape + self._kernel.input_shape
+        assert X.shape == X_batch_shape + self._covfunc.input_shape
 
-        kxX = self._kernel(x, X)
+        kxX = self._covfunc(x, X)
 
         assert kxX.shape == (
             x_batch_shape + X_batch_shape + x_output_shape + X_output_shape
@@ -150,35 +150,35 @@ class Kernel_Identity_Dirac(ProcessVectorCrossCovariance):
 
 
 @linfunctls.DiracFunctional.__call__.register(  # pylint: disable=no-member
-    Kernel_Identity_Dirac
+    CovarianceFunction_Identity_Dirac
 )
-def _(self, pv_crosscov: Kernel_Identity_Dirac, /) -> np.ndarray:
+def _(self, pv_crosscov: CovarianceFunction_Identity_Dirac, /) -> np.ndarray:
     return pv_crosscov(self.X)
 
 
-class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
+class CovarianceFunction_Dirac_Identity(ProcessVectorCrossCovariance):
     def __init__(
         self,
-        kernel: pn.randprocs.kernels.Kernel,
+        covfunc: pn.randprocs.covfuncs.CovarianceFunction,
         dirac: linfunctls.DiracFunctional,
     ):
-        self._kernel = kernel
+        self._covfunc = covfunc
         self._dirac = dirac
 
-        randproc_output_shape = self._kernel.output_shape[
+        randproc_output_shape = self._covfunc.output_shape[
             self._dirac.input_codomain_ndim :
         ]
 
         super().__init__(
-            randproc_input_shape=self._kernel.input_shape,
+            randproc_input_shape=self._covfunc.input_shape,
             randproc_output_shape=randproc_output_shape,
             randvar_shape=self._dirac.output_shape,
             reverse=True,
         )
 
     @property
-    def kernel(self) -> pn.randprocs.kernels.Kernel:
-        return self._kernel
+    def covfunc(self) -> pn.randprocs.covfuncs.CovarianceFunction:
+        return self._covfunc
 
     @property
     def dirac(self) -> linfunctls.DiracFunctional:
@@ -191,7 +191,7 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         X_batch_ndim = self._dirac.X_batch_ndim
         X_batch_offset = 0
 
-        x_batch_shape = x.shape[: x.ndim - self._kernel.input_ndim]
+        x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_batch_ndim = len(x_batch_shape)
         x_batch_offset = X_batch_offset + X_batch_ndim
 
@@ -203,7 +203,7 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         x_output_ndim = self.randproc_output_ndim
         x_output_offset = X_output_offset + X_output_ndim
 
-        assert x.shape == x_batch_shape + self._kernel.input_shape
+        assert x.shape == x_batch_shape + self._covfunc.input_shape
 
         X = np.expand_dims(
             self._dirac.X,
@@ -211,10 +211,10 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         )
 
         assert X.shape == (
-            self._dirac.X_batch_shape + x_batch_ndim * (1,) + self._kernel.input_shape
+            self._dirac.X_batch_shape + x_batch_ndim * (1,) + self._covfunc.input_shape
         )
 
-        kxX = self._kernel(x, X)
+        kxX = self._covfunc(x, X)
 
         assert kxX.shape == (
             X_batch_shape + x_batch_shape + X_output_shape + x_output_shape
@@ -242,7 +242,7 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         X_batch_ndim = self._dirac.X_batch_ndim
         X_batch_offset = 0
 
-        x_batch_shape = x.shape[: x.ndim - self._kernel.input_ndim]
+        x_batch_shape = x.shape[: x.ndim - self._covfunc.input_ndim]
         x_batch_ndim = len(x_batch_shape)
         x_batch_offset = X_batch_offset + X_batch_ndim
 
@@ -254,7 +254,7 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         x_output_ndim = self.randproc_output_ndim
         x_output_offset = X_output_offset + X_output_ndim
 
-        assert x.shape == x_batch_shape + self._kernel.input_shape
+        assert x.shape == x_batch_shape + self._covfunc.input_shape
 
         X = jnp.expand_dims(
             self._dirac.X,
@@ -262,10 +262,10 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
         )
 
         assert X.shape == (
-            self._dirac.X_batch_shape + x_batch_ndim * (1,) + self._kernel.input_shape
+            self._dirac.X_batch_shape + x_batch_ndim * (1,) + self._covfunc.input_shape
         )
 
-        kxX = self._kernel(x, X)
+        kxX = self._covfunc(x, X)
 
         assert kxX.shape == (
             X_batch_shape + x_batch_shape + X_output_shape + x_output_shape
@@ -288,5 +288,5 @@ class Kernel_Dirac_Identity(ProcessVectorCrossCovariance):
 
 
 @linfunctls.DiracFunctional.__call__.register  # pylint: disable=no-member
-def _(self, pv_crosscov: Kernel_Dirac_Identity, /) -> np.ndarray:
+def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> np.ndarray:
     return pv_crosscov(self.X)

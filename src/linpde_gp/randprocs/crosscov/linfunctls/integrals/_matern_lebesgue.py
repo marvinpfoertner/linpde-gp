@@ -3,7 +3,7 @@ import numpy as np
 from probnum.typing import ScalarType
 
 from linpde_gp import linfunctls
-from linpde_gp.randprocs import kernels
+from linpde_gp.randprocs import covfuncs
 
 from ... import _pv_crosscov
 
@@ -11,7 +11,7 @@ from ... import _pv_crosscov
 class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         integral: linfunctls.LebesgueIntegral,
         reverse: bool = False,
     ):
@@ -29,7 +29,7 @@ class Matern_Identity_LebesgueIntegral(_pv_crosscov.ProcessVectorCrossCovariance
         )
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @property

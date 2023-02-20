@@ -20,7 +20,7 @@ class JaxFunction(pn.functions.Function):
             # if self._input_shape contains `1`s
             jnp.broadcast_to(
                 x,
-                shape=x.shape[: x.ndim - self._input_ndim] + self._input_shape,
+                shape=x.shape[: x.ndim - self.input_ndim] + self._input_shape,
             )
         except ValueError as ve:
             raise ValueError(
@@ -30,7 +30,7 @@ class JaxFunction(pn.functions.Function):
 
         res = self._evaluate_jax(x)
 
-        assert res.shape == (x.shape[: x.ndim - self._input_ndim] + self._output_shape)
+        assert res.shape == (x.shape[: x.ndim - self.input_ndim] + self._output_shape)
 
         return res
 
@@ -69,7 +69,9 @@ class JaxLambdaFunction(JaxFunction):
         super().__init__(input_shape, output_shape)
 
         input_signature_component = ",".join(f"i_{j}" for j in range(len(input_shape)))
-        output_signature_component = ",".join(f"o_{j}" for j in range(len(output_shape)))
+        output_signature_component = ",".join(
+            f"o_{j}" for j in range(len(output_shape))
+        )
         if vectorize:
             fn = jnp.vectorize(
                 fn,

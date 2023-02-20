@@ -1,12 +1,11 @@
 import numpy as np
 
 import pytest
-from pytest_cases import parametrize_with_cases
 
-from linpde_gp.randprocs.kernels import (
-    IndependentMultiOutputKernel,
+from linpde_gp.randprocs.covfuncs import (
+    IndependentMultiOutputCovarianceFunction,
     Matern,
-    TensorProductKernel,
+    TensorProduct,
 )
 
 
@@ -25,7 +24,7 @@ def inputs_unbatched():
 @pytest.fixture
 def random_product_materns(random_lengthscales):
     return [
-        TensorProductKernel(
+        TensorProduct(
             *(
                 Matern((), nu=2.5, lengthscales=lengthscale)
                 for lengthscale in cur_lengthscales
@@ -36,7 +35,7 @@ def random_product_materns(random_lengthscales):
 
 
 def test_independence(random_product_materns, inputs_unbatched):
-    mo = IndependentMultiOutputKernel(*random_product_materns)
+    mo = IndependentMultiOutputCovarianceFunction(*random_product_materns)
     (
         x0,
         x1,
@@ -49,7 +48,7 @@ def test_independence(random_product_materns, inputs_unbatched):
 
 
 def test_same_input(random_product_materns, inputs_unbatched):
-    mo = IndependentMultiOutputKernel(*random_product_materns)
+    mo = IndependentMultiOutputCovarianceFunction(*random_product_materns)
     (
         x0,
         _,
@@ -76,7 +75,7 @@ def inputs_batched():
 
 
 def test_batched_input(random_product_materns, inputs_batched):
-    mo = IndependentMultiOutputKernel(*random_product_materns)
+    mo = IndependentMultiOutputCovarianceFunction(*random_product_materns)
     (
         x0,
         x1,

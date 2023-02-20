@@ -5,10 +5,12 @@ import jax
 from jax import numpy as jnp
 import probnum as pn
 
-from ._jax import JaxKernelMixin, JaxIsotropicMixin
+from ._jax import JaxCovarianceFunctionMixin, JaxIsotropicMixin
 
 
-class ExpQuad(JaxKernelMixin, JaxIsotropicMixin, pn.randprocs.kernels.ExpQuad):
+class ExpQuad(
+    JaxCovarianceFunctionMixin, JaxIsotropicMixin, pn.randprocs.covfuncs.ExpQuad
+):
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if x1 is None:

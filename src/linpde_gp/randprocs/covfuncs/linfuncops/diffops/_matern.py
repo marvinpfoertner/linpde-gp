@@ -4,27 +4,28 @@ import functools
 
 from jax import numpy as jnp
 import numpy as np
-from probnum.randprocs import kernels
-from probnum.randprocs.kernels._kernel import IsotropicMixin
+from probnum.randprocs import covfuncs
 
 from linpde_gp.linfuncops import diffops
 
-from ..._jax import JaxIsotropicMixin, JaxKernel
+from ..._jax import JaxCovarianceFunction, JaxIsotropicMixin
 from ._polynomial import RationalPolynomial
 
 
-class HalfIntegerMatern_Identity_DirectionalDerivative(JaxKernel):
+class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         *,
         direction: np.ndarray,
         reverse: bool = False,
     ):
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
         self._direction = direction
@@ -33,7 +34,7 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxKernel):
         self._poly = half_integer_matern_derivative_polynomial(self.matern.p, 1) << 1
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @property
@@ -103,17 +104,21 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxKernel):
         return res
 
 
-class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(JaxKernel):
+class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
+    JaxCovarianceFunction
+):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         direction0: np.ndarray,
         direction1: np.ndarray,
     ):
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
 
@@ -129,7 +134,7 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(JaxKernel):
         ) << 2
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @functools.cached_property
@@ -192,11 +197,11 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(JaxKernel):
 
 
 class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
-    IsotropicMixin, JaxIsotropicMixin, JaxKernel
+    covfuncs.IsotropicMixin, JaxIsotropicMixin, JaxCovarianceFunction
 ):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         direction0: np.ndarray,
         direction1: np.ndarray,
     ):
@@ -204,9 +209,11 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
             raise ValueError("`matern` must be univariate.")
 
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
 
@@ -263,11 +270,11 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
 
 
 class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
-    IsotropicMixin, JaxIsotropicMixin, JaxKernel
+    covfuncs.IsotropicMixin, JaxIsotropicMixin, JaxCovarianceFunction
 ):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         L: diffops.WeightedLaplacian,
         reverse: bool = True,
     ):
@@ -275,9 +282,11 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
             raise ValueError("`matern` must be univariate.")
 
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
         self._L = L
@@ -286,7 +295,7 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
         self._poly = half_integer_matern_derivative_polynomial(matern.p, 2)
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @property
@@ -321,11 +330,11 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
 
 
 class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
-    IsotropicMixin, JaxIsotropicMixin, JaxKernel
+    covfuncs.IsotropicMixin, JaxIsotropicMixin, JaxCovarianceFunction
 ):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         L0: diffops.WeightedLaplacian,
         L1: diffops.WeightedLaplacian,
     ):
@@ -333,9 +342,11 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
             raise ValueError("`matern` must be univariate.")
 
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
         self._L0 = L0
@@ -344,7 +355,7 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
         self._poly = half_integer_matern_derivative_polynomial(matern.p, 4)
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @functools.cached_property
@@ -374,10 +385,12 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
         )
 
 
-class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(JaxKernel):
+class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
+    JaxCovarianceFunction
+):
     def __init__(
         self,
-        matern: kernels.Matern,
+        matern: covfuncs.Matern,
         direction: np.ndarray,
         L1: diffops.WeightedLaplacian,
         reverse: bool = False,
@@ -386,9 +399,11 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(JaxKer
             raise ValueError("`matern` must be univariate.")
 
         if matern.p is None:
-            raise ValueError("`matern` must be a half-integer Matérn kernel.")
+            raise ValueError(
+                "`matern` must be a half-integer Matérn covariance function."
+            )
 
-        super().__init__(matern.input_shape, output_shape=())
+        super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
 
@@ -400,7 +415,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(JaxKer
         self._poly = half_integer_matern_derivative_polynomial(matern.p, 3) << 1
 
     @property
-    def matern(self) -> kernels.Matern:
+    def matern(self) -> covfuncs.Matern:
         return self._matern
 
     @functools.cached_property
@@ -446,15 +461,15 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(JaxKer
 
 @functools.lru_cache(maxsize=None)
 def half_integer_matern_polynomial(p: int) -> RationalPolynomial:
-    return RationalPolynomial(kernels.Matern.half_integer_coefficients(p))
+    return RationalPolynomial(covfuncs.Matern.half_integer_coefficients(p))
 
 
 @functools.lru_cache(maxsize=None)
 def half_integer_matern_derivative_polynomial(p: int, n: int) -> RationalPolynomial:
-    r"""Polynomial coefficients for `n`-th derivatives of the Matérn kernel with
-    :math:`\nu = p + \frac{1}{2}`.
+    r"""Polynomial coefficients for `n`-th derivatives of the Matérn covariance function
+    with :math:`\nu = p + \frac{1}{2}`.
 
-    We can express the Matérn kernel as a function
+    We can express the Matérn covariance function as
 
     .. math::
         k_{\nu}(x_0, x_1) = \kappa_{\nu}(\sqrt{2 \nu} \lVert x_0 - x_1 \rVert_2).

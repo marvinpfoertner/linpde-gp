@@ -1,5 +1,4 @@
 import functools
-from multiprocessing.sharedctypes import Value
 
 import probnum as pn
 from probnum.typing import ShapeLike
@@ -42,17 +41,20 @@ class Identity(_linfuncop.LinearFunctionOperator):
 
         return f
 
-    @__call__.register(pn.randprocs.kernels.Kernel)
+    @__call__.register(pn.randprocs.covfuncs.CovarianceFunction)
     def _(
-        self, k: pn.randprocs.kernels.Kernel, /, argnum: int = 0
-    ) -> pn.randprocs.kernels.Kernel:
-        if k.input_shape != self.input_domain_shape:
-            raise ValueError()
-
-        if k.output_shape != self.input_codomain_shape:
-            raise ValueError()
-
+        self, k: pn.randprocs.covfuncs.CovarianceFunction, /, argnum: int = 0
+    ) -> pn.randprocs.covfuncs.CovarianceFunction:
         if argnum not in (0, 1):
+            raise ValueError()
+
+        input_shape = k.input_shape_0 if argnum == 0 else k.input_shape_1
+        output_shape = k.output_shape_0 if argnum == 0 else k.output_shape_1
+
+        if input_shape != self.input_domain_shape:
+            raise ValueError()
+
+        if output_shape != self.input_codomain_shape:
             raise ValueError()
 
         return k

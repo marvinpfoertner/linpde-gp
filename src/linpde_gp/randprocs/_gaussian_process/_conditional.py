@@ -14,8 +14,8 @@ from linpde_gp import linfunctls
 from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
+from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
-from linpde_gp.randprocs.kernels import JaxKernel
 from linpde_gp.typing import RandomVariableLike
 
 
@@ -88,8 +88,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 kLas=self._kLas,
                 representer_weights=self.representer_weights,
             ),
-            cov=ConditionalGaussianProcess.Kernel(
-                prior_kernel=self._prior.cov,
+            cov=ConditionalGaussianProcess.CovarianceFunction(
+                prior_covfunc=self._prior.cov,
                 kLas=self._kLas,
                 gram_cho=self.gram_cho,
             ),
@@ -229,24 +229,25 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
             return m_x + kLas_x @ self._representer_weights
 
-    class Kernel(JaxKernel):
+    class CovarianceFunction(JaxCovarianceFunction):
         def __init__(
             self,
-            prior_kernel: JaxKernel,
+            prior_covfunc: JaxCovarianceFunction,
             kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
             gram_cho: np.ndarray,
         ):
-            self._prior_kernel = prior_kernel
+            self._prior_covfunc = prior_covfunc
             self._kLas = kLas
             self._gram_cho = gram_cho
 
             super().__init__(
-                input_shape=self._prior_kernel.input_shape,
-                output_shape=self._prior_kernel.output_shape,
+                input_shape=self._prior_covfunc.input_shape,
+                output_shape_0=self._prior_covfunc.output_shape_0,
+                output_shape_1=self._prior_covfunc.output_shape_1,
             )
 
         def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
-            k_xx = self._prior_kernel(x0, x1)
+            k_xx = self._prior_covfunc(x0, x1)
             kLas_x0 = self._kLas(x0)
             kLas_x1 = self._kLas(x1) if x1 is not None else kLas_x0
 
@@ -263,7 +264,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         @functools.partial(jax.jit, static_argnums=0)
         def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
-            k_xx = self._prior_kernel.jax(x0, x1)
+            k_xx = self._prior_covfunc.jax(x0, x1)
             kLas_x0 = self._kLas.jax(x0)
             kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
 
@@ -285,14 +286,14 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             b=b,
         )
 
-        # Compute lower-left block in the new kernel gram matrix
+        # Compute lower-left block in the new covariance matrix
         gram_L_La_prev_blocks = tuple(
             L(kLa_prev).reshape((L.output_size, kLa_prev.randvar_size))
             for kLa_prev in self._kLas
         )
         gram_L_row_blocks = gram_L_La_prev_blocks + (gram,)
 
-        # Update the Cholesky decomposition of the previous kernel Gram matrix and the
+        # Update the Cholesky decomposition of the previous covariance matrix and the
         # representer weights
         gram_cho, representer_weights = _block_cholesky(
             A_cho=self.gram_cho,
@@ -385,7 +386,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         Lf = L(prior)
         kLa = L(prior.cov, argnum=1)
 
-        # Compute predictive mean and kernel Gram matrix
+        # Compute predictive mean and covariance matrix
         pred_mean = Lf.mean
         gram = np.atleast_2d(Lf.cov)
 

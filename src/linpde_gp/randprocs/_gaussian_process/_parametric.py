@@ -23,7 +23,7 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
 
         super().__init__(
             mean=mean,
-            cov=ParametricGaussianProcess.Kernel(
+            cov=ParametricGaussianProcess.CovarianceFunction(
                 weights=self._weights,
                 feature_fn=self._feature_fn,
             ),
@@ -44,7 +44,7 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
 
             return self._feature_fn(x) @ self._weights.mean
 
-    class Kernel(pn.randprocs.kernels.Kernel):
+    class CovarianceFunction(pn.randprocs.covfuncs.CovarianceFunction):
         def __init__(
             self,
             weights: pn.randvars.Normal,
@@ -53,7 +53,9 @@ class ParametricGaussianProcess(pn.randprocs.GaussianProcess):
             self._weights = weights
             self._feature_fn = feature_fn
 
-            super().__init__(input_shape=self._feature_fn.input_shape, output_shape=())
+            super().__init__(
+                input_shape=self._feature_fn.input_shape,
+            )
 
         def _evaluate(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> np.ndarray:
             if self._feature_fn.output_shape == ():

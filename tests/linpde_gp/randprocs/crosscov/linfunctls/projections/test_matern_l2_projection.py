@@ -10,8 +10,8 @@ from linpde_gp.linfunctls.projections.l2 import (
 
 
 @fixture
-def kernel() -> pn.randprocs.kernels.Kernel:
-    return pn.randprocs.kernels.Matern(
+def covfunc() -> pn.randprocs.covfuncs.CovarianceFunction:
+    return pn.randprocs.covfuncs.Matern(
         input_shape=(),
         nu=1.5,
         lengthscales=1.0,
@@ -19,13 +19,14 @@ def kernel() -> pn.randprocs.kernels.Kernel:
 
 
 @fixture
-def kernel_lambda(
-    kernel: pn.randprocs.kernels.Kernel,
-) -> linpde_gp.randprocs.kernels.JaxLambdaKernel:
-    return linpde_gp.randprocs.kernels.JaxLambdaKernel(
-        kernel,
-        input_shape=kernel.input_shape,
-        output_shape=kernel.output_shape,
+def covfunc_lambda(
+    covfunc: pn.randprocs.covfuncs.CovarianceFunction,
+) -> linpde_gp.randprocs.covfuncs.JaxLambdaCovarianceFunction:
+    return linpde_gp.randprocs.covfuncs.JaxLambdaCovarianceFunction(
+        covfunc,
+        input_shape=covfunc.input_shape,
+        output_shape_0=covfunc.output_shape_0,
+        output_shape_1=covfunc.output_shape_1,
         vectorize=False,
     )
 
@@ -40,15 +41,15 @@ def projection() -> L2Projection_UnivariateLinearInterpolationBasis:
 
 @fixture
 def kPa(
-    kernel: pn.randprocs.kernels.Kernel,
+    covfunc: pn.randprocs.covfuncs.CovarianceFunction,
     projection: L2Projection_UnivariateLinearInterpolationBasis,
 ) -> linpde_gp.randprocs.crosscov.ProcessVectorCrossCovariance:
-    return projection(kernel, argnum=1)
+    return projection(covfunc, argnum=1)
 
 
 def test_kPa_eval(
     kPa: linpde_gp.randprocs.crosscov.ProcessVectorCrossCovariance,
-    kernel_lambda: linpde_gp.randprocs.kernels.JaxLambdaKernel,
+    covfunc_lambda: linpde_gp.randprocs.covfuncs.JaxLambdaCovarianceFunction,
     projection: L2Projection_UnivariateLinearInterpolationBasis,
 ):
     bounds = projection.basis.grid[[0, -1]]
@@ -56,5 +57,5 @@ def test_kPa_eval(
 
     np.testing.assert_allclose(
         kPa(xs),
-        projection(kernel_lambda, argnum=1)(xs),
+        projection(covfunc_lambda, argnum=1)(xs),
     )

@@ -1,5 +1,5 @@
 # isort: off
-from . import kernels, crosscov
+from . import covfuncs, crosscov
 
 # isort: on
 

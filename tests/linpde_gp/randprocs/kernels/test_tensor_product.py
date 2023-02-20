@@ -4,7 +4,7 @@ import scipy.stats
 import pytest
 from pytest_cases import fixture
 
-from linpde_gp.randprocs import kernels
+from linpde_gp.randprocs import covfuncs
 
 
 @fixture
@@ -15,15 +15,18 @@ def lengthscales(d: int) -> np.ndarray:
 
 
 @fixture
-def k_tprod(lengthscales: np.ndarray) -> kernels.TensorProductKernel:
-    return kernels.TensorProductKernel(
-        *(kernels.ExpQuad((), lengthscales=lengthscale) for lengthscale in lengthscales)
+def k_tprod(lengthscales: np.ndarray) -> covfuncs.TensorProduct:
+    return covfuncs.TensorProduct(
+        *(
+            covfuncs.ExpQuad((), lengthscales=lengthscale)
+            for lengthscale in lengthscales
+        )
     )
 
 
 @fixture
-def k_expquad(lengthscales: np.ndarray) -> kernels.ExpQuad:
-    return kernels.ExpQuad((lengthscales.size,), lengthscales=lengthscales)
+def k_expquad(lengthscales: np.ndarray) -> covfuncs.ExpQuad:
+    return covfuncs.ExpQuad((lengthscales.size,), lengthscales=lengthscales)
 
 
 @fixture
@@ -34,10 +37,10 @@ def xs(lengthscales: np.ndarray) -> np.ndarray:
 
 
 def test_tprod_expquad_equal(
-    k_tprod: kernels.TensorProductKernel, k_expquad: kernels.ExpQuad, xs: np.ndarray
+    k_tprod: covfuncs.TensorProduct, k_expquad: covfuncs.ExpQuad, xs: np.ndarray
 ):
-    """Test whether the tensor product of `ExpQuad` covariance function produces the
-    same result as a multivariate `ExpQuad` kernel."""
+    """Test whether the tensor product of `ExpQuad` covariance functions produces the
+    same result as a multivariate `ExpQuad` covariance function."""
     Kxx_tprod = k_tprod.matrix(xs)
     Kxx_expquad = k_expquad.matrix(xs)
 
