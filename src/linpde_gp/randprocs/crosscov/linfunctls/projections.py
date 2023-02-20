@@ -12,16 +12,16 @@ from linpde_gp.linfunctls.projections.l2 import (
 from .. import _parametric, _pv_crosscov
 
 
-class Kernel_L2Projection_UnivariateLinearInterpolationBasis(
+class CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis(
     _pv_crosscov.ProcessVectorCrossCovariance
 ):
     def __init__(
         self,
-        kernel: pn.randprocs.kernels.Kernel,
+        covfunc: pn.randprocs.covfuncs.CovarianceFunction,
         proj: L2Projection_UnivariateLinearInterpolationBasis,
         reverse: bool = True,
     ):
-        self._kernel = kernel
+        self._covfunc = covfunc
         self._projection = proj
 
         super().__init__(
@@ -32,8 +32,8 @@ class Kernel_L2Projection_UnivariateLinearInterpolationBasis(
         )
 
     @property
-    def kernel(self) -> pn.randprocs.kernels.Kernel:
-        return self._kernel
+    def covfunc(self) -> pn.randprocs.covfuncs.CovarianceFunction:
+        return self._covfunc
 
     @property
     def projection(self) -> L2Projection_UnivariateLinearInterpolationBasis:
@@ -46,7 +46,7 @@ class Kernel_L2Projection_UnivariateLinearInterpolationBasis(
             lambda x: np.array(
                 [
                     scipy.integrate.quad(
-                        lambda t: basis.eval_elem(idx, t) * self._kernel(x, t),
+                        lambda t: basis.eval_elem(idx, t) * self._covfunc(x, t),
                         *basis.support_bounds(idx),
                     )[0]
                     for idx in range(len(basis))
@@ -67,10 +67,12 @@ class Kernel_L2Projection_UnivariateLinearInterpolationBasis(
 
 
 @L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
-    Kernel_L2Projection_UnivariateLinearInterpolationBasis
+    CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis
 )
 def _(
-    self, pv_crosscov: Kernel_L2Projection_UnivariateLinearInterpolationBasis, /
+    self,
+    pv_crosscov: CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis,
+    /,
 ) -> np.ndarray:
     if pv_crosscov.reverse:
         proj0 = pv_crosscov.projection
@@ -86,7 +88,7 @@ def _(
         res, _ = scipy.integrate.dblquad(
             lambda x1, x0: (
                 basis0.eval_elem(idx0, x0)
-                * pv_crosscov.kernel(x0, x1)
+                * pv_crosscov.covfunc(x0, x1)
                 * basis1.eval_elem(idx1, x1)
             ),
             *basis0.support_bounds(idx0),
@@ -121,7 +123,7 @@ def _(
 
 
 class Matern32_L2Projection_UnivariateLinearInterpolationBasis(
-    Kernel_L2Projection_UnivariateLinearInterpolationBasis
+    CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis
 ):
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         x = x[..., None]
@@ -138,7 +140,7 @@ class Matern32_L2Projection_UnivariateLinearInterpolationBasis(
         x_i = self.projection.basis.x_i
         x_ip1 = self.projection.basis.x_ip1
 
-        alpha = np.sqrt(3) / self._kernel.lengthscales
+        alpha = np.sqrt(3) / self._covfunc.lengthscales
 
         int_im1_i = (
             _aux_int(np.maximum(x_im1, x), np.maximum(x_i, x), x_im1, alpha)

@@ -7,28 +7,28 @@ import numpy as np
 
 from linpde_gp.linfuncops import diffops
 
-from ..._jax import JaxKernel, JaxKernelMixin
+from ..._jax import JaxCovarianceFunction, JaxCovarianceFunctionMixin
 from ..._tensor_product import (
-    TensorProductKernel,
+    TensorProduct,
     evaluate_dimensionwise,
     evaluate_dimensionwise_jax,
 )
 
 
-class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
+class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
     """Cross-covariance function obtained by applying a linear differential operator
     without any mixed partial derivatives to one argument of a
-    :class:`TensorProductKernel`."""
+    :class:`TensorProduct`."""
 
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         L: diffops.LinearDifferentialOperator,
         *,
         L_summands: Mapping[int, diffops.LinearDifferentialOperator],
         reverse: bool = False,
     ):
-        super().__init__(k.input_shape, output_shape=())
+        super().__init__(input_shape=k.input_shape)
 
         self._k = k
         self._L = L
@@ -36,7 +36,7 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         self._reverse = bool(reverse)
 
     @property
-    def k(self) -> TensorProductKernel:
+    def k(self) -> TensorProduct:
         return self._k
 
     @property
@@ -48,7 +48,7 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         return self._reverse
 
     @functools.cached_property
-    def _kLs_or_Lks(self) -> Mapping[int, JaxKernelMixin]:
+    def _kLs_or_Lks(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
         return {
             dim_idx: L_summand(
                 self._k.factors[dim_idx], argnum=(0 if self.reverse else 1)
@@ -95,21 +95,21 @@ class TensorProductKernel_Identity_DimSumDiffOp(JaxKernel):
         return res
 
 
-class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
+class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
     """Cross-covariance function obtained by applying a linear differential operators
     without any mixed partial derivatives to both arguments of a
-    :class:`TensorProductKernel`."""
+    :class:`TensorProduct`."""
 
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         *,
         L0: diffops.LinearDifferentialOperator,
         L1: diffops.LinearDifferentialOperator,
         L0_summands: Mapping[int, diffops.LinearDifferentialOperator],
         L1_summands: Mapping[int, diffops.LinearDifferentialOperator],
     ):
-        super().__init__(k.input_shape, output_shape=())
+        super().__init__(input_shape=k.input_shape)
 
         self._k = k
 
@@ -120,25 +120,25 @@ class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
         self._L1_summands = dict(L1_summands)
 
     @property
-    def k(self) -> TensorProductKernel:
+    def k(self) -> TensorProduct:
         return self._k
 
     @functools.cached_property
-    def _L0ks(self) -> Mapping[int, JaxKernelMixin]:
+    def _L0ks(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
         return {
             dim_idx: L0_summand(self._k.factors[dim_idx], argnum=0)
             for dim_idx, L0_summand in self._L0_summands.items()
         }
 
     @functools.cached_property
-    def _kL1s(self) -> Mapping[int, JaxKernelMixin]:
+    def _kL1s(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
         return {
             dim_idx: L1_summand(self._k.factors[dim_idx], argnum=1)
             for dim_idx, L1_summand in self._L1_summands.items()
         }
 
     @functools.cached_property
-    def _L0kL1s(self) -> Mapping[int, JaxKernelMixin]:
+    def _L0kL1s(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
         L0kL1s = {}
 
         for dim_idx, kL1 in self._kL1s.items():
@@ -236,12 +236,10 @@ class TensorProductKernel_DimSumDiffop_DimSumDiffop(JaxKernel):
         return res
 
 
-class TensorProductKernel_Identity_DirectionalDerivative(
-    TensorProductKernel_Identity_DimSumDiffOp
-):
+class TensorProduct_Identity_DirectionalDerivative(TensorProduct_Identity_DimSumDiffOp):
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         L: diffops.DirectionalDerivative,
         *,
         reverse: bool = False,
@@ -258,12 +256,12 @@ class TensorProductKernel_Identity_DirectionalDerivative(
         )
 
 
-class TensorProductKernel_DirectionalDerivative_DirectionalDerivative(
-    TensorProductKernel_DimSumDiffop_DimSumDiffop
+class TensorProduct_DirectionalDerivative_DirectionalDerivative(
+    TensorProduct_DimSumDiffop_DimSumDiffop
 ):
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         *,
         L0: diffops.DirectionalDerivative,
         L1: diffops.DirectionalDerivative,
@@ -285,12 +283,10 @@ class TensorProductKernel_DirectionalDerivative_DirectionalDerivative(
         )
 
 
-class TensorProductKernel_Identity_WeightedLaplacian(
-    TensorProductKernel_Identity_DimSumDiffOp
-):
+class TensorProduct_Identity_WeightedLaplacian(TensorProduct_Identity_DimSumDiffOp):
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         L: diffops.WeightedLaplacian,
         *,
         reverse: bool = True,
@@ -307,12 +303,12 @@ class TensorProductKernel_Identity_WeightedLaplacian(
         )
 
 
-class TensorProductKernel_WeightedLaplacian_WeightedLaplacian(
-    TensorProductKernel_DimSumDiffop_DimSumDiffop
+class TensorProduct_WeightedLaplacian_WeightedLaplacian(
+    TensorProduct_DimSumDiffop_DimSumDiffop
 ):
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         *,
         L0: diffops.WeightedLaplacian,
         L1: diffops.WeightedLaplacian,
@@ -334,12 +330,12 @@ class TensorProductKernel_WeightedLaplacian_WeightedLaplacian(
         )
 
 
-class TensorProductKernel_DirectionalDerivative_WeightedLaplacian(
-    TensorProductKernel_DimSumDiffop_DimSumDiffop
+class TensorProduct_DirectionalDerivative_WeightedLaplacian(
+    TensorProduct_DimSumDiffop_DimSumDiffop
 ):
     def __init__(
         self,
-        k: TensorProductKernel,
+        k: TensorProduct,
         *,
         dderiv: diffops.DirectionalDerivative,
         laplacian: diffops.WeightedLaplacian,

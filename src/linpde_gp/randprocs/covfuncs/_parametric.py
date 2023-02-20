@@ -3,7 +3,7 @@ import probnum as pn
 from probnum.typing import LinearOperatorLike
 
 
-class ParametricKernel(pn.randprocs.kernels.Kernel):
+class ParametricCovarianceFunction(pn.randprocs.covfuncs.CovarianceFunction):
     def __init__(
         self,
         basis: pn.functions.Function,
@@ -15,7 +15,7 @@ class ParametricKernel(pn.randprocs.kernels.Kernel):
         if self._cov.shape[1:] != self._basis.output_shape:
             raise ValueError()
 
-        super().__init__(input_shape=self._basis.input_shape, output_shape=())
+        super().__init__(input_shape=self._basis.input_shape)
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         phi_x0 = self._basis(x0)

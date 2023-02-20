@@ -6,10 +6,12 @@ from jax import numpy as jnp
 import numpy as np
 import probnum as pn
 
-from ._jax import JaxIsotropicMixin, JaxKernelMixin
+from ._jax import JaxCovarianceFunctionMixin, JaxIsotropicMixin
 
 
-class Matern(JaxKernelMixin, JaxIsotropicMixin, pn.randprocs.kernels.Matern):
+class Matern(
+    JaxCovarianceFunctionMixin, JaxIsotropicMixin, pn.randprocs.covfuncs.Matern
+):
     @functools.partial(jax.jit, static_argnums=0)
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if self.nu == np.inf:

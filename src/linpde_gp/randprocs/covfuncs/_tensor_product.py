@@ -7,29 +7,36 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
 
-from ._jax import JaxKernelMixin
+from ._jax import JaxCovarianceFunctionMixin
 
 
-class TensorProductKernel(JaxKernelMixin, pn.randprocs.kernels.Kernel):
-    def __init__(self, *factors: pn.randprocs.kernels.Kernel):
+class TensorProduct(
+    JaxCovarianceFunctionMixin, pn.randprocs.covfuncs.CovarianceFunction
+):
+    def __init__(self, *factors: pn.randprocs.covfuncs.CovarianceFunction):
         if len(factors) < 0:
             raise ValueError("At least one factor is required.")
 
         if not all(k.input_shape == () for k in factors):
             raise ValueError("The input shape of all factors must be `()`.")
 
-        if not all(k.output_shape == factors[0].output_shape for k in factors):
+        if not all(
+            k.output_shape_0 == factors[0].output_shape_0
+            and k.output_shape_1 == factors[0].output_shape_1
+            for k in factors
+        ):
             raise ValueError("The output shape of all factors must be equal.")
 
         self._factors = tuple(factors)
 
         super().__init__(
             input_shape=(len(self._factors),),
-            output_shape=self._factors[0].output_shape,
+            output_shape_0=self._factors[0].output_shape_0,
+            output_shape_1=self._factors[0].output_shape_1,
         )
 
     @property
-    def factors(self) -> tuple[pn.randprocs.kernels.Kernel]:
+    def factors(self) -> tuple[pn.randprocs.covfuncs.CovarianceFunction]:
         return self._factors
 
     def _evaluate(self, x0: ArrayLike, x1: ArrayLike | None) -> np.ndarray:
@@ -46,7 +53,7 @@ class TensorProductKernel(JaxKernelMixin, pn.randprocs.kernels.Kernel):
 
 
 def evaluate_dimensionwise(
-    ks: Iterable[pn.randprocs.kernels.Kernel],
+    ks: Iterable[pn.randprocs.covfuncs.CovarianceFunction],
     x0: np.ndarray,
     x1: np.ndarray | None = None,
 ) -> tuple[np.ndarray]:
@@ -57,7 +64,7 @@ def evaluate_dimensionwise(
 
 
 def evaluate_dimensionwise_jax(
-    ks: Iterable[JaxKernelMixin],
+    ks: Iterable[JaxCovarianceFunctionMixin],
     x0: jnp.ndarray,
     x1: jnp.ndarray | None = None,
 ) -> tuple[jnp.ndarray]:

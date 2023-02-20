@@ -8,28 +8,28 @@ from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
-from probnum.randprocs.kernels import Kernel
+from probnum.randprocs.covfuncs import CovarianceFunction
 from probnum.typing import ArrayLike, ShapeLike
 
 from ... import linfuncops
 
-Kernel.input_size = property(
+CovarianceFunction.input_size = property(
     lambda self: functools.reduce(operator.mul, self.input_shape, 1)
 )
 
-Kernel._batched_sum = (  # pylint: disable=protected-access
+CovarianceFunction._batched_sum = (  # pylint: disable=protected-access
     lambda self, a, **sum_kwargs: np.sum(
         a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs
     )
 )
 
-Kernel._batched_euclidean_norm_sq = (  # pylint: disable=protected-access
+CovarianceFunction._batched_euclidean_norm_sq = (  # pylint: disable=protected-access
     lambda self, a, **sum_kwargs: self._batched_sum(  # pylint: disable=protected-access
         a**2, **sum_kwargs
     )
 )
 
-Kernel._batched_euclidean_norm = (  # pylint: disable=protected-access
+CovarianceFunction._batched_euclidean_norm = (  # pylint: disable=protected-access
     lambda self, a, **sum_kwargs: np.sqrt(
         self._batched_euclidean_norm_sq(  # pylint: disable=protected-access
             a, **sum_kwargs
@@ -38,10 +38,12 @@ Kernel._batched_euclidean_norm = (  # pylint: disable=protected-access
 )
 
 
-class JaxKernelMixin(abc.ABC):
-    """Careful: Must come before Kernel in inheritance"""
+class JaxCovarianceFunctionMixin(abc.ABC):
+    """Careful: Must come before `CovarianceFunction` in inheritance"""
 
-    def jax(self, x0: ArrayLike, x1: Optional[ArrayLike]) -> jnp.ndarray:
+    def jax(
+        self: CovarianceFunction, x0: ArrayLike, x1: Optional[ArrayLike]
+    ) -> jnp.ndarray:
         x0 = jnp.asarray(x0)
 
         if x1 is not None:
@@ -54,15 +56,22 @@ class JaxKernelMixin(abc.ABC):
 
         k_x0_x1 = self._evaluate_jax(x0, x1)
 
-        assert k_x0_x1.shape == broadcast_batch_shape + self.output_shape
+        assert (
+            k_x0_x1.shape
+            == broadcast_batch_shape + self.output_shape_0 + self.output_shape_1
+        )
 
         return k_x0_x1
 
     @abc.abstractmethod
-    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+    def _evaluate_jax(
+        self: CovarianceFunction, x0: jnp.ndarray, x1: Optional[jnp.ndarray]
+    ) -> jnp.ndarray:
         pass
 
-    def _batched_sum_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
+    def _batched_sum_jax(
+        self: CovarianceFunction, a: jnp.ndarray, **sum_kwargs
+    ) -> jnp.ndarray:
         return jnp.sum(a, axis=tuple(range(-self.input_ndim, 0)), **sum_kwargs)
 
     def _batched_euclidean_norm_sq_jax(
@@ -70,34 +79,38 @@ class JaxKernelMixin(abc.ABC):
     ) -> jnp.ndarray:
         return self._batched_sum_jax(a**2, **sum_kwargs)
 
-    def _batched_euclidean_norm_jax(self, a: jnp.ndarray, **sum_kwargs) -> jnp.ndarray:
+    def _batched_euclidean_norm_jax(
+        self: CovarianceFunction, a: jnp.ndarray, **sum_kwargs
+    ) -> jnp.ndarray:
         return jnp.sqrt(self._batched_sum_jax(a**2, **sum_kwargs))
 
-    def __add__(self, other: Kernel) -> JaxKernel:
+    def __add__(
+        self: CovarianceFunction, other: CovarianceFunction
+    ) -> JaxCovarianceFunction:
         from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
-            JaxSumKernel,
+            JaxSumCovarianceFunction,
         )
 
-        return JaxSumKernel(self, other)
+        return JaxSumCovarianceFunction(self, other)
 
-    def __rmul__(self, other: ArrayLike) -> JaxKernel:
+    def __rmul__(self: CovarianceFunction, other: ArrayLike) -> JaxCovarianceFunction:
         if np.ndim(other) == 0:
             from ._jax_arithmetic import (  # pylint: disable=import-outside-toplevel
-                JaxScaledKernel,
+                JaxScaledCovarianceFunction,
             )
 
-            return JaxScaledKernel(kernel=self, scalar=other)
+            return JaxScaledCovarianceFunction(self, scalar=other)
 
         return super().__rmul__(self, other)
 
 
-class JaxKernel(JaxKernelMixin, Kernel):
+class JaxCovarianceFunction(JaxCovarianceFunctionMixin, CovarianceFunction):
     ...
 
 
 class JaxIsotropicMixin:
     def _squared_euclidean_distances_jax(
-        self: JaxKernelMixin,
+        self: JaxCovarianceFunctionMixin,
         x0: jnp.ndarray,
         x1: Optional[jnp.ndarray],
         *,
@@ -110,7 +123,7 @@ class JaxIsotropicMixin:
         if x1 is None:
             return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
-                shape=x0.shape[: x0.ndim - self._input_ndim],
+                shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
         diffs = x0 - x1
@@ -121,7 +134,7 @@ class JaxIsotropicMixin:
         return jnp.sum(diffs**2, axis=tuple(range(-self.input_ndim, 0)))
 
     def _euclidean_distances_jax(
-        self: JaxKernelMixin,
+        self: JaxCovarianceFunctionMixin,
         x0: np.ndarray,
         x1: Optional[np.ndarray],
         *,
@@ -134,7 +147,7 @@ class JaxIsotropicMixin:
         if x1 is None:
             return jnp.zeros_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
-                shape=x0.shape[: x0.ndim - self._input_ndim],
+                shape=x0.shape[: x0.ndim - self.input_ndim],
             )
 
         return jnp.sqrt(
@@ -143,13 +156,13 @@ class JaxIsotropicMixin:
 
 
 @linfuncops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
-def _(self, k: JaxKernelMixin, /, *, argnum=0):
+def _(self, k: JaxCovarianceFunctionMixin, /, *, argnum=0):
     try:
         return super(linfuncops.LinearDifferentialOperator, self).__call__(
             k, argnum=argnum
         )
     except NotImplementedError:
-        return JaxLambdaKernel(
+        return JaxLambdaCovarianceFunction(
             self._jax_fallback(  # pylint: disable=protected-access
                 k.jax, argnum=argnum
             ),
@@ -158,19 +171,18 @@ def _(self, k: JaxKernelMixin, /, *, argnum=0):
         )
 
 
-class JaxLambdaKernel(JaxKernel):
+class JaxLambdaCovarianceFunction(JaxCovarianceFunction):
     def __init__(
         self,
         k: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray],
-        input_shape: ShapeLike,
-        output_shape: ShapeLike = (),
         vectorize: bool = True,
+        **covfunc_kwargs,
     ):
-        super().__init__(input_shape=input_shape, output_shape=output_shape)
+        super().__init__(**covfunc_kwargs)
 
         if vectorize:
             k = jnp.vectorize(
-                k, signature="(),()->()" if input_shape == () else "(d),(d)->()"
+                k, signature="(),()->()" if self.input_shape == () else "(d),(d)->()"
             )
 
         self._k = k

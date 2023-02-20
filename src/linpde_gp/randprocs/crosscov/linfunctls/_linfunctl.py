@@ -6,7 +6,7 @@ from .._arithmetic import (
     LinOpProcessVectorCrossCovariance,
     ScaledProcessVectorCrossCovariance,
 )
-from ._dirac import Kernel_Dirac_Identity, Kernel_Identity_Dirac
+from ._dirac import CovarianceFunction_Dirac_Identity, CovarianceFunction_Identity_Dirac
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
@@ -24,11 +24,15 @@ def _(self, pv_crosscov: LinOpProcessVectorCrossCovariance, /) -> np.ndarray:
     )
 
 
-@LinearFunctional.__call__.register(Kernel_Dirac_Identity)  # pylint: disable=no-member
-def _(self, pv_crosscov: Kernel_Dirac_Identity, /) -> np.ndarray:
-    return self(pv_crosscov.kernel, argnum=1)(pv_crosscov.dirac.X)
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Dirac_Identity
+)
+def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> np.ndarray:
+    return self(pv_crosscov.covfunc, argnum=1)(pv_crosscov.dirac.X)
 
 
-@LinearFunctional.__call__.register(Kernel_Identity_Dirac)  # pylint: disable=no-member
-def _(self, pv_crosscov: Kernel_Identity_Dirac, /) -> np.ndarray:
-    return self(pv_crosscov.kernel, argnum=0)(pv_crosscov.dirac.X)
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Identity_Dirac
+)
+def _(self, pv_crosscov: CovarianceFunction_Identity_Dirac, /) -> np.ndarray:
+    return self(pv_crosscov.covfunc, argnum=0)(pv_crosscov.dirac.X)

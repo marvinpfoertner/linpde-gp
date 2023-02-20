@@ -8,7 +8,7 @@ import scipy.stats
 
 from pytest_cases import parametrize_with_cases
 
-from .cases import KernelDiffOpTestCase, case_modules
+from .cases import CovarianceFunctionDiffOpTestCase, case_modules
 
 
 def X(input_shape: ShapeType) -> np.ndarray:
@@ -20,13 +20,13 @@ def X(input_shape: ShapeType) -> np.ndarray:
 
 
 @parametrize_with_cases("test_case", cases=case_modules)
-def test_L0kL1_expected_type(test_case: KernelDiffOpTestCase):
+def test_L0kL1_expected_type(test_case: CovarianceFunctionDiffOpTestCase):
     if test_case.expected_type is not None:
         assert type(test_case.L0kL1) == test_case.expected_type
 
 
 @parametrize_with_cases("test_case", cases=case_modules)
-def test_L0kL1(test_case: KernelDiffOpTestCase):
+def test_L0kL1(test_case: CovarianceFunctionDiffOpTestCase):
     Xs = X(test_case.k.input_shape)
 
     L0kL1_XX = test_case.L0kL1(Xs[:, None], Xs[None, :])
@@ -41,7 +41,7 @@ def test_L0kL1(test_case: KernelDiffOpTestCase):
 
 
 @parametrize_with_cases("test_case", cases=case_modules)
-def test_L0kL1_call_equals_jax(test_case: KernelDiffOpTestCase):
+def test_L0kL1_call_equals_jax(test_case: CovarianceFunctionDiffOpTestCase):
     Xs = X(test_case.k.input_shape)
 
     L0kL1_jax = jax.jit(test_case.L0kL1.jax)
