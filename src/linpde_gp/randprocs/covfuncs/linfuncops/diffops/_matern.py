@@ -6,10 +6,10 @@ from jax import numpy as jnp
 import numpy as np
 from probnum.randprocs import covfuncs
 
+from linpde_gp.functions import Monomial, RationalPolynomial
 from linpde_gp.linfuncops import diffops
 
 from ..._jax import JaxCovarianceFunction, JaxIsotropicMixin
-from ._polynomial import RationalPolynomial
 
 
 class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
@@ -31,7 +31,9 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
         self._direction = direction
         self._reverse = reverse
 
-        self._poly = half_integer_matern_derivative_polynomial(self.matern.p, 1) << 1
+        self._poly = half_integer_matern_derivative_polynomial(
+            self.matern.p, 1
+        ) // Monomial(1)
 
     @property
     def matern(self) -> covfuncs.Matern:
@@ -125,13 +127,14 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         self._direction0 = direction0
         self._direction1 = direction1
 
-        self._neg_poly_deriv = (
-            -half_integer_matern_derivative_polynomial(self._matern.p, 1) << 1
-        )
+        self._neg_poly_deriv = -half_integer_matern_derivative_polynomial(
+            self._matern.p, 1
+        ) // Monomial(1)
+
         self._poly_diff = (
             half_integer_matern_derivative_polynomial(self._matern.p, 2)
             + self._neg_poly_deriv
-        ) << 2
+        ) // Monomial(2)
 
     @property
     def matern(self) -> covfuncs.Matern:
@@ -412,7 +415,9 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
 
         self._reverse = bool(reverse)
 
-        self._poly = half_integer_matern_derivative_polynomial(matern.p, 3) << 1
+        self._poly = half_integer_matern_derivative_polynomial(matern.p, 3) // Monomial(
+            1
+        )
 
     @property
     def matern(self) -> covfuncs.Matern:
