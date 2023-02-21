@@ -73,7 +73,7 @@ class BlockMatrix(pn.linops.LinearOperator):
             self._C = (
                 pn.linops.aslinop(C)
                 if C is not None
-                else pn.linops.Zero((self._A.shape[1], self._D.shape[0]), dtype)
+                else pn.linops.Zero((self._D.shape[0], self._A.shape[1]), dtype)
             )
             self._B = pn.linops.Zero((self._A.shape[0], self._D.shape[1]), dtype)
             self.is_lower_triangular = True
