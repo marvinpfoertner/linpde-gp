@@ -18,8 +18,6 @@ class BlockMatrix(pn.linops.LinearOperator):
         D (LinearOperatorLike): Bottom right block.
         is_spd (bool, optional): If True, the operator is symmetric positive
             definite. Default is False.
-        is_triangular (bool, optional): If True, the operator is triangular.
-            Default is False.
 
     Notes
     -----
@@ -37,7 +35,6 @@ class BlockMatrix(pn.linops.LinearOperator):
         C: LinearOperatorLike | None,
         D: LinearOperatorLike,
         is_spd=False,
-        is_triangular=False,
     ):
         self._A = pn.linops.aslinop(A)
         self._D = pn.linops.aslinop(D)
@@ -71,18 +68,18 @@ class BlockMatrix(pn.linops.LinearOperator):
                 self._B = self._C.T
             self.is_symmetric = True
             self.is_positive_definite = True
-        elif is_triangular:
-            assert (B is None) ^ (C is None)
-            if B is None:
-                assert self._A.is_lower_triangular and self._D.is_lower_triangular
-                self._C = pn.linops.aslinop(C)
-                self._B = pn.linops.Zero((self._A.shape[0], self._D.shape[1]), dtype)
-                self.is_lower_triangular = True
-            else:
-                assert self._A.is_upper_triangular and self._D.is_upper_triangular
-                self._B = pn.linops.aslinop(B)
-                self._C = pn.linops.Zero((self._D.shape[0], self._A.shape[1]), dtype)
-                self.is_upper_triangular = True
+        elif self._A.is_lower_triangular and self._D.is_lower_triangular and B is None:
+            # Lower triangular block matrix
+            assert C is not None
+            self._C = pn.linops.aslinop(C)
+            self._B = pn.linops.Zero((self._A.shape[0], self._D.shape[1]), dtype)
+            self.is_lower_triangular = True
+        elif self._A.is_upper_triangular and self._D.is_upper_triangular and C is None:
+            # Upper triangular block matrix
+            assert B is not None
+            self._B = pn.linops.aslinop(B)
+            self._C = pn.linops.Zero((self._D.shape[0], self._A.shape[1]), dtype)
+            self.is_upper_triangular = True
         else:
             assert B is not None and C is not None
             self._B = pn.linops.aslinop(B)
@@ -154,11 +151,11 @@ class BlockMatrix(pn.linops.LinearOperator):
 
         if lower:
             block_sqrt = BlockMatrix(
-                A_sqrt, None, L_A_inv_B.T, S_sqrt, is_triangular=True
+                A_sqrt, None, L_A_inv_B.T, S_sqrt
             )
         else:
             block_sqrt = BlockMatrix(
-                A_sqrt.T, L_A_inv_B, None, S_sqrt.T, is_triangular=True
+                A_sqrt.T, L_A_inv_B, None, S_sqrt.T
             )
         return block_sqrt
 
