@@ -22,10 +22,10 @@ class BlockMatrix(pn.linops.LinearOperator):
     Notes
     -----
     Block diagonal: Set B = C = None.
-    SPD: Set exactly one of B or C to None. The other block will be inferred
-        automatically.
-    Triangular: Set exactly one of B or C to None. The other block will be
-        zero, and this also defines the structure (lower or upper triangular).
+    SPD: Set exactly one of B or C to None. This block will be inferred
+        automatically from symmetry.
+    Triangular: Set one of B or C to None. This block will be zero, 
+        and this also defines the structure (lower or upper triangular).
     """
 
     def __init__(
