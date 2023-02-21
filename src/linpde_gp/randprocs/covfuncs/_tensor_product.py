@@ -72,3 +72,22 @@ def evaluate_dimensionwise_jax(
         k._evaluate_jax(x0[..., i], x1[..., i] if x1 is not None else None)
         for i, k in enumerate(ks)
     )
+
+
+class TensorProductGrid(np.ndarray):
+    def __new__(cls, *factors: ArrayLike, indexing="ij"):
+        factors = tuple(np.asarray(factor) for factor in factors)
+
+        obj = np.stack(
+            np.meshgrid(
+                *factors,
+                copy=True,
+                sparse=False,
+                indexing=indexing,
+            ),
+            axis=-1,
+        ).view(cls)
+
+        obj.factors = factors
+
+        return obj
