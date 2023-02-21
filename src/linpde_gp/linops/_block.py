@@ -70,14 +70,20 @@ class BlockMatrix(pn.linops.LinearOperator):
             self.is_positive_definite = True
         elif self._A.is_lower_triangular and self._D.is_lower_triangular and B is None:
             # Lower triangular block matrix
-            assert C is not None
-            self._C = pn.linops.aslinop(C)
+            self._C = (
+                pn.linops.aslinop(C)
+                if C is not None
+                else pn.linops.Zero((self._A.shape[1], self._D.shape[0]), dtype)
+            )
             self._B = pn.linops.Zero((self._A.shape[0], self._D.shape[1]), dtype)
             self.is_lower_triangular = True
         elif self._A.is_upper_triangular and self._D.is_upper_triangular and C is None:
             # Upper triangular block matrix
-            assert B is not None
-            self._B = pn.linops.aslinop(B)
+            self._B = (
+                pn.linops.aslinop(B)
+                if B is not None
+                else pn.linops.Zero((self._A.shape[0], self._D.shape[1]), dtype)
+            )
             self._C = pn.linops.Zero((self._D.shape[0], self._A.shape[1]), dtype)
             self.is_upper_triangular = True
         else:
