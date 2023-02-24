@@ -10,6 +10,7 @@ import numpy as np
 from probnum.typing import FloatLike
 
 from . import _jax
+from ._constant import Constant
 
 
 class Monomial(_jax.JaxFunction):
@@ -91,9 +92,22 @@ class Polynomial(_jax.JaxFunction):
     def __add__(self, other):
         return super().__add__(other)
 
+    @__add__.register
+    def _(self, other: Constant):
+        return Polynomial((self._coeffs[0] + other.value,) + self._coeffs[1:])
+
     @functools.singledispatchmethod
     def __sub__(self, other):
         return super().__sub__(other)
+
+    @functools.singledispatchmethod
+    def __rmul__(self, other):
+        try:
+            other = float(other)
+        except TypeError:
+            return super().__rmul__(other)
+
+        return Polynomial(other * coeff for coeff in self._coeffs)
 
     @functools.singledispatchmethod
     def __floordiv__(self, other):
