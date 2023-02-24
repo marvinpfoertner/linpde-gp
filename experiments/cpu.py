@@ -75,11 +75,37 @@ kappa *= 10  # W/mm K
 
 TDP = 95.0  # W, [2]
 
-core_heat_dist_x = linpde_gp.functions.TruncatedGaussianMixturePDF(
-    domain=domain[0],
-    means=core_centers_xs,
-    stds=core_width / 2.0,
-)
+
+def _core_heat_dist_x():
+    # Shape of the heat souce
+    xs = [domain_1D[0]]
+    ys = [0.0]
+
+    eps = core_distance_x / 3
+
+    for core_center_x in core_centers_xs:
+        xs += [
+            core_center_x - core_width / 2 - eps,
+            core_center_x - core_width / 2,
+            core_center_x + core_width / 2,
+            core_center_x + core_width / 2 + eps,
+        ]
+        ys += [0.0, 1.0, 1.0, 0.0]
+
+    xs += [domain_1D[1]]
+    ys += [0.0]
+
+    heat_dist_unnorm = linpde_gp.functions.PiecewiseLinear.from_points(xs, ys)
+
+    # Normalize
+    normalization_constant = linpde_gp.linfunctls.LebesgueIntegral(domain_1D)(
+        heat_dist_unnorm
+    )
+
+    return (1 / normalization_constant) * heat_dist_unnorm
+
+
+core_heat_dist_x = _core_heat_dist_x()
 
 core_heat_dist_y = linpde_gp.functions.TruncatedGaussianMixturePDF(
     domain=domain[1],
@@ -95,7 +121,7 @@ q_dot_V_src_2D = pn.functions.LambdaFunction(
     output_shape=(),
 )
 
-q_dot_V_src_1D = (TDP / height / depth) * core_heat_dist_x
+q_dot_V_src_1D = (TDP / depth / height) * core_heat_dist_x
 
 ########################################################################################
 # Heat Sinks
