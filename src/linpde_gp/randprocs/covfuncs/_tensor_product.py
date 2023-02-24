@@ -1,9 +1,11 @@
 from collections.abc import Iterable
 import functools
+from typing import Optional
 import operator
 
 from jax import numpy as jnp
 import numpy as np
+from pykeops.numpy import LazyTensor
 import probnum as pn
 from probnum.typing import ArrayLike
 
@@ -51,6 +53,12 @@ class TensorProduct(
             evaluate_dimensionwise_jax(self._factors, x0, x1),
         )
 
+    def _keops_lazy_tensor(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> "LazyTensor":
+        return functools.reduce(
+            operator.mul,
+            lazy_tensor_dimensionwise(self._factors, x0, x1)
+        )
+
 
 def evaluate_dimensionwise(
     ks: Iterable[pn.randprocs.covfuncs.CovarianceFunction],
@@ -73,6 +81,15 @@ def evaluate_dimensionwise_jax(
         for i, k in enumerate(ks)
     )
 
+def lazy_tensor_dimensionwise(
+    ks: Iterable[pn.randprocs.covfuncs.CovarianceFunction],
+    x0: np.ndarray,
+    x1: np.ndarray | None = None,
+) -> tuple[LazyTensor]:
+    return tuple(
+        k._keops_lazy_tensor(x0[..., i], x1[..., i] if x1 is not None else None)
+        for i, k in enumerate(ks)
+    )
 
 class TensorProductGrid(np.ndarray):
     def __new__(cls, *factors: ArrayLike, indexing="ij"):
