@@ -84,8 +84,8 @@ class Polynomial(_jax.JaxFunction):
             (0.0,) + tuple(coeff / (i + 1) for i, coeff in enumerate(self._coeffs))
         )
 
-    def __neg__(self) -> RationalPolynomial:
-        return RationalPolynomial(-coeff for coeff in self._coeffs)
+    def __neg__(self) -> Polynomial:
+        return Polynomial(-coeff for coeff in self._coeffs)
 
     @functools.singledispatchmethod
     def __add__(self, other):
