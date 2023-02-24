@@ -13,4 +13,6 @@ from ._poisson import (
     PoissonEquation,
     PoissonEquationDirichletProblem,
     Solution_PoissonEquation_DirichletProblem_1D_RHSConstant,
+    Solution_PoissonEquation_IVP_1D_RHSPiecewisePolynomial,
+    Solution_PoissonEquation_IVP_1D_RHSPolynomial,
 )

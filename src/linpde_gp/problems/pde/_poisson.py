@@ -1,3 +1,4 @@
+from jax import numpy as jnp
 import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, FloatLike
@@ -94,7 +95,7 @@ class PoissonEquationDirichletProblem(BoundaryValueProblem):
         )
 
 
-class Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(pn.functions.Function):
+class Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(functions.JaxFunction):
     def __init__(
         self,
         domain: DomainLike,
@@ -125,3 +126,92 @@ class Solution_PoissonEquation_DirichletProblem_1D_RHSConstant(pn.functions.Func
         a = self._coeffs
 
         return (a[2] * (x - r) + a[1]) * (x - l) + a[0]
+
+    def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
+        l, r = self._l, self._r
+        a = self._coeffs
+
+        return (a[2] * (x - r) + a[1]) * (x - l) + a[0]
+
+
+class Solution_PoissonEquation_IVP_1D_RHSPolynomial(functions.Polynomial):
+    def __init__(
+        self,
+        domain: DomainLike,
+        rhs: functions.Polynomial,
+        initial_values: ArrayLike,
+        alpha: FloatLike,
+    ) -> None:
+        domain = domains.asdomain(domain)
+
+        if not isinstance(domain, domains.Interval):
+            raise TypeError("We only support Interval domains.")
+
+        self._l, self._r = domain
+
+        if not isinstance(rhs, functions.Polynomial):
+            raise TypeError("`rhs` needs to be a `Polynomial`.")
+
+        self._rhs = rhs
+        self._initial_values = np.asarray(initial_values)
+        self._alpha = float(alpha)
+
+        rhs_int = rhs.integrate()
+        rhs_dblint = rhs_int.integrate()
+
+        coeff_1 = self._initial_values[1] - rhs_int(self._l) / self._alpha
+        coeff_0 = (
+            self._initial_values[0]
+            - self._l * coeff_1
+            - rhs_dblint(self._l) / self._alpha
+        )
+
+        super().__init__(
+            (coeff_0, coeff_1)
+            + tuple(coeff / self._alpha for coeff in rhs_dblint.coefficients[2:])
+        )
+
+
+class Solution_PoissonEquation_IVP_1D_RHSPiecewisePolynomial(functions.Piecewise):
+    def __init__(
+        self,
+        domain: DomainLike,
+        rhs: functions.Piecewise,
+        initial_values: ArrayLike,
+        alpha: FloatLike,
+    ) -> None:
+        domain = domains.asdomain(domain)
+
+        if not isinstance(domain, domains.Interval):
+            raise TypeError("We only support Interval domains.")
+
+        self._l, self._r = domain
+
+        if not (
+            isinstance(rhs, functions.Piecewise)
+            and all(isinstance(piece, functions.Polynomial) for piece in rhs.pieces)
+        ):
+            raise TypeError("`rhs` needs to be piecewise polynomial.")
+
+        self._rhs = rhs
+        self._initial_values = np.asarray(initial_values)
+        self._alpha = float(alpha)
+
+        sol_pieces = []
+        piece_initial_values = self._initial_values
+
+        for rhs_piece, piece_l, piece_r in zip(rhs.pieces, rhs.xs[:-1], rhs.xs[1:]):
+            sol_piece = Solution_PoissonEquation_IVP_1D_RHSPolynomial(
+                (piece_l, piece_r),
+                rhs=rhs_piece,
+                initial_values=piece_initial_values,
+                alpha=self._alpha,
+            )
+
+            sol_pieces.append(sol_piece)
+            piece_initial_values = (
+                sol_piece(piece_r),
+                sol_piece.differentiate()(piece_r),
+            )
+
+        super().__init__(xs=rhs.xs, fns=sol_pieces)
