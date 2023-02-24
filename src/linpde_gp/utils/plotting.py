@@ -29,6 +29,28 @@ def plot_function(
 pn.functions.Function.plot = plot_function
 
 
+def plot_piecewise_linear_function(
+    f: linpde_gp.functions.PiecewiseLinear,
+    /,
+    ax: matplotlib.axes.Axes,
+    xs: np.ndarray | None,
+    **kwargs,
+):
+    line_color = None
+
+    for piece, piece_l, piece_r in zip(f.pieces, f.xs[:-1], f.xs[1:]):
+        (line,) = ax.plot(
+            [piece_l, piece_r],
+            [piece(piece_l), piece(piece_r)],
+            color=line_color,
+        )
+
+        line_color = line.get_color()
+
+
+linpde_gp.functions.PiecewiseLinear.plot = plot_piecewise_linear_function
+
+
 def plot_random_process(randproc: pn.randprocs.RandomProcess, *args, **kwargs):
     if randproc.input_shape == ():
         return _plot_1d_random_process(randproc, *args, **kwargs)
