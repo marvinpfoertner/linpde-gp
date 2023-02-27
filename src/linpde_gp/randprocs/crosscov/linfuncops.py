@@ -7,9 +7,9 @@ from .linfunctls._dirac import (
     CovarianceFunction_Dirac_Identity,
     CovarianceFunction_Identity_Dirac,
 )
-from .linfunctls._flattened import (
-    CovarianceFunction_Flattened_Identity, 
-    CovarianceFunction_Identity_Flattened
+from .linfunctls._reshaped import (
+    CovarianceFunction_Reshaped_Identity, 
+    CovarianceFunction_Identity_Reshaped
 )
 from .linfunctls._stacked import (
     CovarianceFunction_Stacked_Identity, 
@@ -47,22 +47,22 @@ def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> np.ndarray:
     )
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
-    CovarianceFunction_Identity_Flattened
+    CovarianceFunction_Identity_Reshaped
 )
-def _(self, pv_crosscov: CovarianceFunction_Identity_Flattened, /) -> np.ndarray:
-    return CovarianceFunction_Identity_Flattened(
+def _(self, pv_crosscov: CovarianceFunction_Identity_Reshaped, /) -> np.ndarray:
+    return CovarianceFunction_Identity_Reshaped(
         self(pv_crosscov.covfunc, argnum=0),
-        pv_crosscov.flattened,
+        pv_crosscov.reshaped,
     )
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
-    CovarianceFunction_Flattened_Identity
+    CovarianceFunction_Reshaped_Identity
 )
-def _(self, pv_crosscov: CovarianceFunction_Flattened_Identity, /) -> np.ndarray:
-    return CovarianceFunction_Flattened_Identity(
+def _(self, pv_crosscov: CovarianceFunction_Reshaped_Identity, /) -> np.ndarray:
+    return CovarianceFunction_Reshaped_Identity(
         self(pv_crosscov, argnum=1),
-        pv_crosscov.flattened,
+        pv_crosscov.reshaped,
     )
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member

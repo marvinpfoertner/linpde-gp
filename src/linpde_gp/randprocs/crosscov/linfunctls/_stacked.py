@@ -12,14 +12,14 @@ from .._pv_crosscov import ProcessVectorCrossCovariance
     ProcessVectorCrossCovariance
 )
 def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> np.ndarray:
-    res_L1 = self.L1(pv_crosscov)
-    res_L2 = self.L2(pv_crosscov)
+    res_linfctl_1 = self.linfctl_1(pv_crosscov)
+    res_linfctl_2 = self.linfctl_2(pv_crosscov)
 
     axis = 0
     if pv_crosscov.reverse:
         axis = -1
     
-    return np.concatenate((res_L1, res_L2), axis=axis)
+    return np.concatenate((res_linfctl_1, res_linfctl_2), axis=axis)
 
 
 class CovarianceFunction_Identity_Stacked(ProcessVectorCrossCovariance):
@@ -31,8 +31,8 @@ class CovarianceFunction_Identity_Stacked(ProcessVectorCrossCovariance):
         self._covfunc = covfunc
         self._stacked = stacked
 
-        L1 = self._stacked.L1
-        L2 = self._stacked.L2
+        L1 = self._stacked.linfctl_1
+        L2 = self._stacked.linfctl_2
 
         self._kL1a = L1(self._covfunc, argnum=1)
         self._kL2a = L2(self._covfunc, argnum=1)
@@ -91,8 +91,8 @@ class CovarianceFunction_Stacked_Identity(ProcessVectorCrossCovariance):
         self._covfunc = covfunc
         self._stacked = stacked
 
-        L1 = self._stacked.L1
-        L2 = self._stacked.L2
+        L1 = self._stacked.linfctl_1
+        L2 = self._stacked.linfctl_2
 
         self._L1k = L1(self._covfunc, argnum=0)
         self._L2k = L2(self._covfunc, argnum=0)

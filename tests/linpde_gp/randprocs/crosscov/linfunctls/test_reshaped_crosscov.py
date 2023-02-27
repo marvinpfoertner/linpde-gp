@@ -1,9 +1,8 @@
-import pytest
-
-import numpy as np
-
 import linpde_gp
-from linpde_gp.linfunctls import FlattenedLinearFunctional
+import numpy as np
+import pytest
+from linpde_gp.linfunctls import ReshapedLinearFunctional
+
 
 @pytest.fixture
 def matern_1d():
@@ -21,7 +20,7 @@ def input_vec_1d():
 
 @pytest.mark.parametrize("argnum", [0, 1])
 def test_flat_stays_unchanged(matern_1d, linfunctl_1d, input_vec_1d, argnum):
-    linfunctl_flat = FlattenedLinearFunctional(linfunctl_1d)
+    linfunctl_flat = ReshapedLinearFunctional(linfunctl_1d)
 
     crosscov = linfunctl_1d(matern_1d, argnum=argnum)
     crosscov_flat = linfunctl_flat(matern_1d, argnum=argnum)
@@ -57,7 +56,7 @@ def input_vec_multi():
     return rng.normal(size=(77, 2))
 
 def test_multi(matern_multi, linfunctl_multi, input_vec_multi):
-    linfunctl_flat = FlattenedLinearFunctional(linfunctl_multi)
+    linfunctl_flat = ReshapedLinearFunctional(linfunctl_multi)
 
     crosscov = linfunctl_multi(matern_multi, argnum=1)
     crosscov_flat = linfunctl_flat(matern_multi, argnum=1)

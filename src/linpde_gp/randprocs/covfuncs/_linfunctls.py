@@ -4,7 +4,7 @@ from probnum.randprocs.covfuncs._arithmetic_fallbacks import ScaledCovarianceFun
 from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
     DiracFunctional,
-    FlattenedLinearFunctional,
+    ReshapedLinearFunctional,
     StackedLinearFunctional,
     LebesgueIntegral,
     LinearFunctional,
@@ -60,22 +60,22 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
 
     raise ValueError("`argnum` must either be 0 or 1.")
 
-@FlattenedLinearFunctional.__call__.register  # pylint: disable=no-member
+@ReshapedLinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k: pn.randprocs.kernels.Kernel, /, *, argnum: int = 0):
     match argnum:
         case 0:
-            from ..crosscov.linfunctls import CovarianceFunction_Flattened_Identity
+            from ..crosscov.linfunctls import CovarianceFunction_Reshaped_Identity
 
-            return CovarianceFunction_Flattened_Identity(
+            return CovarianceFunction_Reshaped_Identity(
                 covfunc=k,
-                flattened=self,
+                reshaped=self,
             )
         case 1:
-            from ..crosscov.linfunctls import CovarianceFunction_Identity_Flattened
+            from ..crosscov.linfunctls import CovarianceFunction_Identity_Reshaped
 
-            return CovarianceFunction_Identity_Flattened(
+            return CovarianceFunction_Identity_Reshaped(
                 covfunc=k,
-                flattened=self
+                reshaped=self
             )
 
     raise ValueError("`argnum` must either be 0 or 1.")
