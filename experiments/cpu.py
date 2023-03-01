@@ -28,7 +28,6 @@ depth = 0.37  # mm, datasheed linked under [3] ("Supplemental Information / Data
 domain = linpde_gp.domains.Box([[0.0, width], [0.0, height], [0.0, depth]])
 
 domain_2D = domain[0:2]
-domain_1D = domain[0]
 
 # Areas
 A_top_bottom = width * height  # mm^2
@@ -78,7 +77,7 @@ TDP = 95.0  # W, [2]
 
 def _core_heat_dist_x():
     # Shape of the heat souce
-    xs = [domain_1D[0]]
+    xs = [domain[0][0]]
     ys = [0.0]
 
     eps = core_distance_x / 3
@@ -92,13 +91,13 @@ def _core_heat_dist_x():
         ]
         ys += [0.0, 1.0, 1.0, 0.0]
 
-    xs += [domain_1D[1]]
+    xs += [domain[0][1]]
     ys += [0.0]
 
     heat_dist_unnorm = linpde_gp.functions.PiecewiseLinear.from_points(xs, ys)
 
     # Normalize
-    normalization_constant = linpde_gp.linfunctls.LebesgueIntegral(domain_1D)(
+    normalization_constant = linpde_gp.linfunctls.LebesgueIntegral(domain[0])(
         heat_dist_unnorm
     )
 
@@ -107,11 +106,32 @@ def _core_heat_dist_x():
 
 core_heat_dist_x = _core_heat_dist_x()
 
-core_heat_dist_y = linpde_gp.functions.TruncatedGaussianMixturePDF(
-    domain=domain[1],
-    means=core_centers_ys,
-    stds=core_height / 2.0,
-)
+
+def _core_heat_dist_y():
+    # Shape of the heat souce
+    eps = (core_centers_ys[1] - core_centers_ys[0] - core_height) / 3
+
+    xs = [
+        core_centers_ys[0] - core_height / 2,
+        core_centers_ys[0] + core_height / 2,
+        core_centers_ys[0] + core_height / 2 + eps,
+        core_centers_ys[1] - core_height / 2 - eps,
+        core_centers_ys[1] - core_height / 2,
+        core_centers_ys[1] + core_height / 2,
+    ]
+    ys = [1.0, 1.0, 0.0, 0.0, 1.0, 1.0]
+
+    heat_dist_unnorm = linpde_gp.functions.PiecewiseLinear.from_points(xs, ys)
+
+    # Normalize
+    normalization_constant = linpde_gp.linfunctls.LebesgueIntegral(domain[1])(
+        heat_dist_unnorm
+    )
+
+    return (1 / normalization_constant) * heat_dist_unnorm
+
+
+core_heat_dist_y = _core_heat_dist_y()
 
 q_dot_V_src_2D = pn.functions.LambdaFunction(
     fn=lambda xy: (
@@ -137,6 +157,11 @@ q_dot_V_sink_1D = linpde_gp.functions.Constant(
     value=-TDP / A_sink_1D / depth,
 )
 
+q_dot_V_sink_1D_dbc = linpde_gp.functions.Constant(
+    input_shape=(),
+    value=-TDP / V,
+)
+
 # Boundary function for all boundary parts in a row (order NESW)
 q_dot_A_2D = linpde_gp.functions.Constant(
     input_shape=(),
@@ -149,11 +174,30 @@ q_dot_A_1D = np.full(2, -TDP / A_sink_1D)
 # Stationary PDE
 ########################################################################################
 
-diffop_2D = -kappa * linpde_gp.linfuncops.diffops.Laplacian(domain_2D.shape)
-diffop_1D = -kappa * linpde_gp.linfuncops.diffops.Laplacian(domain_1D.shape)
+pde_2D = linpde_gp.problems.pde.PoissonEquation(
+    domain=domain[:2],
+    rhs=q_dot_V_src_2D + q_dot_V_sink_2D,
+    alpha=kappa,
+)
 
-q_dot_V_2D = q_dot_V_src_2D + q_dot_V_sink_2D
-q_dot_V_1D = q_dot_V_src_1D + q_dot_V_sink_1D
+pde_1D = linpde_gp.problems.pde.PoissonEquation(
+    domain=domain[0],
+    rhs=q_dot_V_src_1D + q_dot_V_sink_1D,
+    alpha=kappa,
+)
+
+pde_1D_dbc = linpde_gp.problems.pde.PoissonEquation(
+    domain=domain[0],
+    rhs=q_dot_V_src_1D + q_dot_V_sink_1D_dbc,
+    alpha=kappa,
+)
+
+########################################################################################
+# Boundary Heat Flux Measurements
+########################################################################################
+
+noise_nbc_1D = pn.randvars.Normal(np.zeros(2), np.diag(np.abs(q_dot_A_1D) ** 2))
+y_nbc_1D = q_dot_A_1D + noise_nbc_1D.sample(rng=np.random.default_rng(3987))
 
 ########################################################################################
 # Digital Thermal Sensor (DTS) Measurements
@@ -176,10 +220,60 @@ y_dts_1D = y_dts_2D[1, :]
 noise_dts_1D = 0.5 * noise_dts_2D[1, :]
 
 ########################################################################################
-# Mock Dirichlet Boundary Conditions
+# Boundary Value Problems
 ########################################################################################
 
-u_X_dbc_1D = np.array(np.array([60.26, 56.52]))
+bvp_2D = linpde_gp.problems.pde.BoundaryValueProblem(
+    pde=pde_2D,
+    boundary_conditions=[],
+    solution=None,
+)
+
+_solution_1D = (
+    linpde_gp.problems.pde.Solution_PoissonEquation_IVP_1D_RHSPiecewisePolynomial(
+        domain=domain[0],
+        rhs=pde_1D.rhs,
+        initial_values=[60.0, -q_dot_A_1D[0] / kappa],
+        alpha=kappa,
+    )
+)
+
+bvp_1D = linpde_gp.problems.pde.BoundaryValueProblem(
+    pde=pde_1D,
+    boundary_conditions=[
+        linpde_gp.problems.pde.BoundaryCondition(
+            boundary=domain[0].boundary[0],
+            operator=-kappa * linpde_gp.linfuncops.diffops.DirectionalDerivative(1.0),
+            values=q_dot_A_1D[0],
+        ),
+        linpde_gp.problems.pde.BoundaryCondition(
+            boundary=domain[0].boundary[1],
+            operator=-kappa * linpde_gp.linfuncops.diffops.DirectionalDerivative(1.0),
+            values=q_dot_A_1D[1],
+        ),
+    ],
+    solution=_solution_1D,
+)
+
+_solution_1D_dbc = (
+    linpde_gp.problems.pde.Solution_PoissonEquation_IVP_1D_RHSPiecewisePolynomial(
+        domain=domain[0],
+        rhs=pde_1D.rhs,
+        initial_values=[60.0, 0.0],
+        alpha=kappa,
+    )
+)
+
+bvp_1D_dbc = linpde_gp.problems.pde.BoundaryValueProblem(
+    pde=pde_1D,
+    boundary_conditions=[
+        linpde_gp.problems.pde.DirichletBoundaryCondition(
+            boundary=point, values=_solution_1D_dbc(point)
+        )
+        for point in domain[0].boundary
+    ],
+    solution=_solution_1D_dbc,
+)
 
 ########################################################################################
 # Plotting
