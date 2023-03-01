@@ -6,28 +6,38 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike
 
-from linpde_gp import domains, functions
+from linpde_gp import domains, functions, linfuncops
 from linpde_gp.typing import DomainLike
 
 from ._linear_pde import LinearPDE
 
 
-class DirichletBoundaryCondition:
+class BoundaryCondition:
     def __init__(
         self,
         boundary: DomainLike,
+        operator: linfuncops.LinearFunctionOperator,
         values: pn.functions.Function | ArrayLike,
     ) -> None:
         self._boundary = domains.asdomain(boundary)
 
-        if not isinstance(values, pn.functions.Function):
-            values = functions.Constant(self._boundary.shape, values)
-
-        if values.input_shape != self._boundary.shape:
+        if operator.input_domain_shape != self._boundary.shape:
             raise ValueError(
-                "The shape of the value function should be equal to the shape of "
-                "the domain."
+                "The shape of the domain of the boundary operator's input "
+                "function is not equal to the shape of the given domain object "
+                f"({operator.input_domain_shape} != {self._boundary.shape})."
             )
+
+        self._operator = operator
+
+        if not isinstance(values, pn.functions.Function):
+            values = functions.Constant(self._operator.output_domain_shape, values)
+
+        if values.input_shape != self._operator.output_domain_shape:
+            raise ValueError()
+
+        if values.output_shape != self._operator.output_codomain_shape:
+            raise ValueError()
 
         self._values = values
 
@@ -36,8 +46,30 @@ class DirichletBoundaryCondition:
         return self._boundary
 
     @property
+    def operator(self) -> linfuncops.LinearFunctionOperator:
+        return self._operator
+
+    @property
     def values(self) -> pn.functions.Function:
         return self._values
+
+
+class DirichletBoundaryCondition(BoundaryCondition):
+    def __init__(
+        self,
+        boundary: DomainLike,
+        values: pn.functions.Function | ArrayLike,
+    ) -> None:
+        super().__init__(
+            boundary=boundary,
+            operator=linfuncops.Identity(
+                boundary.shape,
+                values.output_shape
+                if isinstance(values, pn.functions.Function)
+                else np.shape(values),
+            ),
+            values=values,
+        )
 
 
 def get_1d_dirichlet_boundary_observations(

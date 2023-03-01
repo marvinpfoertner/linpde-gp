@@ -1,4 +1,5 @@
 from ._bvp import (
+    BoundaryCondition,
     BoundaryValueProblem,
     DirichletBoundaryCondition,
     get_1d_dirichlet_boundary_observations,
