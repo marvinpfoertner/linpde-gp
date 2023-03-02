@@ -56,7 +56,7 @@ class IndependentMultiOutputCovarianceFunction(JaxCovarianceFunction):
 
         for cur_output in range(n_outputs):
             result = result.at[..., cur_output, cur_output].set(
-                self.covfuncs[cur_output](x0, x1)
+                self.covfuncs[cur_output].jax(x0, x1)
             )
 
         return result
