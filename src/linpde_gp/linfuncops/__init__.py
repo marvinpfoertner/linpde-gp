@@ -6,4 +6,5 @@ from ._arithmetic import (
 )
 from ._identity import Identity
 from ._linfuncop import LinearFunctionOperator
+from ._select_output import SelectOutput
 from .diffops import LambdaLinearDifferentialOperator, LinearDifferentialOperator

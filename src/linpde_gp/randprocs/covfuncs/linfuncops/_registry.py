@@ -27,3 +27,36 @@ def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
         )
 
     raise NotImplementedError()
+
+
+@linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: covfuncs.IndependentMultiOutputCovarianceFunction,
+    /,
+    *,
+    argnum: int = 0,
+):
+    zero_cov = covfuncs.Zero(
+        input_shape_0=k.input_shape_0,
+        input_shape_1=k.input_shape_1,
+        output_shape_0=(),
+        output_shape_1=(),
+    )
+
+    assert isinstance(self.idx, int)
+
+    return covfuncs.StackCovarianceFunction(
+        *([zero_cov] * self.idx),
+        k.covfuncs[self.idx],
+        *([zero_cov] * (len(k.covfuncs) - self.idx - 1)),
+        output_idx=1 - argnum,
+    )
+
+
+@linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member
+def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
+    if (argnum == 0 and k.output_idx == 0) or (argnum == 1 and k.output_idx == 1):
+        return k.covfuncs[self.idx]
+
+    return super(linfuncops.SelectOutput, self).__call__(k, argnum=argnum)
