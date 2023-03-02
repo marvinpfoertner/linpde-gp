@@ -422,7 +422,7 @@ def _(
     self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
 ) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
     return np.concatenate(
-        [self(kLa) for kLa in crosscov],
+        [np.atleast_1d(self(kLa)) for kLa in crosscov],
         axis=-1,
     )
 
