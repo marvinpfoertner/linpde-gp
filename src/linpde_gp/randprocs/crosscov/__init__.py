@@ -5,5 +5,6 @@ from ._arithmetic import (
 )
 from ._parametric import ParametricProcessVectorCrossCovariance
 from ._pv_crosscov import ProcessVectorCrossCovariance
+from ._zero import Zero
 
 from . import linfuncops, linfunctls  # isort: skip

@@ -10,9 +10,22 @@ from linpde_gp.linfunctls import (
 from linpde_gp.linfunctls.projections.l2 import (
     L2Projection_UnivariateLinearInterpolationBasis,
 )
+from linpde_gp.randprocs import covfuncs
 
 from ._galerkin import GalerkinCovarianceFunction
 from ._matern import Matern
+
+
+@LinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: covfuncs.Zero, /, *, argnum: int = 0):
+    from ..crosscov import Zero
+
+    return Zero(
+        randproc_input_shape=k.input_shape_1 if argnum == 0 else k.input_shape_0,
+        randproc_output_shape=k.output_shape_1 if argnum == 0 else k.output_shape_0,
+        randvar_shape=self.output_shape,
+        reverse=(argnum == 0),
+    )
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member

@@ -27,6 +27,16 @@ def _(self, pv_crosscov: SumProcessVectorCrossCovariance, /):
     )
 
 
+@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
+def _(self, pv_crosscov: crosscov.Zero, /):
+    return crosscov.Zero(
+        randproc_input_shape=self.output_domain_shape,
+        randproc_output_shape=self.output_codomain_shape,
+        randvar_shape=pv_crosscov.randvar_shape,
+        reverse=pv_crosscov.reverse,
+    )
+
+
 @linfuncops.LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
     CovarianceFunction_Identity_Dirac
 )
