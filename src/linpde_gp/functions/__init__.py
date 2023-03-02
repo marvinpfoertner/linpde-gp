@@ -9,4 +9,4 @@ from ._polynomial import Monomial, Polynomial, RationalPolynomial
 from ._stack import StackedFunction, stack
 from ._truncated_gmm import TruncatedGaussianMixturePDF
 
-from . import _linfunctls  # isort: skip
+from . import _linfunctls, linfuncops  # isort: skip

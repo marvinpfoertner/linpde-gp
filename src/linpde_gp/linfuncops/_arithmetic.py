@@ -98,7 +98,7 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
 class CompositeLinearFunctionOperator(LinearFunctionOperator):
     def __init__(self, *linfuncops: LinearFunctionOperator) -> None:
         assert all(
-            L0.input_shape == L1.output_shape
+            L0.input_shapes == L1.output_shapes
             for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
         )
 

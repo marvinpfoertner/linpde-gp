@@ -29,6 +29,11 @@ def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
     raise NotImplementedError()
 
 
+########################################################################################
+# `SelectOutput` #######################################################################
+########################################################################################
+
+
 @linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member
 def _(
     self,
