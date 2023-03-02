@@ -10,6 +10,7 @@ from ._jax import (
 from ._jax_arithmetic import JaxScaledCovarianceFunction, JaxSumCovarianceFunction
 from ._matern import Matern
 from ._parametric import ParametricCovarianceFunction
+from ._stack import StackCovarianceFunction
 from ._tensor_product import TensorProduct, TensorProductGrid
 from ._zero import Zero
 

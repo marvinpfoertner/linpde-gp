@@ -16,3 +16,14 @@ def _(self, k: covfuncs.Zero, /, *, argnum: int = 0):
         output_shape_0=self.output_codomain_shape if argnum == 0 else k.output_shape_0,
         output_shape_1=self.output_codomain_shape if argnum == 1 else k.output_shape_1,
     )
+
+
+@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
+def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
+    if (argnum == 0 and k.output_idx == 1) or (argnum == 1 and k.output_idx == 0):
+        return covfuncs.StackCovarianceFunction(
+            *(self(covfunc, argnum=argnum) for covfunc in k.covfuncs),
+            output_idx=k.output_idx,
+        )
+
+    raise NotImplementedError()
