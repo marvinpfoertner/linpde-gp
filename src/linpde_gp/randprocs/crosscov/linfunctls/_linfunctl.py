@@ -5,6 +5,7 @@ from linpde_gp.linfunctls import LinearFunctional
 from .._arithmetic import (
     LinOpProcessVectorCrossCovariance,
     ScaledProcessVectorCrossCovariance,
+    SumProcessVectorCrossCovariance,
 )
 from ._dirac import CovarianceFunction_Dirac_Identity, CovarianceFunction_Identity_Dirac
 
@@ -12,6 +13,11 @@ from ._dirac import CovarianceFunction_Dirac_Identity, CovarianceFunction_Identi
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, pv_crosscov: ScaledProcessVectorCrossCovariance, /) -> np.ndarray:
     return pv_crosscov.scalar * self(pv_crosscov.pv_crosscov)
+
+
+@LinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, sum_pv_crosscov: SumProcessVectorCrossCovariance, /) -> np.ndarray:
+    return sum(self(summand) for summand in sum_pv_crosscov._pv_crosscovs)
 
 
 @LinearFunctional.__call__.register(  # pylint: disable=no-member
