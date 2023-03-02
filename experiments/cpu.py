@@ -248,7 +248,7 @@ bvp_1D = linpde_gp.problems.pde.BoundaryValueProblem(
         ),
         linpde_gp.problems.pde.BoundaryCondition(
             boundary=domain[0].boundary[1],
-            operator=-kappa * linpde_gp.linfuncops.diffops.DirectionalDerivative(1.0),
+            operator=-kappa * linpde_gp.linfuncops.diffops.DirectionalDerivative(-1.0),
             values=q_dot_A_1D[1],
         ),
     ],
