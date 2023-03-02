@@ -1,4 +1,5 @@
 from linpde_gp import linfuncops
+from linpde_gp.randprocs import crosscov
 
 from ._arithmetic import (
     ScaledProcessVectorCrossCovariance,
@@ -55,3 +56,10 @@ def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /):
         self(pv_crosscov, argnum=1),
         pv_crosscov.dirac,
     )
+
+
+@linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member
+def _(self, stacked_pv_crosscov: crosscov.StackedProcessVectorCrossCovariance, /):
+    assert isinstance(self.idx, int)
+
+    return stacked_pv_crosscov.pv_crosscovs[self.idx]

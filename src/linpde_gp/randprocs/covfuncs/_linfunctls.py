@@ -33,6 +33,15 @@ def _(self, k_scaled: ScaledCovarianceFunction, /, *, argnum: int = 0):
     return k_scaled._scalar * self(k_scaled._covfunc, argnum=argnum)
 
 
+@LinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
+    from ..crosscov import StackedProcessVectorCrossCovariance
+
+    return StackedProcessVectorCrossCovariance(
+        *(self(covfunc, argnum=argnum) for covfunc in k.covfuncs)
+    )
+
+
 @CompositeLinearFunctional.__call__.register(  # pylint: disable=no-member
     pn.randprocs.covfuncs.CovarianceFunction
 )
