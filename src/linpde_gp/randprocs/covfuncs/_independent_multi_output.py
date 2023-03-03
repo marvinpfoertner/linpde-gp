@@ -1,7 +1,8 @@
 from typing import Optional
 
-from jax import numpy as jnp
 import numpy as np
+import probnum as pn
+from jax import numpy as jnp
 
 from ._jax import JaxCovarianceFunction
 
@@ -60,3 +61,10 @@ class IndependentMultiOutputCovarianceFunction(JaxCovarianceFunction):
             )
 
         return result
+
+    def _evaluate_linop(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> pn.linops.LinearOperator:
+        return pn.linops.BlockDiagonalMatrix(
+            *(covfunc.linop(x0, x1) for covfunc in self.covfuncs)
+        )
