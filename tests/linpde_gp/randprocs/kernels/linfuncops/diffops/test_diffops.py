@@ -3,9 +3,9 @@ import operator
 
 import jax
 import numpy as np
-from probnum.typing import ShapeType
+import pytest
 import scipy.stats
-
+from probnum.typing import ShapeType
 from pytest_cases import parametrize_with_cases
 
 from .cases import CovarianceFunctionDiffOpTestCase, case_modules
@@ -49,4 +49,24 @@ def test_L0kL1_call_equals_jax(test_case: CovarianceFunctionDiffOpTestCase):
     np.testing.assert_allclose(
         test_case.L0kL1(Xs[:, None], Xs[None, :]),
         L0kL1_jax(Xs[:, None], Xs[None, :]),
+    )
+
+@parametrize_with_cases("test_case", cases=case_modules)
+def test_L0kL1_linop_keops_equals_no_keops(test_case: CovarianceFunctionDiffOpTestCase):
+    Xs = X(test_case.k.input_shape)
+
+    keops_linop = test_case.L0kL1.linop(Xs, Xs)
+    keops_mat = keops_linop @ np.eye(keops_linop.shape[1])
+
+    no_keops_linop = test_case.L0kL1.linop(Xs, Xs)
+    try:
+        no_keops_linop._use_keops = False
+        no_keops_mat = no_keops_linop @ np.eye(no_keops_linop.shape[1])
+    except AttributeError:
+        # for _use_keops
+        pytest.skip("No KeOps implementation available.")
+
+    np.testing.assert_allclose(
+        no_keops_mat,
+        keops_mat
     )
