@@ -75,21 +75,21 @@ kappa *= 10  # W/mm K
 TDP = 95.0  # W, [2]
 
 
-def _core_heat_dist_x():
+def _core_heat_dist_x(rel_heights=[1.0, 1.0, 1.0]):
     # Shape of the heat souce
     xs = [domain[0][0]]
     ys = [0.0]
 
     eps = core_distance_x / 3
 
-    for core_center_x in core_centers_xs:
+    for core_center_x, rel_height in zip(core_centers_xs, rel_heights):
         xs += [
             core_center_x - core_width / 2 - eps,
             core_center_x - core_width / 2,
             core_center_x + core_width / 2,
             core_center_x + core_width / 2 + eps,
         ]
-        ys += [0.0, 1.0, 1.0, 0.0]
+        ys += [0.0, rel_height, rel_height, 0.0]
 
     xs += [domain[0][1]]
     ys += [0.0]
@@ -104,7 +104,7 @@ def _core_heat_dist_x():
     return (1 / normalization_constant) * heat_dist_unnorm
 
 
-core_heat_dist_x = _core_heat_dist_x()
+core_heat_dist_x = _core_heat_dist_x(rel_heights=[0.9, 0.75, 1.0])
 
 
 def _core_heat_dist_y():
@@ -193,33 +193,6 @@ pde_1D_dbc = linpde_gp.problems.pde.PoissonEquation(
 )
 
 ########################################################################################
-# Boundary Heat Flux Measurements
-########################################################################################
-
-noise_nbc_1D = pn.randvars.Normal(np.zeros(2), np.diag(np.abs(q_dot_A_1D) ** 2))
-y_nbc_1D = q_dot_A_1D + noise_nbc_1D.sample(rng=np.random.default_rng(3987))
-
-########################################################################################
-# Digital Thermal Sensor (DTS) Measurements
-########################################################################################
-
-X_dts_2D = core_centers
-y_dts_2D = np.array(
-    # fmt: off
-    [[59.6, 60.1, 58.5],
-     [61.03, 60.36, 59.22]],
-    # fmt: on
-)
-noise_dts_2D = pn.randvars.Normal(
-    mean=np.zeros_like(y_dts_2D),
-    cov=1.0**2 * np.eye(y_dts_2D.size),
-)
-
-X_dts_1D = X_dts_2D[1, :, 0]
-y_dts_1D = y_dts_2D[1, :]
-noise_dts_1D = 0.5 * noise_dts_2D[1, :]
-
-########################################################################################
 # Boundary Value Problems
 ########################################################################################
 
@@ -274,6 +247,30 @@ bvp_1D_dbc = linpde_gp.problems.pde.BoundaryValueProblem(
     ],
     solution=_solution_1D_dbc,
 )
+
+########################################################################################
+# Estimate of the RHS
+########################################################################################
+
+q_dot_V_estim_1D = (TDP / depth / height) * _core_heat_dist_x() + q_dot_V_sink_1D
+
+########################################################################################
+# Digital Thermal Sensor (DTS) Measurements
+########################################################################################
+
+X_dts_2D = core_centers
+
+noise_dts_2D = pn.randvars.Normal(
+    mean=np.zeros_like(X_dts_2D[..., 0]),
+    cov=0.5**2 * np.eye(X_dts_2D[..., 0].size),
+)
+
+y_dts_2D = bvp_1D.solution(X_dts_2D[..., 0])
+y_dts_2D += noise_dts_2D.sample(np.random.default_rng(33215))
+
+X_dts_1D = X_dts_2D[1, :, 0]
+y_dts_1D = y_dts_2D[1, :]
+noise_dts_1D = noise_dts_2D[1, :]
 
 ########################################################################################
 # Plotting
