@@ -1,18 +1,19 @@
-from collections.abc import Mapping
 import functools
 import operator
+from collections.abc import Mapping
+from typing import Optional
 
-from jax import numpy as jnp
 import numpy as np
+from jax import numpy as jnp
+
+from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
 from linpde_gp.linfuncops import diffops
 
 from ..._jax import JaxCovarianceFunction, JaxCovarianceFunctionMixin
-from ..._tensor_product import (
-    TensorProduct,
-    evaluate_dimensionwise,
-    evaluate_dimensionwise_jax,
-)
+from ..._tensor_product import (TensorProduct, evaluate_dimensionwise,
+                                evaluate_dimensionwise_jax,
+                                lazy_tensor_dimensionwise)
 
 
 class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
@@ -48,7 +49,7 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
         return self._reverse
 
     @functools.cached_property
-    def _kLs_or_Lks(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
+    def _kLs_or_Lks(self) -> Mapping[int, JaxCovarianceFunction]:
         return {
             dim_idx: L_summand(
                 self._k.factors[dim_idx], argnum=(0 if self.reverse else 1)
@@ -94,6 +95,27 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
 
         return res
 
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0, x1)
+        kLs_or_Lks_x0_x1 = {
+            dim_idx: kL_or_Lk._keops_lazy_tensor(
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
+            )
+            for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
+        }
+
+        res = 0.0
+
+        for dim_idx, kL_or_Lk_x0_x1 in kLs_or_Lks_x0_x1.items():
+            res += functools.reduce(
+                operator.mul,
+                ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :],
+            )
+
+        return res
+
 
 class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
     """Cross-covariance function obtained by applying a linear differential operators
@@ -124,21 +146,21 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
         return self._k
 
     @functools.cached_property
-    def _L0ks(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
+    def _L0ks(self) -> Mapping[int, JaxCovarianceFunction]:
         return {
             dim_idx: L0_summand(self._k.factors[dim_idx], argnum=0)
             for dim_idx, L0_summand in self._L0_summands.items()
         }
 
     @functools.cached_property
-    def _kL1s(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
+    def _kL1s(self) -> Mapping[int, JaxCovarianceFunction]:
         return {
             dim_idx: L1_summand(self._k.factors[dim_idx], argnum=1)
             for dim_idx, L1_summand in self._L1_summands.items()
         }
 
     @functools.cached_property
-    def _L0kL1s(self) -> Mapping[int, JaxCovarianceFunctionMixin]:
+    def _L0kL1s(self) -> Mapping[int, JaxCovarianceFunction]:
         L0kL1s = {}
 
         for dim_idx, kL1 in self._kL1s.items():
@@ -206,6 +228,54 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
         L0kL1s_x0_x1 = {
             dim_idx: L0kL1.jax(
                 x0[..., dim_idx], x1[..., dim_idx] if dim_idx is not None else None
+            )
+            for dim_idx, L0kL1 in self._L0kL1s.items()
+        }
+
+        res = 0.0
+
+        for i, L0k_x0_x1 in L0ks_x0_x1.items():
+            for j, kL1_x0_x1 in kL1s_x0_x1.items():
+                if i == j:
+                    res += functools.reduce(
+                        operator.mul,
+                        ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :],
+                    )
+                else:
+                    m = min(i, j)
+                    n = max(i, j)
+
+                    res += functools.reduce(
+                        operator.mul,
+                        (
+                            ks_x0_x1[:m]
+                            + ks_x0_x1[m + 1 : n]
+                            + ks_x0_x1[n + 1 :]
+                            + (L0k_x0_x1, kL1_x0_x1)
+                        ),
+                    )
+
+        return res
+
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0, x1)
+        L0ks_x0_x1 = {
+            dim_idx: L0k._keops_lazy_tensor(
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
+            )
+            for dim_idx, L0k in self._L0ks.items()
+        }
+        kL1s_x0_x1 = {
+            dim_idx: kL1._keops_lazy_tensor(
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
+            )
+            for dim_idx, kL1 in self._kL1s.items()
+        }
+        L0kL1s_x0_x1 = {
+            dim_idx: L0kL1._keops_lazy_tensor(
+                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
             )
             for dim_idx, L0kL1 in self._L0kL1s.items()
         }

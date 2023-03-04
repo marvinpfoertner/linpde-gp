@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import functools
+from typing import Optional
 
-from jax import numpy as jnp
+from pykeops.numpy import LazyTensor, Pm, Vi, Vj
+
 import numpy as np
-from probnum.randprocs import covfuncs
-
+from jax import numpy as jnp
 from linpde_gp.functions import Monomial, RationalPolynomial
 from linpde_gp.linfuncops import diffops
+from probnum.randprocs import covfuncs
 
 from ..._jax import JaxCovarianceFunction, JaxIsotropicMixin
 
@@ -105,6 +107,29 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
 
         return res
 
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        if x1 is None:
+            x1 = x0
+        if len(x0.shape) < 2:
+            x0 = x0.reshape(-1, 1)
+        if len(x1.shape) < 2:
+            x1 = x1.reshape(-1, 1)
+
+        scaled_diffs = Vi(x0) - Vj(x1)
+        scaled_diffs *= Pm(self._matern._scale_factors)
+
+        proj_scaled_diffs = (Pm(self._scaled_direction) * scaled_diffs).sum()
+        scaled_dists = scaled_diffs * scaled_diffs
+        scaled_dists = scaled_dists.sum().sqrt()
+
+        res = self._poly._evaluate_keops(scaled_dists)
+        res *= (-scaled_dists).exp()
+        res *= proj_scaled_diffs
+
+        return res
+
 
 class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
     JaxCovarianceFunction
@@ -198,6 +223,37 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
 
         return res * jnp.exp(-scaled_dists)
 
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        if x1 is None:
+            x1 = x0
+        if len(x0.shape) < 2:
+            x0 = x0.reshape(-1, 1)
+        if len(x1.shape) < 2:
+            x1 = x1.reshape(-1, 1)
+
+        scaled_diffs = Vi(x0) - Vj(x1)
+        scaled_diffs *= Pm(self._matern._scale_factors)
+
+        proj_scaled_diffs0 = (Pm(self._scaled_direction0) * scaled_diffs).sum()
+        proj_scaled_diffs1 = (Pm(self._scaled_direction1) * scaled_diffs).sum()
+
+        scaled_dists = scaled_diffs * scaled_diffs
+        scaled_dists = scaled_dists.sum().sqrt()
+
+        res = Pm(self._directions_inprod) * self._neg_poly_deriv._evaluate_keops(
+            scaled_dists
+        )
+        res -= (
+            proj_scaled_diffs0
+            * proj_scaled_diffs1
+            * self._poly_diff._evaluate_keops(scaled_dists)
+        )
+        res *= (-scaled_dists).exp()
+
+        return res
+
 
 class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
     covfuncs.IsotropicMixin, JaxIsotropicMixin, JaxCovarianceFunction
@@ -229,7 +285,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
     def _scaled_directions_prod(self) -> np.floating:
         return np.squeeze(
             self._direction0 * self._direction1 * self._matern._scale_factors**2
-        )
+        )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         if x1 is None:
@@ -271,6 +327,21 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
             * jnp.exp(-scaled_dists)
         )
 
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        scaled_dists = self._euclidean_distances_keops(
+            x0,
+            x1,
+            scale_factors=self._matern._scale_factors,
+        )
+
+        return (
+            Pm(self._scaled_directions_prod)
+            * self._poly._evaluate_keops(scaled_dists)
+            * (-scaled_dists).exp()
+        )
+
 
 class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
     covfuncs.IsotropicMixin, JaxIsotropicMixin, JaxCovarianceFunction
@@ -309,7 +380,7 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
     def _output_scale_factor(self) -> np.floating:
         return np.squeeze(
             self._L.weights * self._matern._scale_factors * self._matern._scale_factors
-        )
+        )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         scaled_dists = self._euclidean_distances(
@@ -329,6 +400,19 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
             self._output_scale_factor
             * jnp.exp(-scaled_dists)
             * self._poly.jax(scaled_dists)
+        )
+
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        scaled_dists = self._euclidean_distances_keops(
+            x0, x1, scale_factors=self._matern._scale_factors
+        )
+
+        return (
+            Pm(self._output_scale_factor)
+            * (-scaled_dists).exp()
+            * self._poly._evaluate_keops(scaled_dists)
         )
 
 
@@ -365,7 +449,7 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
     def _output_scale_factor(self) -> float:
         return np.squeeze(
             self._L0.weights * self._L1.weights * self._matern._scale_factors**4
-        )
+        )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         scaled_dists = self._euclidean_distances(
@@ -385,6 +469,19 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
             self._output_scale_factor
             * jnp.exp(-scaled_dists)
             * self._poly.jax(scaled_dists)
+        )
+
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        scaled_dists = self._euclidean_distances_keops(
+            x0, x1, scale_factors=self._matern._scale_factors
+        )
+
+        return (
+            Pm(self._output_scale_factor)
+            * (-scaled_dists).exp()
+            * self._poly._evaluate_keops(scaled_dists)
         )
 
 
@@ -462,6 +559,28 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
         scaled_dists = self._batched_euclidean_norm_jax(scaled_diffs)
 
         return jnp.exp(-scaled_dists) * self._poly.jax(scaled_dists) * proj_scaled_diffs
+
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        if x1 is None:
+            x1 = x0
+        if len(x0.shape) < 2:
+            x0 = x0.reshape(-1, 1)
+        if len(x1.shape) < 2:
+            x1 = x1.reshape(-1, 1)
+        scaled_diffs = Vi(x0) - Vj(x1)
+        scaled_diffs *= Pm(self._matern._scale_factors)
+
+        proj_scaled_diffs = (Pm(self._scaled_direction) * scaled_diffs).sum()
+        scaled_dists = scaled_diffs * scaled_diffs
+        scaled_dists = scaled_dists.sum().sqrt()
+
+        return (
+            (-scaled_dists).exp()
+            * self._poly._evaluate_keops(scaled_dists)
+            * proj_scaled_diffs
+        )
 
 
 @functools.lru_cache(maxsize=None)

@@ -5,6 +5,7 @@ from fractions import Fraction
 import functools
 import itertools
 
+from pykeops.numpy import LazyTensor, Pm
 from jax import numpy as jnp
 import numpy as np
 from probnum.typing import FloatLike
@@ -72,6 +73,15 @@ class Polynomial(_jax.JaxFunction):
         for k in range(self.degree - 1, -1, -1):
             res *= x
             res += self._coeffs[k]
+
+        return res
+
+    def _evaluate_keops(self, x: LazyTensor) -> LazyTensor:
+        res = Pm(self._coeffs[self.degree])
+
+        for k in range(self.degree - 1, -1, -1):
+            res *= x
+            res += Pm(self._coeffs[k])
 
         return res
 
