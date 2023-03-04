@@ -17,8 +17,8 @@ class Affine(_jax.JaxFunction):
             input_shape = ()
             output_shape = self._A.shape
         elif self._A.ndim == 2:
-            input_shape = (self._A[1],)
-            output_shape = (self._A[0],)
+            input_shape = (self._A.shape[1],)
+            output_shape = (self._A.shape[0],)
         else:
             raise ValueError("TODO")
 
