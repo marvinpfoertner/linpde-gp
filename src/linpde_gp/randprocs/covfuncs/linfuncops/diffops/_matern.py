@@ -3,10 +3,7 @@ from __future__ import annotations
 import functools
 from typing import Optional
 
-try:
-    from pykeops.numpy import LazyTensor, Pm, Vi, Vj
-except ImportError:
-    pass
+from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
 import numpy as np
 from jax import numpy as jnp

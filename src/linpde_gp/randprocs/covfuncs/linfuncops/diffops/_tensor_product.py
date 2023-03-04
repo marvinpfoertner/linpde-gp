@@ -6,10 +6,7 @@ from typing import Optional
 import numpy as np
 from jax import numpy as jnp
 
-try:
-    from pykeops.numpy import LazyTensor, Pm, Vi, Vj
-except ImportError:
-    pass
+from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
 from linpde_gp.linfuncops import diffops
 
