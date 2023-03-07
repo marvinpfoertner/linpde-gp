@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, List, Optional, Tuple
 
 import matplotlib
@@ -22,7 +23,7 @@ def plot_function(
     ax: matplotlib.axes.Axes,
     xs: np.ndarray,
     **kwargs,
-) -> matplotlib.lines.Line2D:
+) -> Sequence[matplotlib.lines.Line2D]:
     return ax.plot(xs, f(xs), **kwargs)
 
 
@@ -34,18 +35,24 @@ def plot_piecewise_linear_function(
     /,
     ax: matplotlib.axes.Axes,
     xs: np.ndarray | None,
-    **kwargs,
-):
-    line_color = None
+    color=None,
+    label=None,
+    **plot_kwargs,
+) -> Sequence[matplotlib.lines.Line2D]:
+    lines = []
 
-    for piece, piece_l, piece_r in zip(f.pieces, f.xs[:-1], f.xs[1:]):
-        (line,) = ax.plot(
+    for idx, (piece, piece_l, piece_r) in enumerate(zip(f.pieces, f.xs[:-1], f.xs[1:])):
+        lines += ax.plot(
             [piece_l, piece_r],
             [piece(piece_l), piece(piece_r)],
-            color=line_color,
+            color=color,
+            label=label if idx == 0 else None,
+            **plot_kwargs,
         )
 
-        line_color = line.get_color()
+        color = lines[0].get_color()
+
+    return tuple(lines)
 
 
 linpde_gp.functions.PiecewiseLinear.plot = plot_piecewise_linear_function
@@ -83,21 +90,22 @@ def _plot_1d_random_process(
     vertical: bool = False,
     **kwargs,
 ) -> Tuple[
-    matplotlib.lines.Line2D,
+    Sequence[matplotlib.lines.Line2D],
     Optional[matplotlib.collections.PolyCollection],
     List[matplotlib.lines.Line2D],
 ]:
     # Plot mean function
-    mean = randproc.mean(xs)
-
-    (mean_line2d,) = ax.plot(
-        xs if not vertical else mean,
-        mean if not vertical else xs,
+    mean_lines2d = randproc.mean.plot(
+        ax,
+        xs,
         color=color,
         alpha=alpha,
         label=label,
         **(kwargs | mean_line2d_kwargs),
     )
+
+    if isinstance(randproc, randprocs.DeterministicProcess):
+        return mean_lines2d, None, []
 
     # Plot marginal credible interval as shaded region
     try:
@@ -110,11 +118,13 @@ def _plot_1d_random_process(
 
         fill_delta = std_factor * std
 
+        mean_xs = randproc.mean(xs)
+
         std_poly = (ax.fill_between if not vertical else ax.fill_betweenx)(
             xs,
-            mean - fill_delta,
-            mean + fill_delta,
-            color=mean_line2d.get_color(),
+            mean_xs - fill_delta,
+            mean_xs + fill_delta,
+            color=mean_lines2d[0].get_color(),
             alpha=alpha * rel_fill_alpha,
             **kwargs,
         )
@@ -134,13 +144,13 @@ def _plot_1d_random_process(
             xs,
             rng,
             num_samples=num_samples,
-            color=mean_line2d.get_color(),
+            color=mean_lines2d[0].get_color(),
             alpha=alpha * rel_sample_alpha,
             vertical=vertical,
             **(kwargs | samples_kwargs),
         )
 
-    return mean_line2d, std_poly, samples_line2d
+    return mean_lines2d, std_poly, samples_line2d
 
 
 def plot_random_process_samples(
@@ -495,7 +505,7 @@ def plot_local_taylor_processes(
             ),
         )
 
-        mean_line2d, _, _ = taylor_process_x.plot(
+        mean_lines2d, _, _ = taylor_process_x.plot(
             ax,
             x0 + eval_grid,
             color=color,
@@ -509,7 +519,7 @@ def plot_local_taylor_processes(
         )
 
         if color is None:
-            color = mean_line2d.get_color()
+            color = mean_lines2d[0].get_color()
 
 
 def plot_local_curvature(
