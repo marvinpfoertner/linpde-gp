@@ -35,6 +35,9 @@ class ScaledProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarian
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return self._scalar * self._pv_crosscov.jax(x)
+    
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        return self._scalar * self._pv_crosscov._evaluate_linop(x)
 
 
 class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
@@ -64,6 +67,9 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         return sum(pv_crosscov.jax(x) for pv_crosscov in self._pv_crosscovs)
+    
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        return sum(pv_crosscov._evaluate_linop(x) for pv_crosscov in self._pv_crosscovs)
 
 
 class LinOpProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
@@ -101,3 +107,6 @@ class LinOpProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarianc
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError()
+    
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        return self._linop @ self._pv_crosscov._evaluate_linop(x)

@@ -120,6 +120,36 @@ class ProcessVectorCrossCovariance(abc.ABC):
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
         pass
 
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        raise NotImplementedError()
+
+    def evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        x = np.asarray(x)
+
+        # Shape checking
+        if x.shape[x.ndim - self.randproc_input_ndim :] != self.randproc_input_shape:
+            err_msg = (
+                "The shape of the input array must match the `randproc_input_shape` "
+                f"`{self.randproc_input_shape}` of the function along its last "
+                f"dimensions, but an array with shape `{x.shape}` was given."
+            )
+
+            raise ValueError(err_msg)
+
+        try:
+            return self._evaluate_linop(x)
+        except NotImplementedError:
+            batch_size = np.prod(x.shape[: x.ndim - self.randproc_input_ndim])
+            randproc_output_size = np.prod(self.randproc_output_shape)
+            if self.reverse:
+                target_shape = (self.randvar_size, randproc_output_size * batch_size)
+            else:
+                target_shape = (randproc_output_size * batch_size, self.randvar_size)
+            res = self(x)
+            # We want the batch dimension to change the fastest, so we need Fortran order
+            res = np.reshape(res, target_shape, order="F")
+            return pn.linops.Matrix(res)
+
     def __neg__(self):
         return -1.0 * self
 
