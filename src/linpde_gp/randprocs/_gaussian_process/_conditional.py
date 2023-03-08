@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Optional
 from collections.abc import Iterator, Sequence
 import functools
 
@@ -15,7 +16,7 @@ from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
-from linpde_gp.linops import BlockMatrix
+from linpde_gp.linops import BlockMatrix, ConcatenatedLinearOperator
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 from linpde_gp.typing import RandomVariableLike
 
@@ -171,6 +172,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 axis=-1,
             )
 
+        def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+            return ConcatenatedLinearOperator(
+                tuple(kLa.evaluate_linop(x) for kLa in self._kLas), axis=-1
+            )
+
         def __iter__(self) -> Iterator[ProcessVectorCrossCovariance]:
             for kLa in self._kLas:
                 yield kLa
@@ -221,28 +227,81 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 output_shape_1=self._prior_covfunc.output_shape_1,
             )
 
+        def _crosscovs_reshaped(
+            self,
+            x0: np.ndarray | jnp.ndarray,
+            x1: Optional[np.ndarray | jnp.ndarray],
+            *,
+            jax=False,
+        ) -> tuple[np.ndarray]:
+            """Gram matrix has shape (o*N, o*N), so we need to reshape the
+            crosscovs before multiplying them"""
+            kLas_fn = self._kLas if not jax else self._kLas.jax
+            kLas_x0 = kLas_fn(x0)
+            kLas_x1 = kLas_fn(x1) if x1 is not None else kLas_x0
+
+            x0_batch_shape = x0.shape[: x0.ndim - self.input_ndim_0]
+            x0_output_shape = (
+                self.output_shape_0 if len(self.output_shape_0) > 0 else (1,)
+            )
+            # Flatten the training data (X) components of the shape
+            kLas_x0 = kLas_x0.reshape(
+                x0_batch_shape + x0_output_shape + (-1,), order="C"
+            )
+
+            x1_batch_shape = (
+                x1.shape[: x1.ndim - self.input_ndim_1]
+                if x1 is not None
+                else x0_batch_shape
+            )
+            x1_output_shape = self.output_shape_1 if x1 is not None else x0_output_shape
+            x1_output_shape = x1_output_shape if len(x1_output_shape) > 0 else (1,)
+            kLas_x1 = kLas_x1.reshape(
+                x1_batch_shape + x1_output_shape + (-1,), order="C"
+            )
+            kLas_x1 = np.moveaxis(kLas_x1, -1, -2)
+            return kLas_x0, kLas_x1
+
         def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
             k_xx = self._prior_covfunc(x0, x1)
-            kLas_x0 = self._kLas(x0)
-            kLas_x1 = self._kLas(x1) if x1 is not None else kLas_x0
-
-            return (
-                k_xx
-                - (
-                    kLas_x0[..., None, :]
-                    @ (
-                        self._gram_matrix.inv() @ kLas_x1.transpose()
-                    ).transpose()[..., :, None]
-                )[..., 0, 0]
+            kLas_x0, kLas_x1 = self._crosscovs_reshaped(x0, x1)
+            broadcast_batch_shape = self._check_shapes(
+                x0.shape, x1.shape if x1 is not None else None
             )
+            cov_update = kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
+            # Ensure that the correct shape is obtained,
+            # even when using output shape ()
+            cov_update = cov_update.reshape(
+                broadcast_batch_shape + self.output_shape_0 + self.output_shape_1,
+                order="C",
+            )
+
+            return k_xx - cov_update
 
         @functools.partial(jax.jit, static_argnums=0)
         def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
             k_xx = self._prior_covfunc.jax(x0, x1)
-            kLas_x0 = self._kLas.jax(x0)
-            kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
+            kLas_x0, kLas_x1 = self._crosscovs_reshaped(x0, x1, jax=True)
+            broadcast_batch_shape = self._check_shapes(
+                x0.shape, x1.shape if x1 is not None else None
+            )
+            cov_update = kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
+            # Ensure that the correct shape is obtained,
+            # even when using output shape ()
+            cov_update = cov_update.reshape(
+                broadcast_batch_shape + self.output_shape_0 + self.output_shape_1,
+                order="C",
+            )
 
-            return k_xx - kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
+            return k_xx - cov_update
+
+        def _evaluate_linop(
+            self, x0: np.ndarray, x1: Optional[np.ndarray]
+        ) -> pn.linops.LinearOperator:
+            k_xx = self._prior_covfunc.linop(x0, x1)
+            kLas_x0 = self._kLas.evaluate_linop(x0)
+            kLas_x1 = self._kLas.evaluate_linop(x1) if x1 is not None else kLas_x0
+            return k_xx - kLas_x0 @ self._gram_matrix.inv() @ kLas_x1.T
 
     def condition_on_observations(
         self,
@@ -261,21 +320,21 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         )
 
         # Compute lower-left block in the new covariance matrix
-        gram_L_La_prev_blocks = tuple(
-            L(kLa_prev).reshape((L.output_size, kLa_prev.randvar_size))
-            for kLa_prev in self._kLas
-        )
+        gram_L_La_prev_blocks = L(self._kLas)
 
         # Update the Cholesky decomposition of the previous covariance matrix and the
         # representer weights
 
         gram_matrix = BlockMatrix(
             self.gram,
-            np.concatenate(gram_L_La_prev_blocks, axis=-1).T,
+            gram_L_La_prev_blocks.T,
             None,
-            gram
+            gram,
+            is_spd=True,
         )
-        representer_weights = gram_matrix.schur_update(self.representer_weights, (Y - pred_mean).reshape((-1,), order="C"))
+        representer_weights = gram_matrix.schur_update(
+            self.representer_weights, (Y - pred_mean).reshape(-1, order="C")
+        )
 
         return ConditionalGaussianProcess(
             prior=self._prior,
@@ -284,10 +343,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             bs=self._bs + (b,),
             kLas=self._kLas.append(kLa),
             gram_matrix=gram_matrix,
-            # gram_blocks=self._gram_blocks + (gram_L_row_blocks,),
-            # gram_cho=gram_cho,
             representer_weights=representer_weights,
         )
+
     @classmethod
     def _preprocess_observations(
         cls,
@@ -303,7 +361,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         pn.randvars.Normal | pn.randvars.Constant | None,
         ProcessVectorCrossCovariance,
         np.ndarray,
-        np.ndarray,
+        pn.linops.LinearOperator,
     ]:
         # TODO: Allow `RandomProcessLike` for `b` ("b = b(X)")
 
@@ -334,7 +392,6 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 raise TypeError("TODO")
 
         assert isinstance(L, LinearFunctional)
-        L = FlattenedLinearFunctional(L)
 
         # Check measurement noise model
         if b is not None:
@@ -346,15 +403,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                     f"({type(b)=})"
                 )
 
-            # TODO: Flatten b
             if b.shape != L.output_shape:
                 raise ValueError(f"{b.shape=} must be equal to {L.output_shape}")
-
-        # Check observations
-        Y = np.asarray(Y).flatten()
-
-        if Y.shape != L.output_shape:
-            raise ValueError(f"{Y.shape=} must be equal to {L.output_shape}.")
 
         # Compute the joint measure (f, L[f])
         Lf = L(prior)
@@ -362,13 +412,19 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         # Compute predictive mean and covariance matrix
         pred_mean = Lf.mean
-        gram = np.atleast_2d(Lf.cov)
+        gram = Lf.cov
+
+        pred_mean = pred_mean.reshape(-1, order="C")
+        # Check observations
+        Y = np.asarray(Y).reshape(-1, order="C")
+
+        if Y.size != Lf.cov.shape[1]:
+            raise ValueError(f"Expected {Lf.cov.shape[1]} observations, got {Y.size}.")
 
         if b is not None:
-            pred_mean = pred_mean + b.mean
-            gram = gram + b.cov
+            pred_mean = pred_mean + np.asarray(b.mean).reshape(-1)
+            gram = gram + pn.linops.aslinop(b.cov)
 
-        gram = pn.linops.Matrix(gram)
         gram.is_symmetric = True
         gram.is_positive_definite = True
 
@@ -398,10 +454,9 @@ def _(
 )
 def _(
     self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
-) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
-    return np.concatenate(
-        [np.atleast_1d(self(kLa)) for kLa in crosscov],
-        axis=-1,
+) -> pn.linops.LinearOperator:
+    return ConcatenatedLinearOperator(
+        tuple(self(kLa_prev) for kLa_prev in crosscov), axis=-1
     )
 
 
@@ -439,7 +494,6 @@ def _(
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
     cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T
-
 
     return pn.randvars.Normal(mean, cov)
 

@@ -9,13 +9,10 @@ from linpde_gp.linfunctls import LinearFunctional
 def _(self, gp: pn.randprocs.GaussianProcess, /) -> pn.randvars.Normal:
     mean = self(gp.mean)
     crosscov = self(gp.cov, argnum=1)
-    cov = self(crosscov)
+    cov = pn.linops.aslinop(self(crosscov))
 
     assert isinstance(mean, (np.ndarray, np.number))
-    assert isinstance(cov, (np.ndarray, np.number))
-
-    if mean.ndim > 0:
-        cov = cov.reshape((mean.size, mean.size), order="C")
+    assert isinstance(cov, (pn.linops.LinearOperator))
 
     return pn.randvars.Normal(mean, cov)
 
