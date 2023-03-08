@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np
 import probnum as pn
 from probnum.typing import LinearOperatorLike
@@ -24,7 +26,7 @@ class BlockMatrix(pn.linops.LinearOperator):
     Block diagonal: Set B = C = None.
     SPD: Set exactly one of B or C to None. This block will be inferred
         automatically from symmetry.
-    Triangular: Set one of B or C to None. This block will be zero, 
+    Triangular: Set one of B or C to None. This block will be zero,
         and this also defines the structure (lower or upper triangular).
     """
 
@@ -156,13 +158,9 @@ class BlockMatrix(pn.linops.LinearOperator):
         S_sqrt.is_lower_triangular = True
 
         if lower:
-            block_sqrt = BlockMatrix(
-                A_sqrt, None, L_A_inv_B.T, S_sqrt
-            )
+            block_sqrt = BlockMatrix(A_sqrt, None, L_A_inv_B.T, S_sqrt)
         else:
-            block_sqrt = BlockMatrix(
-                A_sqrt.T, L_A_inv_B, None, S_sqrt.T
-            )
+            block_sqrt = BlockMatrix(A_sqrt.T, L_A_inv_B, None, S_sqrt.T)
         return block_sqrt
 
     def _solve(self, B: np.ndarray) -> np.ndarray:
@@ -195,7 +193,11 @@ class BlockMatrix(pn.linops.LinearOperator):
         return self.A.trace() + self.D.trace()
 
     def _det(self) -> np.inexact:
-        if self.is_block_diagonal or self.is_lower_triangular or self.is_upper_triangular:
+        if (
+            self.is_block_diagonal
+            or self.is_lower_triangular
+            or self.is_upper_triangular
+        ):
             return self.A.det() * self.D.det()
         if self.is_symmetric and self.is_positive_definite:
             # TODO: This holds generally when A is invertible, SPD is just a
