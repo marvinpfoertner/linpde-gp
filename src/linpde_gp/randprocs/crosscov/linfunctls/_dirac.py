@@ -10,8 +10,8 @@ from .._pv_crosscov import ProcessVectorCrossCovariance
 @linfunctls.DiracFunctional.__call__.register(  # pylint: disable=no-member
     ProcessVectorCrossCovariance
 )
-def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> np.ndarray:
-    return pv_crosscov(self._X)
+def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> pn.linops.LinearOperator:
+    return pv_crosscov.evaluate_linop(self._X)
 
 
 class CovarianceFunction_Identity_Dirac(ProcessVectorCrossCovariance):
@@ -148,12 +148,15 @@ class CovarianceFunction_Identity_Dirac(ProcessVectorCrossCovariance):
 
         return kxX
 
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        return self.covfunc.linop(x, self._dirac.X)
+
 
 @linfunctls.DiracFunctional.__call__.register(  # pylint: disable=no-member
     CovarianceFunction_Identity_Dirac
 )
-def _(self, pv_crosscov: CovarianceFunction_Identity_Dirac, /) -> np.ndarray:
-    return pv_crosscov(self.X)
+def _(self, pv_crosscov: CovarianceFunction_Identity_Dirac, /) -> pn.linops.LinearOperator:
+    return pv_crosscov.evaluate_linop(self.X)
 
 
 class CovarianceFunction_Dirac_Identity(ProcessVectorCrossCovariance):
@@ -285,8 +288,11 @@ class CovarianceFunction_Dirac_Identity(ProcessVectorCrossCovariance):
         )
 
         return kxX
+    
+    def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
+        return self.covfunc.linop(self._dirac.X, x)
 
 
 @linfunctls.DiracFunctional.__call__.register  # pylint: disable=no-member
-def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> np.ndarray:
-    return pv_crosscov(self.X)
+def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> pn.linops.LinearOperator:
+    return pv_crosscov.evaluate_linop(self.X)
