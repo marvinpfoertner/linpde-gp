@@ -3,6 +3,7 @@ import functools
 import numpy as np
 import probnum as pn
 from probnum.typing import LinearOperatorLike
+from scipy.linalg import solve_triangular
 
 
 class BlockMatrix(pn.linops.LinearOperator):
@@ -114,7 +115,21 @@ class BlockMatrix(pn.linops.LinearOperator):
     @property
     def schur(self):
         if self._schur is None:
-            self._schur = self.D - self.C @ self.A.inv() @ self.B
+            if self._is_symmetric and self._is_positive_definite:
+                A_sqrt = self.A.cholesky(True)
+                A_sqrt.is_lower_triangular = True
+
+                A_sqrt = np.tril(A_sqrt.todense())
+
+                L_A_inv_B = solve_triangular(
+                    A_sqrt,
+                    self._B.todense(),
+                    lower=True,
+                    trans="N"
+                )
+                self._schur = self.D - L_A_inv_B.T @ L_A_inv_B
+            else:
+                self._schur = self.D - self.C @ self.A.inv() @ self.B
             self._schur.is_symmetric = self.is_symmetric
             self._schur.is_positive_definite = self.is_positive_definite
         return self._schur
@@ -147,7 +162,18 @@ class BlockMatrix(pn.linops.LinearOperator):
         A_sqrt = self.A.cholesky(True)
         A_sqrt.is_lower_triangular = True
 
-        L_A_inv_B = A_sqrt.inv() @ self._B
+        A_sqrt = np.tril(A_sqrt.todense())
+
+        L_A_inv_B = solve_triangular(
+            A_sqrt,
+            self._B.todense(),
+            lower=True,
+            trans="N"
+        )
+        A_sqrt = pn.linops.aslinop(A_sqrt)
+        A_sqrt.is_lower_triangular = True
+        L_A_inv_B = pn.linops.aslinop(L_A_inv_B)
+        L_A_inv_B.is_upper_triangular = True
 
         # Compute the Schur complement manually using L_A_inv_B which we need anyway
         if self._schur is None:
@@ -164,7 +190,6 @@ class BlockMatrix(pn.linops.LinearOperator):
         return block_sqrt
 
     def _solve(self, B: np.ndarray) -> np.ndarray:
-        assert B.ndim == 2
         b0, b1 = self._split_input(B, axis=-2)
         if self.is_block_diagonal:
             return np.concatenate((self.A.inv() @ b0, self.D.inv() @ b1), axis=-2)
