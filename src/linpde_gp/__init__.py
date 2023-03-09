@@ -12,6 +12,6 @@ from . import (
 
 # isort: on
 
-from . import galerkin, linalg, typing, utils
+from . import linalg, typing, utils
 
 __version__ = "0.0.1a1"
