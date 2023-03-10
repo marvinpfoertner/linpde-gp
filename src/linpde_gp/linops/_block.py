@@ -119,14 +119,7 @@ class BlockMatrix(pn.linops.LinearOperator):
                 A_sqrt = self.A.cholesky(True)
                 A_sqrt.is_lower_triangular = True
 
-                A_sqrt = np.tril(A_sqrt.todense())
-
-                L_A_inv_B = solve_triangular(
-                    A_sqrt,
-                    self._B.todense(),
-                    lower=True,
-                    trans="N"
-                )
+                L_A_inv_B = A_sqrt.inv() @ self._B
                 self._schur = self.D - L_A_inv_B.T @ L_A_inv_B
             else:
                 self._schur = self.D - self.C @ self.A.inv() @ self.B
@@ -162,17 +155,8 @@ class BlockMatrix(pn.linops.LinearOperator):
         A_sqrt = self.A.cholesky(True)
         A_sqrt.is_lower_triangular = True
 
-        A_sqrt = np.tril(A_sqrt.todense())
-
-        L_A_inv_B = solve_triangular(
-            A_sqrt,
-            self._B.todense(),
-            lower=True,
-            trans="N"
-        )
-        A_sqrt = pn.linops.aslinop(A_sqrt)
+        L_A_inv_B = A_sqrt.inv() @ self._B
         A_sqrt.is_lower_triangular = True
-        L_A_inv_B = pn.linops.aslinop(L_A_inv_B)
         L_A_inv_B.is_upper_triangular = True
 
         # Compute the Schur complement manually using L_A_inv_B which we need anyway
