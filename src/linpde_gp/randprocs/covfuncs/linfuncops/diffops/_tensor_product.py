@@ -1,7 +1,7 @@
 import functools
 import operator
 from collections.abc import Mapping
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 from jax import numpy as jnp
@@ -11,9 +11,23 @@ from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 from linpde_gp.linfuncops import diffops
 
 from ..._jax import JaxCovarianceFunction, JaxCovarianceFunctionMixin
-from ..._tensor_product import (TensorProduct, evaluate_dimensionwise,
-                                evaluate_dimensionwise_jax,
-                                lazy_tensor_dimensionwise)
+from ..._tensor_product import (
+    TensorProduct,
+    evaluate_dimensionwise,
+    evaluate_dimensionwise_jax,
+    lazy_tensor_dimensionwise,
+)
+
+
+def split_outputs_contiguous(
+    x0: np.ndarray, x1: Optional[np.ndarray], num_dims: int
+) -> Tuple[Tuple[np.ndarray], Tuple[Optional[np.ndarray]]]:
+    x0s = tuple(np.ascontiguousarray(x0[..., dim_idx]) for dim_idx in range(num_dims))
+    x1s = tuple(
+        np.ascontiguousarray(x1[..., dim_idx]) if x1 is not None else None
+        for dim_idx in range(num_dims)
+    )
+    return x0s, x1s
 
 
 class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
@@ -98,11 +112,10 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
     ) -> "LazyTensor":
-        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0, x1)
+        x0s, x1s = split_outputs_contiguous(x0, x1, len(self._k.factors))
+        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0s, x1s)
         kLs_or_Lks_x0_x1 = {
-            dim_idx: kL_or_Lk._keops_lazy_tensor(
-                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
-            )
+            dim_idx: kL_or_Lk._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
             for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
         }
 
@@ -260,23 +273,18 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
     ) -> "LazyTensor":
-        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0, x1)
+        x0s, x1s = split_outputs_contiguous(x0, x1, len(self._k.factors))
+        ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0s, x1s)
         L0ks_x0_x1 = {
-            dim_idx: L0k._keops_lazy_tensor(
-                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
-            )
+            dim_idx: L0k._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
             for dim_idx, L0k in self._L0ks.items()
         }
         kL1s_x0_x1 = {
-            dim_idx: kL1._keops_lazy_tensor(
-                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
-            )
+            dim_idx: kL1._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
             for dim_idx, kL1 in self._kL1s.items()
         }
         L0kL1s_x0_x1 = {
-            dim_idx: L0kL1._keops_lazy_tensor(
-                x0[..., dim_idx], x1[..., dim_idx] if x1 is not None else None
-            )
+            dim_idx: L0kL1._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
             for dim_idx, L0kL1 in self._L0kL1s.items()
         }
 

@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 import functools
-from typing import Optional
+from typing import Optional, Tuple
 import operator
 
 from jax import numpy as jnp
@@ -53,10 +53,11 @@ class TensorProduct(
             evaluate_dimensionwise_jax(self._factors, x0, x1),
         )
 
-    def _keops_lazy_tensor(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> "LazyTensor":
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
         return functools.reduce(
-            operator.mul,
-            lazy_tensor_dimensionwise(self._factors, x0, x1)
+            operator.mul, lazy_tensor_dimensionwise(self._factors, x0, x1)
         )
 
 
@@ -81,15 +82,14 @@ def evaluate_dimensionwise_jax(
         for i, k in enumerate(ks)
     )
 
+
 def lazy_tensor_dimensionwise(
     ks: Iterable[pn.randprocs.covfuncs.CovarianceFunction],
-    x0: np.ndarray,
-    x1: np.ndarray | None = None,
+    x0s: Tuple[np.ndarray],
+    x1s: Tuple[Optional[np.ndarray]],
 ) -> tuple[LazyTensor]:
-    return tuple(
-        k._keops_lazy_tensor(x0[..., i], x1[..., i] if x1 is not None else None)
-        for i, k in enumerate(ks)
-    )
+    return tuple(k._keops_lazy_tensor(x0s[i], x1s[i]) for i, k in enumerate(ks))
+
 
 class TensorProductGrid(np.ndarray):
     def __new__(cls, *factors: ArrayLike, indexing="ij"):
