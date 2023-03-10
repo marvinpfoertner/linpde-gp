@@ -16,18 +16,8 @@ from ..._tensor_product import (
     evaluate_dimensionwise,
     evaluate_dimensionwise_jax,
     lazy_tensor_dimensionwise,
+    split_outputs_contiguous,
 )
-
-
-def split_outputs_contiguous(
-    x0: np.ndarray, x1: Optional[np.ndarray], num_dims: int
-) -> Tuple[Tuple[np.ndarray], Tuple[Optional[np.ndarray]]]:
-    x0s = tuple(np.ascontiguousarray(x0[..., dim_idx]) for dim_idx in range(num_dims))
-    x1s = tuple(
-        np.ascontiguousarray(x1[..., dim_idx]) if x1 is not None else None
-        for dim_idx in range(num_dims)
-    )
-    return x0s, x1s
 
 
 class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):

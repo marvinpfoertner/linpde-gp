@@ -56,8 +56,9 @@ class TensorProduct(
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
     ) -> "LazyTensor":
+        x0s, x1s = split_outputs_contiguous(x0, x1, len(self._factors))
         return functools.reduce(
-            operator.mul, lazy_tensor_dimensionwise(self._factors, x0, x1)
+            operator.mul, lazy_tensor_dimensionwise(self._factors, x0s, x1s)
         )
 
 
@@ -89,6 +90,17 @@ def lazy_tensor_dimensionwise(
     x1s: Tuple[Optional[np.ndarray]],
 ) -> tuple[LazyTensor]:
     return tuple(k._keops_lazy_tensor(x0s[i], x1s[i]) for i, k in enumerate(ks))
+
+
+def split_outputs_contiguous(
+    x0: np.ndarray, x1: Optional[np.ndarray], num_dims: int
+) -> Tuple[Tuple[np.ndarray], Tuple[Optional[np.ndarray]]]:
+    x0s = tuple(np.ascontiguousarray(x0[..., dim_idx]) for dim_idx in range(num_dims))
+    x1s = tuple(
+        np.ascontiguousarray(x1[..., dim_idx]) if x1 is not None else None
+        for dim_idx in range(num_dims)
+    )
+    return x0s, x1s
 
 
 class TensorProductGrid(np.ndarray):
