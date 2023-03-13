@@ -139,8 +139,8 @@ class ProcessVectorCrossCovariance(abc.ABC):
         try:
             return self._evaluate_linop(x)
         except NotImplementedError:
-            batch_size = np.prod(x.shape[: x.ndim - self.randproc_input_ndim])
-            randproc_output_size = np.prod(self.randproc_output_shape)
+            batch_size = int(np.prod(x.shape[: x.ndim - self.randproc_input_ndim]))
+            randproc_output_size = int(np.prod(self.randproc_output_shape))
             if self.reverse:
                 target_shape = (self.randvar_size, randproc_output_size * batch_size)
             else:

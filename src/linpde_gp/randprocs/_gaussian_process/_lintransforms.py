@@ -13,6 +13,8 @@ def _(self, gp: pn.randprocs.GaussianProcess, /) -> pn.randvars.Normal:
 
     assert isinstance(mean, (np.ndarray, np.number))
     assert isinstance(cov, (pn.linops.LinearOperator))
+    if mean.shape == ():
+        mean = mean.reshape(1)
 
     return pn.randvars.Normal(mean, cov)
 
