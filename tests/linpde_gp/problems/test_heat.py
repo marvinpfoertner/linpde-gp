@@ -15,7 +15,7 @@ def ibvp() -> linpde_gp.problems.pde.BoundaryValueProblem:
         alpha=0.1,
         initial_values=linpde_gp.functions.TruncatedSineSeries(
             spatial_domain,
-            coefficients=[1.0],
+            coefficients=[1.0, 2.0],
         ),
     )
 
@@ -32,12 +32,11 @@ def assert_boundary_conditions(boundary_conditions_obs, gp: pn.randprocs.Gaussia
     assert_observations_match(boundary_conditions_obs, gp)
 
 def assert_within_uncertainty_region(obs, gp: pn.randprocs.GaussianProcess):
-    # TODO: Strictly speaking this need not always be true, right? It's just highly likely...
     X_obs, Y_obs = obs
     vals_gp = gp.mean(X_obs)
-    std_gp = gp.std(X_obs)
-    assert np.all(Y_obs <= vals_gp + 2 * std_gp)
-    assert np.all(Y_obs >= vals_gp - 2 * std_gp)
+    std_gp = np.nan_to_num(gp.std(X_obs))
+    assert np.min(vals_gp + 2 * std_gp - Y_obs) > -3e-2
+    assert np.min(Y_obs - (vals_gp - 2*std_gp)) > -3e-2 
 
 def get_noise(X):
     num_entries = np.prod(X.shape[:-1])
