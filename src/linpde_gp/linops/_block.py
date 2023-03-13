@@ -3,7 +3,14 @@ import functools
 import numpy as np
 import probnum as pn
 from probnum.typing import LinearOperatorLike
-from scipy.linalg import solve_triangular
+
+pn.config.register(
+    "block_triangular_solves",
+    True,
+    "If True, makes use of block structure when solving block triangular "
+    + "systems. If False, turns the block matrix into a dense matrix and " 
+    + "then performs a regular triangular solve.",
+)
 
 
 class BlockMatrix(pn.linops.LinearOperator):
@@ -177,17 +184,28 @@ class BlockMatrix(pn.linops.LinearOperator):
         b0, b1 = self._split_input(B, axis=-2)
         if self.is_block_diagonal:
             return np.concatenate((self.A.inv() @ b0, self.D.inv() @ b1), axis=-2)
+        if np.isnan(B).any():
+            # scipy triangular solve cannot handle nans
+            B = np.nan_to_num(B)
         if self.is_symmetric:
             L = self.cholesky(True)
             return L.T.inv() @ (L.inv() @ B)
         if self.is_lower_triangular:
-            y0 = self.A.inv() @ b0
-            y1 = self.D.inv() @ (b1 - self.C @ y0)
-            return np.concatenate((y0, y1), axis=-2)
+            if pn.config.block_triangular_solves:
+                y0 = self.A.inv() @ b0
+                y1 = self.D.inv() @ (b1 - self.C @ y0)
+                return np.concatenate((y0, y1), axis=-2)
+            mat_linop = pn.linops.Matrix(self.todense())
+            mat_linop.is_lower_triangular = True
+            return mat_linop.inv() @ B
         if self.is_upper_triangular:
-            y1 = self.D.inv() @ b1
-            y0 = self.A.inv() @ (b0 - self.B @ y1)
-            return np.concatenate((y0, y1), axis=-2)
+            if pn.config.block_triangular_solves:
+                y1 = self.D.inv() @ b1
+                y0 = self.A.inv() @ (b0 - self.B @ y1)
+                return np.concatenate((y0, y1), axis=-2)
+            mat_linop = pn.linops.Matrix(self.todense())
+            mat_linop.is_upper_triangular = True
+            return mat_linop.inv() @ B
         return super()._solve(B)
 
     def _todense(self) -> np.ndarray:
