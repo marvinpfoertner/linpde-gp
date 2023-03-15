@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import functools
 import operator
-from typing import Type
+from typing import List, Type
 
 from jax import numpy as jnp
 import numpy as np
@@ -139,15 +139,17 @@ class ProcessVectorCrossCovariance(abc.ABC):
         try:
             return self._evaluate_linop(x)
         except NotImplementedError:
-            batch_size = int(np.prod(x.shape[: x.ndim - self.randproc_input_ndim]))
+            batch_shape = x.shape[: x.ndim - self.randproc_input_ndim]
+            batch_size = int(np.prod(batch_shape))
             randproc_output_size = int(np.prod(self.randproc_output_shape))
+            res = self(x)
             if self.reverse:
+                res = _move_shape_blocks(res, [self.randvar_shape, batch_shape, self.randproc_output_shape], [0, 2, 1])
                 target_shape = (self.randvar_size, randproc_output_size * batch_size)
             else:
+                res = _move_shape_blocks(res, [batch_shape, self.randproc_output_shape, self.randvar_shape], [1, 0, 2])
                 target_shape = (randproc_output_size * batch_size, self.randvar_size)
-            res = self(x)
-            # We want the batch dimension to change the fastest, so we need Fortran order
-            res = np.reshape(res, target_shape, order="F")
+            res = np.reshape(res, target_shape, order="C")
             return pn.linops.Matrix(res)
 
     def __neg__(self):
@@ -175,3 +177,13 @@ class ProcessVectorCrossCovariance(abc.ABC):
             return ScaledProcessVectorCrossCovariance(self, scalar=other)
 
         return NotImplemented
+
+def _move_shape_blocks(x: np.ndarray, input_shapes: List[ShapeType], new_positions: List[int]):
+    shape_indices = []
+    cur_offset = 0
+    for input_shape in input_shapes:
+        shape_indices.append(tuple(range(cur_offset, cur_offset + len(input_shape))))
+        cur_offset += len(input_shape)
+    output_shape_indices = [shape_indices[i] for i in new_positions]
+    return np.transpose(x, functools.reduce(operator.add, output_shape_indices))
+    
