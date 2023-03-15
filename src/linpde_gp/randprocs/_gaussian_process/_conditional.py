@@ -16,7 +16,7 @@ from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
-from linpde_gp.linops import BlockMatrix, ConcatenatedLinearOperator
+from linpde_gp.linops import BlockMatrix2x2, BlockMatrix
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 from linpde_gp.typing import RandomVariableLike
 
@@ -173,9 +173,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
-            return ConcatenatedLinearOperator(
-                tuple(kLa.evaluate_linop(x) for kLa in self._kLas), axis=-1
-            )
+            return BlockMatrix([kLa.evaluate_linop(x) for kLa in self._kLas])
 
         def __iter__(self) -> Iterator[ProcessVectorCrossCovariance]:
             for kLa in self._kLas:
@@ -325,7 +323,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         # Update the Cholesky decomposition of the previous covariance matrix and the
         # representer weights
 
-        gram_matrix = BlockMatrix(
+        gram_matrix = BlockMatrix2x2(
             self.gram,
             gram_L_La_prev_blocks.T,
             None,
@@ -455,9 +453,7 @@ def _(
 def _(
     self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
 ) -> pn.linops.LinearOperator:
-    return ConcatenatedLinearOperator(
-        tuple(self(kLa_prev) for kLa_prev in crosscov), axis=-1
-    )
+    return BlockMatrix([self(kLa_prev) for kLa_prev in crosscov])
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member

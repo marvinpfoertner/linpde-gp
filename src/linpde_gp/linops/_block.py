@@ -1,4 +1,5 @@
 import functools
+from typing import List
 
 import numpy as np
 import probnum as pn
@@ -8,12 +9,80 @@ pn.config.register(
     "block_triangular_solves",
     True,
     "If True, makes use of block structure when solving block triangular "
-    + "systems. If False, turns the block matrix into a dense matrix and " 
+    + "systems. If False, turns the block matrix into a dense matrix and "
     + "then performs a regular triangular solve.",
 )
 
 
 class BlockMatrix(pn.linops.LinearOperator):
+    """A block matrix where each block is represented by a linear operator.
+
+    Parameters
+    ----------
+    blocks : List[List[pn.linops.LinearOperator] | pn.linops.LinearOperator]
+        A (possibly nested) list of `LinearOperator` instances representing the
+        blocks of the matrix.
+        Shapes must be valid such that creating a block matrix is possible.
+    """
+
+    def __init__(
+        self, blocks: List[List[pn.linops.LinearOperator] | pn.linops.LinearOperator]
+    ):
+        self._blocks = np.block(blocks)
+        dtype = self._blocks[0, 0].dtype
+        for i, j in np.ndindex(self._blocks.shape):
+            dtype = np.promote_types(dtype, self._blocks[i, j].dtype)
+            expected_shape = (self._blocks[i, 0].shape[0], self._blocks[0, j].shape[1])
+            if self._blocks[i, j].shape != expected_shape:
+                raise ValueError(
+                    f"Shape error in block [{i}, {j}]: "
+                    + "Expected shape {expected_shape}, "
+                    + "got shape {self._blocks[i,j].shape}."
+                )
+        num_rows = sum((block.shape[0] for block in self._blocks[:, 0]))
+        num_cols = sum((block.shape[1] for block in self._blocks[0, :]))
+        super().__init__((num_rows, num_cols), dtype)
+        self._split_indices = np.array(
+            tuple(block.shape[1] for block in self._blocks[0, :])
+        ).cumsum()[:-1]
+
+    @property
+    def blocks(self) -> np.ndarray:
+        return self._blocks
+
+    def _split_input(self, x: np.ndarray) -> List[np.ndarray]:
+        return np.split(x, self._split_indices, axis=-2)
+
+    def _matmul(self, x: np.ndarray) -> np.ndarray:
+        x_split = self._split_input(x)
+        row_wise_results = []
+        for i in range(self.blocks.shape[0]):
+            row_wise_results.append(
+                np.sum(
+                    tuple(
+                        block @ cur_x
+                        for block, cur_x in zip(self.blocks[i, :], x_split)
+                    ),
+                    axis=0,
+                )
+            )
+        return np.concatenate(row_wise_results, axis=-2)
+
+    def _transpose(self) -> "BlockMatrix":
+        blocks_transposed = np.copy(self.blocks.T)
+        for i, j in np.ndindex(blocks_transposed.shape):
+            blocks_transposed[i, j] = blocks_transposed[i, j].T
+        return BlockMatrix(blocks_transposed.tolist())
+
+    def _todense(self) -> np.ndarray:
+        blocks_dense = np.copy(self.blocks)
+        for i, j in np.ndindex(blocks_dense.shape):
+            blocks_dense[i, j] = blocks_dense[i, j].todense()
+        return np.block(blocks_dense.tolist())
+
+
+# TODO: Inherit from `BlockMatrix`
+class BlockMatrix2x2(pn.linops.LinearOperator):
     """
     A linear operator that represents a linear system of the form:
 
@@ -149,7 +218,7 @@ class BlockMatrix(pn.linops.LinearOperator):
         )
 
     def _transpose(self) -> pn.linops.LinearOperator:
-        return BlockMatrix(self.A.T, self.C.T, self.B.T, self.D.T)
+        return BlockMatrix2x2(self.A.T, self.C.T, self.B.T, self.D.T)
 
     def schur_update(self, A_inv_u, v):
         if self.is_block_diagonal:
@@ -164,7 +233,6 @@ class BlockMatrix(pn.linops.LinearOperator):
 
         L_A_inv_B = A_sqrt.inv() @ self._B
         A_sqrt.is_lower_triangular = True
-        L_A_inv_B.is_upper_triangular = True
 
         # Compute the Schur complement manually using L_A_inv_B which we need anyway
         if self._schur is None:
@@ -175,9 +243,9 @@ class BlockMatrix(pn.linops.LinearOperator):
         S_sqrt.is_lower_triangular = True
 
         if lower:
-            block_sqrt = BlockMatrix(A_sqrt, None, L_A_inv_B.T, S_sqrt)
+            block_sqrt = BlockMatrix2x2(A_sqrt, None, L_A_inv_B.T, S_sqrt)
         else:
-            block_sqrt = BlockMatrix(A_sqrt.T, L_A_inv_B, None, S_sqrt.T)
+            block_sqrt = BlockMatrix2x2(A_sqrt.T, L_A_inv_B, None, S_sqrt.T)
         return block_sqrt
 
     def _solve(self, B: np.ndarray) -> np.ndarray:

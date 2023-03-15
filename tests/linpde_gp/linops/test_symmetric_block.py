@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import probnum as pn
-from linpde_gp.linops import BlockMatrix
+from linpde_gp.linops import BlockMatrix2x2
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def sbm_3x3(symm_3x3):
     D.is_symmetric = True
     A.is_positive_definite = True
     D.is_positive_definite = True
-    return BlockMatrix(A, B, None, D, is_spd=True)
+    return BlockMatrix2x2(A, B, None, D, is_spd=True)
 
 @pytest.fixture
 def mat_3x3(symm_3x3):
@@ -62,13 +62,13 @@ def sbm_nested(symm_5x5):
     D.is_symmetric = True
     A.is_positive_definite = True
     D.is_positive_definite = True
-    SBM_1 = BlockMatrix(A, B, None, D, is_spd=True)
+    SBM_1 = BlockMatrix2x2(A, B, None, D, is_spd=True)
 
     E = pn.linops.Matrix(symm_5x5[:4, 4:])
     F = pn.linops.Matrix(symm_5x5[4:, 4:])
     F.is_symmetric = True
     F.is_positive_definite = True
-    SBM_2 = BlockMatrix(SBM_1, E, None, F, is_spd=True)
+    SBM_2 = BlockMatrix2x2(SBM_1, E, None, F, is_spd=True)
     return SBM_2
 
 @pytest.fixture
