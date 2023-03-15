@@ -9,6 +9,7 @@ from .._arithmetic import (
     SumProcessVectorCrossCovariance,
 )
 from ._dirac import CovarianceFunction_Dirac_Identity, CovarianceFunction_Identity_Dirac
+from ._evaluation import CovarianceFunction_Evaluation_Identity, CovarianceFunction_Identity_Evaluation
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
@@ -43,3 +44,16 @@ def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /) -> pn.linops.Line
 )
 def _(self, pv_crosscov: CovarianceFunction_Identity_Dirac, /) -> pn.linops.LinearOperator:
     return self(pv_crosscov.covfunc, argnum=0)(pv_crosscov.dirac.X)
+
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Evaluation_Identity
+)
+def _(self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /) -> pn.linops.LinearOperator:
+    return self(pv_crosscov.covfunc, argnum=1)(pv_crosscov.evaluation_fctl.X)
+
+
+@LinearFunctional.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Identity_Evaluation
+)
+def _(self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /) -> pn.linops.LinearOperator:
+    return self(pv_crosscov.covfunc, argnum=0)(pv_crosscov.evaluation_fctl.X)
