@@ -40,7 +40,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             b=b,
         )
 
-        representer_weights = gram.inv() @ (Y - Lm).reshape((-1,), order="C")
+        representer_weights = gram.solve(Y - Lm)
 
         return cls(
             prior=prior,
@@ -97,20 +97,14 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         if self._representer_weights is None:
             y = np.concatenate(
                 [
-                    np.reshape(
-                        (
-                            (Y - L(self._prior.mean))
-                            if b is None
-                            else (Y - L(self._prior.mean) - b.mean)
-                        ),
-                        (-1,),
-                        order="C",
-                    )
+                    (Y - L(self._prior.mean))
+                    if b is None
+                    else (Y - L(self._prior.mean) - b.mean.reshape(-1, order="C"))
                     for Y, L, b in zip(self._Ys, self._Ls, self._bs)
                 ],
                 axis=-1,
             )
-            self._representer_weights = self.gram.inv() @ y
+            self._representer_weights = self.gram.solve(y)
 
         return self._representer_weights
 
@@ -225,71 +219,20 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 output_shape_1=self._prior_covfunc.output_shape_1,
             )
 
-        def _crosscovs_reshaped(
-            self,
-            x0: np.ndarray | jnp.ndarray,
-            x1: Optional[np.ndarray | jnp.ndarray],
-            *,
-            jax=False,
-        ) -> tuple[np.ndarray]:
-            """Gram matrix has shape (o*N, o*N), so we need to reshape the
-            crosscovs before multiplying them"""
-            kLas_fn = self._kLas if not jax else self._kLas.jax
-            kLas_x0 = kLas_fn(x0)
-            kLas_x1 = kLas_fn(x1) if x1 is not None else kLas_x0
-
-            x0_batch_shape = x0.shape[: x0.ndim - self.input_ndim_0]
-            x0_output_shape = (
-                self.output_shape_0 if len(self.output_shape_0) > 0 else (1,)
-            )
-            # Flatten the training data (X) components of the shape
-            kLas_x0 = kLas_x0.reshape(
-                x0_batch_shape + x0_output_shape + (-1,), order="C"
-            )
-
-            x1_batch_shape = (
-                x1.shape[: x1.ndim - self.input_ndim_1]
-                if x1 is not None
-                else x0_batch_shape
-            )
-            x1_output_shape = self.output_shape_1 if x1 is not None else x0_output_shape
-            x1_output_shape = x1_output_shape if len(x1_output_shape) > 0 else (1,)
-            kLas_x1 = kLas_x1.reshape(
-                x1_batch_shape + x1_output_shape + (-1,), order="C"
-            )
-            kLas_x1 = np.moveaxis(kLas_x1, -1, -2)
-            return kLas_x0, kLas_x1
-
         def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
             k_xx = self._prior_covfunc(x0, x1)
-            kLas_x0, kLas_x1 = self._crosscovs_reshaped(x0, x1)
-            broadcast_batch_shape = self._check_shapes(
-                x0.shape, x1.shape if x1 is not None else None
-            )
-            cov_update = kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
-            # Ensure that the correct shape is obtained,
-            # even when using output shape ()
-            cov_update = cov_update.reshape(
-                broadcast_batch_shape + self.output_shape_0 + self.output_shape_1,
-                order="C",
-            )
+            kLas_x0 = self._kLas(x0)
+            kLas_x1 = self._kLas(x1) if x1 is not None else kLas_x0
+            cov_update = (kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None])))[..., 0, 0]
 
             return k_xx - cov_update
 
         @functools.partial(jax.jit, static_argnums=0)
         def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
             k_xx = self._prior_covfunc.jax(x0, x1)
-            kLas_x0, kLas_x1 = self._crosscovs_reshaped(x0, x1, jax=True)
-            broadcast_batch_shape = self._check_shapes(
-                x0.shape, x1.shape if x1 is not None else None
-            )
-            cov_update = kLas_x0 @ (self._gram_matrix.inv() @ kLas_x1)
-            # Ensure that the correct shape is obtained,
-            # even when using output shape ()
-            cov_update = cov_update.reshape(
-                broadcast_batch_shape + self.output_shape_0 + self.output_shape_1,
-                order="C",
-            )
+            kLas_x0 = self._kLas.jax(x0)
+            kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
+            cov_update = kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None]))[..., 0, 0]
 
             return k_xx - cov_update
 
@@ -299,7 +242,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             k_xx = self._prior_covfunc.linop(x0, x1)
             kLas_x0 = self._kLas.evaluate_linop(x0)
             kLas_x1 = self._kLas.evaluate_linop(x1) if x1 is not None else kLas_x0
-            return k_xx - kLas_x0 @ self._gram_matrix.inv() @ kLas_x1.T
+            return k_xx - kLas_x0 @ self._gram_matrix.solve(kLas_x1.T)
 
     def condition_on_observations(
         self,
@@ -331,7 +274,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             is_spd=True,
         )
         representer_weights = gram_matrix.schur_update(
-            self.representer_weights, (Y - pred_mean).reshape(-1, order="C")
+            self.representer_weights, Y - pred_mean
         )
 
         return ConditionalGaussianProcess(
@@ -381,7 +324,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 if X is None:
                     raise ValueError("`X` and `L` can not be omitted at the same time.")
 
-                L = linfunctls.DiracFunctional(
+                L = linfunctls._EvaluationFunctional(
                     input_domain_shape=prior.input_shape,
                     input_codomain_shape=prior.output_shape,
                     X=X,
@@ -414,13 +357,23 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         pred_mean = pred_mean.reshape(-1, order="C")
         # Check observations
-        Y = np.asarray(Y).reshape(-1, order="C")
+        Y = np.asarray(Y)
+        if isinstance(L, linfunctls._EvaluationFunctional) and prior.mean.output_ndim > 0:
+            if Y.shape[-prior.mean.output_ndim:] != prior.mean.output_shape:
+                raise ValueError(f"Expected Y to have shape (batch shape) + {prior.mean.output_shape}, got shape {Y.shape}")
+            Y = np.moveaxis(
+                Y,
+                -prior.mean.output_ndim + np.arange(prior.mean.output_ndim),
+                np.arange(prior.mean.output_ndim),
+            )
+        if Y.shape != L.output_shape:
+            raise ValueError(f"Expected Y to have shape {L.output_shape}, got shape {Y.shape}.")
+        Y = Y.reshape(-1, order="C")
 
-        if Y.size != Lf.cov.shape[1]:
-            raise ValueError(f"Expected {Lf.cov.shape[1]} observations, got {Y.size}.")
+        assert Y.size == Lf.cov.shape[1]
 
         if b is not None:
-            pred_mean = pred_mean + np.asarray(b.mean).reshape(-1)
+            pred_mean = pred_mean + np.asarray(b.mean).reshape(-1, order="C")
             gram = gram + pn.linops.aslinop(b.cov)
 
         gram.is_symmetric = True
@@ -489,7 +442,7 @@ def _(
     crosscov = self(conditional_gp._kLas)
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
-    cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T
+    cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.solve(crosscov.T)
 
     return pn.randvars.Normal(mean, cov)
 
