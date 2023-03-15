@@ -252,9 +252,6 @@ class BlockMatrix2x2(pn.linops.LinearOperator):
         b0, b1 = self._split_input(B, axis=-2)
         if self.is_block_diagonal:
             return np.concatenate((self.A.inv() @ b0, self.D.inv() @ b1), axis=-2)
-        if np.isnan(B).any():
-            # scipy triangular solve cannot handle nans
-            B = np.nan_to_num(B)
         if self.is_symmetric:
             L = self.cholesky(True)
             return L.T.inv() @ (L.inv() @ B)
