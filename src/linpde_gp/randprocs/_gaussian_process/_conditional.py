@@ -167,7 +167,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             )
 
         def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
-            return BlockMatrix([kLa.evaluate_linop(x) for kLa in self._kLas])
+            return BlockMatrix([[kLa.evaluate_linop(x) for kLa in self._kLas]])
 
         def __iter__(self) -> Iterator[ProcessVectorCrossCovariance]:
             for kLa in self._kLas:
@@ -406,7 +406,7 @@ def _(
 def _(
     self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
 ) -> pn.linops.LinearOperator:
-    return BlockMatrix([self(kLa_prev) for kLa_prev in crosscov])
+    return BlockMatrix([[self(kLa_prev) for kLa_prev in crosscov]])
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
@@ -442,7 +442,7 @@ def _(
     crosscov = self(conditional_gp._kLas)
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
-    cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.solve(crosscov.T)
+    cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T
 
     return pn.randvars.Normal(mean, cov)
 

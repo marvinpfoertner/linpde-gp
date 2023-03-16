@@ -19,16 +19,17 @@ class BlockMatrix(pn.linops.LinearOperator):
 
     Parameters
     ----------
-    blocks : List[List[pn.linops.LinearOperator] | pn.linops.LinearOperator]
-        A (possibly nested) list of `LinearOperator` instances representing the
-        blocks of the matrix.
+    blocks : List[List[LinearOperatorLike]]
+        A nested list of `LinearOperatorLike` instances representing the blocks
+        of the matrix.
         Shapes must be valid such that creating a block matrix is possible.
     """
 
     def __init__(
-        self, blocks: List[List[pn.linops.LinearOperator] | pn.linops.LinearOperator]
+        self, blocks: List[List[LinearOperatorLike]]
     ):
-        self._blocks = np.block(blocks)
+        self._blocks = [[pn.linops.aslinop(x) for x in sub_list] for sub_list in blocks]
+        self._blocks = np.block(self._blocks)
         dtype = self._blocks[0, 0].dtype
         for i, j in np.ndindex(self._blocks.shape):
             dtype = np.promote_types(dtype, self._blocks[i, j].dtype)
