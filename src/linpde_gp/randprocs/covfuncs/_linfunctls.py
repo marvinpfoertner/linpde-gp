@@ -4,6 +4,7 @@ from probnum.randprocs.covfuncs._arithmetic_fallbacks import ScaledCovarianceFun
 from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
     DiracFunctional,
+    _EvaluationFunctional,
     LebesgueIntegral,
     LinearFunctional,
 )
@@ -77,6 +78,26 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
             return CovarianceFunction_Identity_Dirac(
                 covfunc=k,
                 dirac=self,
+            )
+
+    raise ValueError("`argnum` must either be 0 or 1.")
+
+@_EvaluationFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
+    match argnum:
+        case 0:
+            from ..crosscov.linfunctls import CovarianceFunction_Evaluation_Identity
+
+            return CovarianceFunction_Evaluation_Identity(
+                covfunc=k,
+                evaluation_fctl=self,
+            )
+        case 1:
+            from ..crosscov.linfunctls import CovarianceFunction_Identity_Evaluation
+
+            return CovarianceFunction_Identity_Evaluation(
+                covfunc=k,
+                evaluation_fctl=self,
             )
 
     raise ValueError("`argnum` must either be 0 or 1.")

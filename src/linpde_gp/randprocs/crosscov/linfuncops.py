@@ -9,6 +9,10 @@ from .linfunctls._dirac import (
     CovarianceFunction_Dirac_Identity,
     CovarianceFunction_Identity_Dirac,
 )
+from .linfunctls._evaluation import (
+    CovarianceFunction_Evaluation_Identity,
+    CovarianceFunction_Identity_Evaluation,
+)
 
 
 @linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
@@ -56,6 +60,26 @@ def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /):
         self(pv_crosscov, argnum=1),
         pv_crosscov.dirac,
     )
+
+@linfuncops.LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Identity_Evaluation
+)
+def _(self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /):
+    return CovarianceFunction_Identity_Evaluation(
+        self(pv_crosscov.covfunc, argnum=0),
+        pv_crosscov.evaluation_fctl,
+    )
+
+
+@linfuncops.LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
+    CovarianceFunction_Evaluation_Identity
+)
+def _(self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /):
+    return CovarianceFunction_Evaluation_Identity(
+        self(pv_crosscov, argnum=1),
+        pv_crosscov.evaluation_fctl,
+    )
+
 
 
 @linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member

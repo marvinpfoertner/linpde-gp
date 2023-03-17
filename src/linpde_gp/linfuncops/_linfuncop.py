@@ -92,11 +92,11 @@ class LinearFunctionOperator:
 
     def to_linfunctl(self, X: np.ndarray) -> "linpde_gp.linfunctls.LinearFunctional":
         from linpde_gp.linfunctls import (  # pylint: disable=import-outside-toplevel
-            DiracFunctional,
+            _EvaluationFunctional,
         )
 
         return (
-            DiracFunctional(
+            _EvaluationFunctional(
                 input_domain_shape=self.output_domain_shape,
                 input_codomain_shape=self.output_codomain_shape,
                 X=X,
