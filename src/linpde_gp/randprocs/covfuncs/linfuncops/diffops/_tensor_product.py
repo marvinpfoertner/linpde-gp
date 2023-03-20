@@ -1,11 +1,10 @@
+from collections.abc import Mapping
 import functools
 import operator
-from collections.abc import Mapping
 from typing import Optional, Tuple
 
-import numpy as np
 from jax import numpy as jnp
-
+import numpy as np
 from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
 from linpde_gp.linfuncops import diffops

@@ -4,6 +4,7 @@ import numpy as np
 import probnum as pn
 from probnum.typing import LinearOperatorLike
 
+
 class ConcatenatedLinearOperator(pn.linops.LinearOperator):
     def __init__(self, linops: tuple[LinearOperatorLike], axis: int):
         linops = tuple(pn.linops.aslinop(linop) for linop in linops)
@@ -32,42 +33,35 @@ class ConcatenatedLinearOperator(pn.linops.LinearOperator):
     @property
     def linops(self) -> tuple[pn.linops.LinearOperator]:
         return self._linops
-    
+
     @property
     def axis(self) -> int:
         return self._axis
-    
+
     def _split_input(self, x: np.ndarray) -> np.ndarray:
         if self.axis == 0:
-            raise ValueError("Input does not need to be split when concatenating along axis 0.")
+            raise ValueError(
+                "Input does not need to be split when concatenating along axis 0."
+            )
         return np.split(x, self._split_indices, axis=-2)
-    
+
     def _matmul(self, x: np.ndarray) -> np.ndarray:
         if self.axis == 0:
-            return np.concatenate(
-                tuple(
-                    linop @ x
-                    for linop in self.linops
-                ),
-                axis=-2
-            )
+            return np.concatenate(tuple(linop @ x for linop in self.linops), axis=-2)
         # axis == 1
         return np.sum(
             tuple(
-                linop @ cur_x
-                for linop, cur_x in zip(self.linops, self._split_input(x))
+                linop @ cur_x for linop, cur_x in zip(self.linops, self._split_input(x))
             ),
-            axis=0
+            axis=0,
         )
 
     def _transpose(self) -> pn.linops.LinearOperator:
-        return ConcatenatedLinearOperator(tuple(linop.T for linop in self.linops), 1 - self.axis)
-    
+        return ConcatenatedLinearOperator(
+            tuple(linop.T for linop in self.linops), 1 - self.axis
+        )
+
     def _todense(self) -> np.ndarray:
         return np.concatenate(
-            tuple(
-                linop.todense()
-                for linop in self.linops
-            ),
-            axis=self.axis
+            tuple(linop.todense() for linop in self.linops), axis=self.axis
         )

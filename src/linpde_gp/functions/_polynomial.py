@@ -5,10 +5,10 @@ from fractions import Fraction
 import functools
 import itertools
 
-from pykeops.numpy import LazyTensor, Pm
 from jax import numpy as jnp
 import numpy as np
 from probnum.typing import FloatLike
+from pykeops.numpy import LazyTensor, Pm
 
 from . import _jax
 from ._constant import Constant

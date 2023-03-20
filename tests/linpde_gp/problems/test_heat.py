@@ -1,6 +1,8 @@
-import pytest
 import numpy as np
 import probnum as pn
+
+import pytest
+
 import linpde_gp
 
 
@@ -23,24 +25,33 @@ def ibvp() -> linpde_gp.problems.pde.BoundaryValueProblem:
 def assert_observations_match(obs, gp: pn.randprocs.GaussianProcess, tol=3e-2):
     X_obs, Y_obs = obs
     vals_gp = gp.mean(X_obs)
-    assert np.allclose(vals_gp, Y_obs, rtol=0., atol=tol)
+    assert np.allclose(vals_gp, Y_obs, rtol=0.0, atol=tol)
+
 
 def assert_initial_condition(initial_condition_obs, gp: pn.randprocs.GaussianProcess):
     assert_observations_match(initial_condition_obs, gp)
 
-def assert_boundary_conditions(boundary_conditions_obs, gp: pn.randprocs.GaussianProcess):
+
+def assert_boundary_conditions(
+    boundary_conditions_obs, gp: pn.randprocs.GaussianProcess
+):
     assert_observations_match(boundary_conditions_obs, gp)
+
 
 def assert_within_uncertainty_region(obs, gp: pn.randprocs.GaussianProcess):
     X_obs, Y_obs = obs
     vals_gp = gp.mean(X_obs)
     std_gp = np.nan_to_num(gp.std(X_obs))
     assert np.min(vals_gp + 2 * std_gp - Y_obs) > -3e-2
-    assert np.min(Y_obs - (vals_gp - 2*std_gp)) > -3e-2 
+    assert np.min(Y_obs - (vals_gp - 2 * std_gp)) > -3e-2
+
 
 def get_noise(X):
     num_entries = np.prod(X.shape[:-1])
-    return pn.randvars.Normal(np.zeros(num_entries), np.diag(1e-5 * np.ones(num_entries)))
+    return pn.randvars.Normal(
+        np.zeros(num_entries), np.diag(1e-5 * np.ones(num_entries))
+    )
+
 
 def test_compare_solutions(ibvp):
     lengthscale_t = 2.5
@@ -49,7 +60,8 @@ def test_compare_solutions(ibvp):
 
     u_prior = pn.randprocs.GaussianProcess(
         mean=linpde_gp.functions.Zero(input_shape=(2,)),
-        cov=output_scale ** 2 * linpde_gp.randprocs.covfuncs.TensorProduct(
+        cov=output_scale**2
+        * linpde_gp.randprocs.covfuncs.TensorProduct(
             linpde_gp.randprocs.covfuncs.Matern((), nu=1.5, lengthscales=lengthscale_t),
             linpde_gp.randprocs.covfuncs.Matern((), nu=2.5, lengthscales=lengthscale_x),
         ),

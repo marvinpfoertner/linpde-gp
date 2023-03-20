@@ -61,6 +61,7 @@ def _(self, pv_crosscov: CovarianceFunction_Dirac_Identity, /):
         pv_crosscov.dirac,
     )
 
+
 @linfuncops.LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
     CovarianceFunction_Identity_Evaluation
 )
@@ -79,7 +80,6 @@ def _(self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /):
         self(pv_crosscov, argnum=1),
         pv_crosscov.evaluation_fctl,
     )
-
 
 
 @linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member

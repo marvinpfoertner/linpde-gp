@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional
 from collections.abc import Iterator, Sequence
 import functools
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -15,8 +15,8 @@ from linpde_gp import linfunctls
 from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
+from linpde_gp.linops import BlockMatrix, BlockMatrix2x2
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
-from linpde_gp.linops import BlockMatrix2x2, BlockMatrix
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 from linpde_gp.typing import RandomVariableLike
 
@@ -223,7 +223,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             k_xx = self._prior_covfunc(x0, x1)
             kLas_x0 = self._kLas(x0)
             kLas_x1 = self._kLas(x1) if x1 is not None else kLas_x0
-            cov_update = (kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None])))[..., 0, 0]
+            cov_update = (
+                kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None]))
+            )[..., 0, 0]
 
             return k_xx - cov_update
 
@@ -232,7 +234,10 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             k_xx = self._prior_covfunc.jax(x0, x1)
             kLas_x0 = self._kLas.jax(x0)
             kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
-            cov_update = kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None]))[..., 0, 0]
+            cov_update = (
+                kLas_x0[..., None, :]
+                @ (self._gram_matrix.solve(kLas_x1[..., None]))[..., 0, 0]
+            )
 
             return k_xx - cov_update
 
@@ -358,16 +363,23 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         pred_mean = pred_mean.reshape(-1, order="C")
         # Check observations
         Y = np.asarray(Y)
-        if isinstance(L, linfunctls._EvaluationFunctional) and prior.mean.output_ndim > 0:
-            if Y.shape[-prior.mean.output_ndim:] != prior.mean.output_shape:
-                raise ValueError(f"Expected Y to have shape (batch shape) + {prior.mean.output_shape}, got shape {Y.shape}")
+        if (
+            isinstance(L, linfunctls._EvaluationFunctional)
+            and prior.mean.output_ndim > 0
+        ):
+            if Y.shape[-prior.mean.output_ndim :] != prior.mean.output_shape:
+                raise ValueError(
+                    f"Expected Y to have shape (batch shape) + {prior.mean.output_shape}, got shape {Y.shape}"
+                )
             Y = np.moveaxis(
                 Y,
                 -prior.mean.output_ndim + np.arange(prior.mean.output_ndim),
                 np.arange(prior.mean.output_ndim),
             )
         if Y.shape != L.output_shape:
-            raise ValueError(f"Expected Y to have shape {L.output_shape}, got shape {Y.shape}.")
+            raise ValueError(
+                f"Expected Y to have shape {L.output_shape}, got shape {Y.shape}."
+            )
         Y = Y.reshape(-1, order="C")
 
         assert Y.size == Lf.cov.shape[1]

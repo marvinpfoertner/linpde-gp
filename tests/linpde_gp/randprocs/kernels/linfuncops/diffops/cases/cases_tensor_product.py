@@ -7,7 +7,9 @@ from linpde_gp.randprocs.covfuncs.linfuncops import diffops as covfuncs_diffops
 from ._test_case import CovarianceFunctionDiffOpTestCase
 
 
-def case_tensor_product_identity_directional_derivative() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_identity_directional_derivative() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=(2,))
@@ -24,7 +26,9 @@ def case_tensor_product_identity_directional_derivative() -> CovarianceFunctionD
     )
 
 
-def case_tensor_product_directional_derivative_identity() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_directional_derivative_identity() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=(2,))
@@ -41,7 +45,9 @@ def case_tensor_product_directional_derivative_identity() -> CovarianceFunctionD
     )
 
 
-def case_tensor_product_directional_derivative_directional_derivative() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_directional_derivative_directional_derivative() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(390852098)
 
     direction0 = rng.standard_normal(size=(2,))
@@ -61,7 +67,9 @@ def case_tensor_product_directional_derivative_directional_derivative() -> Covar
     )
 
 
-def case_tensor_product_identity_weighted_laplacian() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_identity_weighted_laplacian() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(67835487)
 
     weights = 2.0 * rng.standard_normal(size=(2,))
@@ -77,7 +85,9 @@ def case_tensor_product_identity_weighted_laplacian() -> CovarianceFunctionDiffO
     )
 
 
-def case_tensor_product_weighted_laplacian_identity() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_weighted_laplacian_identity() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(89012645)
 
     weights = 2.0 * rng.standard_normal(size=(2,))
@@ -93,7 +103,9 @@ def case_tensor_product_weighted_laplacian_identity() -> CovarianceFunctionDiffO
     )
 
 
-def case_tensor_product_weighted_laplacian_weighted_laplacian() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_weighted_laplacian_weighted_laplacian() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(89012645)
 
     weights0 = 2.0 * rng.standard_normal(size=(2,))
@@ -110,7 +122,9 @@ def case_tensor_product_weighted_laplacian_weighted_laplacian() -> CovarianceFun
     )
 
 
-def case_tensor_product_directional_derivative_weighted_laplacian() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_directional_derivative_weighted_laplacian() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=(2,))
@@ -129,7 +143,9 @@ def case_tensor_product_directional_derivative_weighted_laplacian() -> Covarianc
     )
 
 
-def case_tensor_product_weighted_laplacian_directional_derivative() -> CovarianceFunctionDiffOpTestCase:
+def case_tensor_product_weighted_laplacian_directional_derivative() -> (
+    CovarianceFunctionDiffOpTestCase
+):
     rng = np.random.default_rng(390852098)
 
     direction = rng.standard_normal(size=(2,))

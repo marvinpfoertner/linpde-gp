@@ -212,7 +212,6 @@ def _(self, k: TensorProduct_Identity_DirectionalDerivative, /, *, argnum: int =
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
     if k.input_size == 1:
-
         if k.p is not None:
             return UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
                 k, L=self, reverse=(argnum == 0)

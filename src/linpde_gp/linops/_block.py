@@ -4,7 +4,6 @@ from typing import List
 import numpy as np
 import probnum as pn
 from probnum.typing import LinearOperatorLike
-import functools
 
 pn.config.register(
     "block_triangular_solves",

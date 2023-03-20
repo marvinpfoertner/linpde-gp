@@ -3,13 +3,13 @@ from __future__ import annotations
 import functools
 from typing import Optional
 
+from jax import numpy as jnp
+import numpy as np
+from probnum.randprocs import covfuncs
 from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
-import numpy as np
-from jax import numpy as jnp
 from linpde_gp.functions import Monomial, RationalPolynomial
 from linpde_gp.linfuncops import diffops
-from probnum.randprocs import covfuncs
 
 from ..._jax import JaxCovarianceFunction, JaxIsotropicMixin
 

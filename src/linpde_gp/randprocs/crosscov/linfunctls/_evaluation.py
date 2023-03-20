@@ -159,7 +159,9 @@ class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
 @linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=no-member
     CovarianceFunction_Identity_Evaluation
 )
-def _(self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /) -> pn.linops.LinearOperator:
+def _(
+    self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /
+) -> pn.linops.LinearOperator:
     return pv_crosscov.evaluate_linop(self.X)
 
 
@@ -218,7 +220,9 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
         )
 
         assert X.shape == (
-            self._evaluation_fctl.X_batch_shape + x_batch_ndim * (1,) + self._covfunc.input_shape
+            self._evaluation_fctl.X_batch_shape
+            + x_batch_ndim * (1,)
+            + self._covfunc.input_shape
         )
 
         kxX = self._covfunc(x, X)
@@ -271,7 +275,9 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
         )
 
         assert X.shape == (
-            self._evaluation_fctl.X_batch_shape + x_batch_ndim * (1,) + self._covfunc.input_shape
+            self._evaluation_fctl.X_batch_shape
+            + x_batch_ndim * (1,)
+            + self._covfunc.input_shape
         )
 
         kxX = self._covfunc(x, X)
@@ -296,11 +302,13 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
         )
 
         return kxX
-    
+
     def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
         return self.covfunc.linop(self._evaluation_fctl.X, x)
 
 
 @linfunctls._EvaluationFunctional.__call__.register  # pylint: disable=no-member
-def _(self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /) -> pn.linops.LinearOperator:
+def _(
+    self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /
+) -> pn.linops.LinearOperator:
     return pv_crosscov.evaluate_linop(self.X)

@@ -4,9 +4,9 @@ from probnum.randprocs.covfuncs._arithmetic_fallbacks import ScaledCovarianceFun
 from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
     DiracFunctional,
-    _EvaluationFunctional,
     LebesgueIntegral,
     LinearFunctional,
+    _EvaluationFunctional,
 )
 from linpde_gp.linfunctls.projections.l2 import (
     L2Projection_UnivariateLinearInterpolationBasis,
@@ -81,6 +81,7 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
             )
 
     raise ValueError("`argnum` must either be 0 or 1.")
+
 
 @_EvaluationFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):

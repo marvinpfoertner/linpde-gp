@@ -17,4 +17,3 @@ figure.dpi           : 100        # figure dots per inch
 savefig.dpi          : figure   # figure dots per inch or 'figure'
 savefig.format       : pdf      # {png, ps, pdf, svg}
 savefig.bbox         : tight    # {tight, standard}
-

@@ -1,14 +1,17 @@
-import pytest
 import numpy as np
 import probnum as pn
+
+import pytest
+
 from linpde_gp.linops import BlockMatrix2x2
 
 
 @pytest.fixture
 def symm_3x3():
-    x = np.array([1., 2., 3.])
+    x = np.array([1.0, 2.0, 3.0])
     K = pn.randprocs.kernels.ExpQuad(())
     return K.matrix(x, x)
+
 
 @pytest.fixture
 def sbm_3x3(symm_3x3):
@@ -22,6 +25,7 @@ def sbm_3x3(symm_3x3):
     D.is_positive_definite = True
     return BlockMatrix2x2(A, B, None, D, is_spd=True)
 
+
 @pytest.fixture
 def mat_3x3(symm_3x3):
     M = pn.linops.Matrix(symm_3x3)
@@ -29,23 +33,27 @@ def mat_3x3(symm_3x3):
     M.is_positive_definite = True
     return M
 
+
 def test_cholesky(mat_3x3, sbm_3x3):
     L_full = mat_3x3.cholesky()
     L_block = sbm_3x3.cholesky()
     assert L_full.shape == (3, 3)
     assert L_block.shape == (3, 3)
-    some_vec = np.array([10., 11., 12.])
+    some_vec = np.array([10.0, 11.0, 12.0])
     assert np.allclose(L_full @ some_vec, L_block @ some_vec)
 
+
 def test_inverse(mat_3x3, sbm_3x3):
-    some_vec = np.array([10., 11., 12.])
+    some_vec = np.array([10.0, 11.0, 12.0])
     assert np.allclose(mat_3x3.inv() @ some_vec, sbm_3x3.inv() @ some_vec)
+
 
 @pytest.fixture
 def symm_5x5():
-    x = np.array([1., 2., 3., 4., 5.])
+    x = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     K = pn.randprocs.kernels.ExpQuad(())
     return K.matrix(x, x)
+
 
 @pytest.fixture
 def sbm_nested(symm_5x5):
@@ -71,6 +79,7 @@ def sbm_nested(symm_5x5):
     SBM_2 = BlockMatrix2x2(SBM_1, E, None, F, is_spd=True)
     return SBM_2
 
+
 @pytest.fixture
 def mat_5x5(symm_5x5):
     M = pn.linops.Matrix(symm_5x5)
@@ -78,14 +87,16 @@ def mat_5x5(symm_5x5):
     M.is_positive_definite = True
     return M
 
+
 def test_cholesky_nested(mat_5x5, sbm_nested):
     L_full = mat_5x5.cholesky()
     L_block = sbm_nested.cholesky()
     assert L_full.shape == (5, 5)
     assert L_block.shape == (5, 5)
-    some_vec = np.array([10., 11., 12., 13., 14.])
+    some_vec = np.array([10.0, 11.0, 12.0, 13.0, 14.0])
     assert np.allclose(L_full @ some_vec, L_block @ some_vec)
 
+
 def test_inverse_nested(mat_5x5, sbm_nested):
-    some_vec = np.array([10., 11., 12., 13., 14.])
+    some_vec = np.array([10.0, 11.0, 12.0, 13.0, 14.0])
     assert np.allclose(mat_5x5.inv() @ some_vec, sbm_nested.inv() @ some_vec)

@@ -144,10 +144,18 @@ class ProcessVectorCrossCovariance(abc.ABC):
             randproc_output_size = int(np.prod(self.randproc_output_shape))
             res = self(x)
             if self.reverse:
-                res = _move_shape_blocks(res, [self.randvar_shape, batch_shape, self.randproc_output_shape], [0, 2, 1])
+                res = _move_shape_blocks(
+                    res,
+                    [self.randvar_shape, batch_shape, self.randproc_output_shape],
+                    [0, 2, 1],
+                )
                 target_shape = (self.randvar_size, randproc_output_size * batch_size)
             else:
-                res = _move_shape_blocks(res, [batch_shape, self.randproc_output_shape, self.randvar_shape], [1, 0, 2])
+                res = _move_shape_blocks(
+                    res,
+                    [batch_shape, self.randproc_output_shape, self.randvar_shape],
+                    [1, 0, 2],
+                )
                 target_shape = (randproc_output_size * batch_size, self.randvar_size)
             res = np.reshape(res, target_shape, order="C")
             return pn.linops.Matrix(res)
@@ -178,7 +186,10 @@ class ProcessVectorCrossCovariance(abc.ABC):
 
         return NotImplemented
 
-def _move_shape_blocks(x: np.ndarray, input_shapes: List[ShapeType], new_positions: List[int]):
+
+def _move_shape_blocks(
+    x: np.ndarray, input_shapes: List[ShapeType], new_positions: List[int]
+):
     shape_indices = []
     cur_offset = 0
     for input_shape in input_shapes:
@@ -186,4 +197,3 @@ def _move_shape_blocks(x: np.ndarray, input_shapes: List[ShapeType], new_positio
         cur_offset += len(input_shape)
     output_shape_indices = [shape_indices[i] for i in new_positions]
     return np.transpose(x, functools.reduce(operator.add, output_shape_indices))
-    

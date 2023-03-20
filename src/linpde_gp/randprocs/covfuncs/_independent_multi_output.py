@@ -1,8 +1,8 @@
 from typing import Optional
 
+from jax import numpy as jnp
 import numpy as np
 import probnum as pn
-from jax import numpy as jnp
 
 from ._jax import JaxCovarianceFunction
 

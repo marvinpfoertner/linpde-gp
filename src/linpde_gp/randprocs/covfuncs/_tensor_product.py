@@ -1,13 +1,13 @@
 from collections.abc import Iterable
 import functools
-from typing import Optional, Tuple
 import operator
+from typing import Optional, Tuple
 
 from jax import numpy as jnp
 import numpy as np
-from pykeops.numpy import LazyTensor
 import probnum as pn
 from probnum.typing import ArrayLike
+from pykeops.numpy import LazyTensor
 
 from ._jax import JaxCovarianceFunctionMixin
 
