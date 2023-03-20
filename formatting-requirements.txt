@@ -1,0 +1,3 @@
+# Dependencies for code formatting
+black~=23.1
+isort~=5.12
