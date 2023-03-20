@@ -1,0 +1,2 @@
+# Dependencies for testing experiments in CI
+nbconvert~=7.2.10
