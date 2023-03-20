@@ -8,7 +8,7 @@
 name = "linpde-gp"
 description = "Linear PDE Solvers as Gaussian Process Inference"
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.10,<3.12"
 license = { text = "MIT" }
 keywords = [
     "partial-differential-equations",
