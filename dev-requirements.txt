@@ -4,6 +4,8 @@
 -r experiments/requirements.txt
 -r tests/requirements.txt
 
+pre-commit>=3.1,<4
+
 # Editable install of `probnum`
 # -r ./probnum/dev-requirements does not work since `.` points to the current directory and not to ./probnum
 -e ./probnum
