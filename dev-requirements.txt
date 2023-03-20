@@ -3,6 +3,7 @@
 
 -r experiments/requirements.txt
 -r tests/requirements.txt
+-r formatting-requirements.txt
 
 pre-commit>=3.1,<4
 
@@ -11,4 +12,3 @@ pre-commit>=3.1,<4
 -e ./probnum
 
 -r ./probnum/linting-requirements.txt
--r ./probnum/formatting-requirements.txt
