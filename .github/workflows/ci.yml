@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  formatting:
-    name: Check code style
+  code-style:
+    name: Code Style
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
