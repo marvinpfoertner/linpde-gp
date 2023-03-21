@@ -44,15 +44,13 @@ jobs:
             probnum/pyproject.toml
             tests/requirements.txt
             linting-requirements.txt
-      - name: Install `probnum`
-        run: pip install ./probnum
-      - name: Install `linpde-gp`
-        run: pip install .[plotting]
-      - name: Install test dependencies
-        run: pip install -r tests/requirements.txt
       - name: Install linting dependencies
         id: lint-deps
-        run: pip install -r linting-requirements.txt
+        run: |
+          pip install ./probnum
+          pip install ".[plotting]"
+          pip install -r tests/requirements.txt
+          pip install -r linting-requirements.txt
       - name: Lint code with `pylint`
         run: pylint src --jobs 0
       - name: Lint tests with `pylint`
