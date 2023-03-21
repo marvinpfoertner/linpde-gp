@@ -6,8 +6,6 @@ from typing import Union
 import probnum as pn
 from probnum.typing import ArrayLike, FloatLike
 
-import linpde_gp
-
 DomainLike = Union[
     "linpde_gp.domains.Domain",
     tuple[FloatLike, FloatLike],  # -> Interval
