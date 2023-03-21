@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from jax import numpy as jnp
 import numpy as np
-from probnum.randprocs import pn_covfuncs
+from probnum.randprocs import covfuncs as pn_covfuncs
 
 from ._jax import JaxCovarianceFunctionMixin
 
