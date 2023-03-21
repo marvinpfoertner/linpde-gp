@@ -44,14 +44,14 @@ class CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis(
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         basis = self._projection.basis
 
-        def integrand(idx: int, t: np.ndarray):
+        def integrand(idx: int, x: float, t: float):
             return basis.eval_elem(idx, t) * self._covfunc(x, t)
 
         res = np.vectorize(
             lambda x: np.array(
                 [
                     scipy.integrate.quad(
-                        functools.partial(integrand, idx),
+                        functools.partial(integrand, idx, x),
                         *basis.support_bounds(idx),
                     )[0]
                     for idx in range(len(basis))
