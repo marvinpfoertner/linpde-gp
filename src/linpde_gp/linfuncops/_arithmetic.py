@@ -46,7 +46,7 @@ class ScaledLinearFunctionOperator(LinearFunctionOperator):
     def __rmul__(self, other) -> LinearFunctionOperator:
         if np.ndim(other) == 0:
             return ScaledLinearFunctionOperator(
-                linfuncop=self._linfuncop,
+                self._linfuncop,
                 scalar=np.asarray(other) * self._scalar,
             )
 
