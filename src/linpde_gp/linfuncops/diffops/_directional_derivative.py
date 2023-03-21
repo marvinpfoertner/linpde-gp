@@ -26,13 +26,20 @@ class DirectionalDerivative(LinearDifferentialOperator):
     def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
         @jax.jit
         def _f_dir_deriv(*args):
-            f_arg = lambda arg: f(*args[:argnum], arg, *args[argnum + 1 :])
+            def _f_arg(arg):
+                return f(*args[:argnum], arg, *args[argnum + 1 :])
 
-            _, dir_deriv = jax.jvp(f_arg, (args[argnum],), (self._direction,))
+            _, dir_deriv = jax.jvp(_f_arg, (args[argnum],), (self._direction,))
 
             return dir_deriv
 
         return _f_dir_deriv
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
 
 
 class PartialDerivative(DirectionalDerivative):
@@ -50,6 +57,12 @@ class PartialDerivative(DirectionalDerivative):
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
 
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
+
 
 class TimeDerivative(PartialDerivative):
     def __init__(self, domain_shape: ShapeLike) -> None:
@@ -65,3 +78,9 @@ class TimeDerivative(PartialDerivative):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()

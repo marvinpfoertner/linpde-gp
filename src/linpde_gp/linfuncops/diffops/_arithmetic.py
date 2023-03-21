@@ -35,6 +35,9 @@ class ScaledLinearDifferentialOperator(LinearDifferentialOperator):
     def __call__(self, f, /, **kwargs):
         return self._scalar * self._lindiffop(f, **kwargs)
 
+    def _jax_fallback(self, f, /, **kwargs):
+        raise NotImplementedError()
+
     # TODO: Only need until GPs can be scaled
     @__call__.register
     def _(

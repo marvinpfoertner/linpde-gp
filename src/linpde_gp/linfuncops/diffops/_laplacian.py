@@ -60,6 +60,12 @@ class WeightedLaplacian(LinearDifferentialOperator):
 
         return f_laplacian
 
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
+
 
 class Laplacian(WeightedLaplacian):
     def __init__(self, domain_shape: ShapeLike) -> None:
@@ -76,8 +82,10 @@ class Laplacian(WeightedLaplacian):
         raise NotImplementedError()
 
     @weak_form.register(functions.bases.UnivariateLinearInterpolationBasis)
-    def _(self, test_basis: functions.bases.UnivariateLinearInterpolationBasis):
-        from linpde_gp.linfunctls.weak_forms import (
+    def _weak_form_univariate_interpolation_basis(
+        self, test_basis: functions.bases.UnivariateLinearInterpolationBasis
+    ):
+        from linpde_gp.linfunctls.weak_forms import (  # pylint: disable=import-outside-toplevel
             WeakForm_Laplacian_UnivariateInterpolationBasis,
         )
 
@@ -101,3 +109,9 @@ class SpatialLaplacian(WeightedLaplacian):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
