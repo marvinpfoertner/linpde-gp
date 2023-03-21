@@ -49,7 +49,7 @@ jobs:
       - name: Install `linpde-gp`
         run: pip install .[plotting]
       - name: Install test dependencies
-        run: pip install -r tests/linting-requirements.txt
+        run: pip install -r tests/requirements.txt
       - name: Install linting dependencies
         id: lint-deps
         run: pip install -r linting-requirements.txt
