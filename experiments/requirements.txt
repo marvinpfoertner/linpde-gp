@@ -1,4 +1,5 @@
-git+https://github.com/pnkraemer/tueplots.git
+matplotlib>=3.4.3
+tueplots>=0.0.6
 
 # For the interactive visualizations
 ipympl==0.8.8
