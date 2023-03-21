@@ -2,23 +2,26 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 import functools
-from typing import Optional
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from numpy.typing import ArrayLike
 import probnum as pn
-import scipy.linalg
 
 from linpde_gp import linfunctls
 from linpde_gp.functions import JaxFunction
 from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.linops import BlockMatrix, BlockMatrix2x2
-from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 from linpde_gp.typing import RandomVariableLike
+from linpde_gp.solvers import (
+    GPSolver,
+    GPInferenceParams,
+    ConcreteGPSolver,
+    CholeskySolver,
+)
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
@@ -31,6 +34,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         *,
         L: None | LinearFunctional | LinearFunctionOperator = None,
         b: None | RandomVariableLike = None,
+        solver: GPSolver = CholeskySolver(),
     ):
         Y, L, b, kLa, Lm, gram = cls._preprocess_observations(
             prior=prior,
@@ -40,16 +44,18 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             b=b,
         )
 
-        representer_weights = gram.solve(Y - Lm)
+        kLas = ConditionalGaussianProcess._PriorPredictiveCrossCovariance((kLa,))
+        inference_params = GPInferenceParams(prior, gram, (Y,), (L,), (b,), kLas, None)
+        concrete_solver = solver.get_concrete_solver(inference_params)
 
         return cls(
             prior=prior,
             Ys=(Y,),
             Ls=(L,),
             bs=(b,),
-            kLas=ConditionalGaussianProcess._PriorPredictiveCrossCovariance((kLa,)),
+            kLas=kLas,
             gram_matrix=gram,
-            representer_weights=representer_weights,
+            solver=concrete_solver,
         )
 
     def __init__(
@@ -61,7 +67,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         bs: Sequence[pn.randvars.Normal | pn.randvars.Constant | None],
         kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
         gram_matrix: pn.linops.LinearOperator,
-        representer_weights: np.ndarray | None = None,
+        solver: ConcreteGPSolver,
     ):
         self._prior = prior
 
@@ -72,20 +78,15 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         self._kLas = kLas
 
         self._gram_matrix = gram_matrix
-
-        self._representer_weights = representer_weights
+        self._solver = solver
 
         super().__init__(
             mean=ConditionalGaussianProcess.Mean(
                 prior_mean=self._prior.mean,
                 kLas=self._kLas,
-                representer_weights=self.representer_weights,
+                solver=solver,
             ),
-            cov=ConditionalGaussianProcess.CovarianceFunction(
-                prior_covfunc=self._prior.cov,
-                kLas=self._kLas,
-                gram_matrix=self.gram,
-            ),
+            cov=self._solver.posterior_cov,
         )
 
     @functools.cached_property
@@ -93,18 +94,13 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         return self._gram_matrix
 
     @property
+    def solver(self) -> ConcreteGPSolver:
+        return self._solver
+
+    @property
     def representer_weights(self) -> np.ndarray:
         if self._representer_weights is None:
-            y = np.concatenate(
-                [
-                    (Y - L(self._prior.mean))
-                    if b is None
-                    else (Y - L(self._prior.mean) - b.mean.reshape(-1, order="C"))
-                    for Y, L, b in zip(self._Ys, self._Ls, self._bs)
-                ],
-                axis=-1,
-            )
-            self._representer_weights = self.gram.solve(y)
+            self._representer_weights = self._solver.compute_representer_weights()
 
         return self._representer_weights
 
@@ -178,11 +174,11 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             self,
             prior_mean: JaxFunction,
             kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
-            representer_weights: np.ndarray,
+            solver: ConcreteGPSolver,
         ):
             self._prior_mean = prior_mean
             self._kLas = kLas
-            self._representer_weights = representer_weights
+            self._solver = solver
 
             super().__init__(
                 input_shape=self._prior_mean.input_shape,
@@ -193,61 +189,14 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             m_x = self._prior_mean(x)
             kLas_x = self._kLas(x)
 
-            return m_x + kLas_x @ self._representer_weights
+            return m_x + kLas_x @ self._solver.compute_representer_weights()
 
         @functools.partial(jax.jit, static_argnums=0)
         def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
             m_x = self._prior_mean.jax(x)
             kLas_x = self._kLas.jax(x)
 
-            return m_x + kLas_x @ self._representer_weights
-
-    class CovarianceFunction(JaxCovarianceFunction):
-        def __init__(
-            self,
-            prior_covfunc: JaxCovarianceFunction,
-            kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
-            gram_matrix: pn.linops.LinearOperator,
-        ):
-            self._prior_covfunc = prior_covfunc
-            self._kLas = kLas
-            self._gram_matrix = gram_matrix
-
-            super().__init__(
-                input_shape=self._prior_covfunc.input_shape,
-                output_shape_0=self._prior_covfunc.output_shape_0,
-                output_shape_1=self._prior_covfunc.output_shape_1,
-            )
-
-        def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
-            k_xx = self._prior_covfunc(x0, x1)
-            kLas_x0 = self._kLas(x0)
-            kLas_x1 = self._kLas(x1) if x1 is not None else kLas_x0
-            cov_update = (
-                kLas_x0[..., None, :] @ (self._gram_matrix.solve(kLas_x1[..., None]))
-            )[..., 0, 0]
-
-            return k_xx - cov_update
-
-        @functools.partial(jax.jit, static_argnums=0)
-        def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
-            k_xx = self._prior_covfunc.jax(x0, x1)
-            kLas_x0 = self._kLas.jax(x0)
-            kLas_x1 = self._kLas.jax(x1) if x1 is not None else kLas_x0
-            cov_update = (
-                kLas_x0[..., None, :]
-                @ (self._gram_matrix.solve(kLas_x1[..., None]))[..., 0, 0]
-            )
-
-            return k_xx - cov_update
-
-        def _evaluate_linop(
-            self, x0: np.ndarray, x1: Optional[np.ndarray]
-        ) -> pn.linops.LinearOperator:
-            k_xx = self._prior_covfunc.linop(x0, x1)
-            kLas_x0 = self._kLas.evaluate_linop(x0)
-            kLas_x1 = self._kLas.evaluate_linop(x1) if x1 is not None else kLas_x0
-            return k_xx - kLas_x0 @ self._gram_matrix.solve(kLas_x1.T)
+            return m_x + kLas_x @ self._solver.compute_representer_weights()
 
     def condition_on_observations(
         self,
@@ -256,6 +205,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         *,
         L: LinearFunctional | LinearFunctionOperator | None = None,
         b: RandomVariableLike | None = None,
+        solver: GPSolver = CholeskySolver(),
     ):
         Y, L, b, kLa, pred_mean, gram = self._preprocess_observations(
             prior=self._prior,
@@ -278,18 +228,27 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             gram,
             is_spd=True,
         )
-        representer_weights = gram_matrix.schur_update(
-            self.representer_weights, Y - pred_mean
+
+        kLas = self._kLas.append(kLa)
+        inference_params = GPInferenceParams(
+            self._prior,
+            gram_matrix,
+            self._Ys + (Y,),
+            self._Ls + (L,),
+            self._bs + (b,),
+            kLas,
+            None,
         )
+        concrete_solver = solver.get_concrete_solver(inference_params)
 
         return ConditionalGaussianProcess(
             prior=self._prior,
             Ys=self._Ys + (Y,),
             Ls=self._Ls + (L,),
             bs=self._bs + (b,),
-            kLas=self._kLas.append(kLa),
+            kLas=kLas,
             gram_matrix=gram_matrix,
-            representer_weights=representer_weights,
+            solver=concrete_solver,
         )
 
     @classmethod
@@ -438,7 +397,7 @@ def _(
         bs=conditional_gp._bs,
         kLas=self(conditional_gp._kLas),
         gram_matrix=conditional_gp.gram,
-        representer_weights=conditional_gp.representer_weights,
+        solver=conditional_gp.solver,
     )
 
 
@@ -454,16 +413,7 @@ def _(
     crosscov = self(conditional_gp._kLas)
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
+    # TODO: Make this compatible with non-Cholesky solvers?
     cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T
 
     return pn.randvars.Normal(mean, cov)
-
-
-def cho_solve(L, b):
-    """Fixes a bug in scipy.linalg.cho_solve"""
-    (L, lower) = L
-
-    if L.shape == (1, 1) and b.shape[0] == 1:
-        return b / L[0, 0] ** 2
-
-    return scipy.linalg.cho_solve((L, lower), b)
