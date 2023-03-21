@@ -108,7 +108,7 @@ class PiecewiseLinear(Piecewise):
 
     @functools.singledispatchmethod
     def __radd__(self, other):
-        return super().__radd__(other)
+        return NotImplemented
 
     @__add__.register
     @__radd__.register
