@@ -159,6 +159,7 @@ max-args = 10
 max-complexity = 14
 max-locals = 20
 max-attributes = 15
+min-public-methods = 0
 
 [tool.pylint.similarities]
 ignore-imports = "yes"
