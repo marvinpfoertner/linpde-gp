@@ -47,7 +47,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
             Ys=(Y,),
             Ls=(L,),
             bs=(b,),
-            kLas=ConditionalGaussianProcess._PriorPredictiveCrossCovariance((kLa,)),
+            kLas=ConditionalGaussianProcess.PriorPredictiveCrossCovariance((kLa,)),
             gram_matrix=gram,
             representer_weights=representer_weights,
         )
@@ -59,7 +59,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         Ys: Sequence[np.ndarray],
         Ls: Sequence[LinearFunctional],
         bs: Sequence[pn.randvars.Normal | pn.randvars.Constant | None],
-        kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
+        kLas: ConditionalGaussianProcess.PriorPredictiveCrossCovariance,
         gram_matrix: pn.linops.LinearOperator,
         representer_weights: np.ndarray | None = None,
     ):
@@ -108,7 +108,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         return self._representer_weights
 
-    class _PriorPredictiveCrossCovariance(ProcessVectorCrossCovariance):
+    class PriorPredictiveCrossCovariance(ProcessVectorCrossCovariance):
         def __init__(
             self,
             kLas: Sequence[ProcessVectorCrossCovariance],
@@ -131,8 +131,8 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         def append(
             self, kLa: ProcessVectorCrossCovariance
-        ) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
-            return ConditionalGaussianProcess._PriorPredictiveCrossCovariance(
+        ) -> ConditionalGaussianProcess.PriorPredictiveCrossCovariance:
+            return ConditionalGaussianProcess.PriorPredictiveCrossCovariance(
                 self._kLas + (kLa,)
             )
 
@@ -177,7 +177,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         def __init__(
             self,
             prior_mean: JaxFunction,
-            kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
+            kLas: ConditionalGaussianProcess.PriorPredictiveCrossCovariance,
             representer_weights: np.ndarray,
         ):
             self._prior_mean = prior_mean
@@ -206,7 +206,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         def __init__(
             self,
             prior_covfunc: JaxCovarianceFunction,
-            kLas: ConditionalGaussianProcess._PriorPredictiveCrossCovariance,
+            kLas: ConditionalGaussianProcess.PriorPredictiveCrossCovariance,
             gram_matrix: pn.linops.LinearOperator,
         ):
             self._prior_covfunc = prior_covfunc
@@ -329,7 +329,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
                 if X is None:
                     raise ValueError("`X` and `L` can not be omitted at the same time.")
 
-                L = linfunctls._EvaluationFunctional(
+                L = linfunctls._EvaluationFunctional(  # pylint: disable=protected-access
                     input_domain_shape=prior.input_shape,
                     input_codomain_shape=prior.output_shape,
                     X=X,
@@ -364,12 +364,16 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         # Check observations
         Y = np.asarray(Y)
         if (
-            isinstance(L, linfunctls._EvaluationFunctional)
+            isinstance(
+                L,
+                linfunctls._EvaluationFunctional,  # pylint: disable=protected-access
+            )
             and prior.mean.output_ndim > 0
         ):
             if Y.shape[-prior.mean.output_ndim :] != prior.mean.output_shape:
                 raise ValueError(
-                    f"Expected Y to have shape (batch shape) + {prior.mean.output_shape}, got shape {Y.shape}"
+                    f"Expected Y to have shape (batch shape) + "
+                    f"{prior.mean.output_shape}, got shape {Y.shape}"
                 )
             Y = np.moveaxis(
                 Y,
@@ -395,28 +399,28 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
 
 pn.randprocs.GaussianProcess.condition_on_observations = (
-    lambda *args, **kwargs: ConditionalGaussianProcess.from_observations(
-        *args, **kwargs
+    lambda *args, **kwargs: (  # pylint: disable=unnecessary-lambda
+        ConditionalGaussianProcess.from_observations(*args, **kwargs)
     )
 )
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
-    ConditionalGaussianProcess._PriorPredictiveCrossCovariance
+    ConditionalGaussianProcess.PriorPredictiveCrossCovariance
 )
 def _(
-    self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
-) -> ConditionalGaussianProcess._PriorPredictiveCrossCovariance:
-    return ConditionalGaussianProcess._PriorPredictiveCrossCovariance(
+    self, crosscov: ConditionalGaussianProcess.PriorPredictiveCrossCovariance, /
+) -> ConditionalGaussianProcess.PriorPredictiveCrossCovariance:
+    return ConditionalGaussianProcess.PriorPredictiveCrossCovariance(
         (self(kLa) for kLa in crosscov)
     )
 
 
 @LinearFunctional.__call__.register(  # pylint: disable=no-member
-    ConditionalGaussianProcess._PriorPredictiveCrossCovariance
+    ConditionalGaussianProcess.PriorPredictiveCrossCovariance
 )
 def _(
-    self, crosscov: ConditionalGaussianProcess._PriorPredictiveCrossCovariance, /
+    self, crosscov: ConditionalGaussianProcess.PriorPredictiveCrossCovariance, /
 ) -> pn.linops.LinearOperator:
     return BlockMatrix([[self(kLa_prev) for kLa_prev in crosscov]])
 
