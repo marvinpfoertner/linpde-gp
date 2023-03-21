@@ -30,6 +30,10 @@ class L2Projection_UnivariateLinearInterpolationBasis(_linfunctl.LinearFunctiona
     def basis(self) -> functions.bases.UnivariateLinearInterpolationBasis:
         return self._basis
 
+    @property
+    def normalized(self) -> bool:
+        return self._normalized
+
     @functools.cached_property
     def normalizer(self) -> pn.linops.LinearOperator:
         if not self._normalized:

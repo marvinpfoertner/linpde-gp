@@ -20,15 +20,15 @@ def _(
     self, pv_crosscov: ScaledProcessVectorCrossCovariance, /
 ) -> ScaledProcessVectorCrossCovariance:
     return ScaledProcessVectorCrossCovariance(
-        pv_crosscov=self(pv_crosscov._pv_crosscov),
-        scalar=pv_crosscov._scalar,
+        pv_crosscov=self(pv_crosscov.pv_crosscov),
+        scalar=pv_crosscov.scalar,
     )
 
 
 @linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
 def _(self, pv_crosscov: SumProcessVectorCrossCovariance, /):
     return SumProcessVectorCrossCovariance(
-        *(self(summand) for summand in pv_crosscov._pv_crosscovs)
+        *(self(summand) for summand in pv_crosscov.pv_crosscovs)
     )
 
 

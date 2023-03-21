@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import functools
 import operator
 
@@ -40,7 +41,9 @@ class ScaledProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarian
         return self._scalar * self._pv_crosscov.jax(x)
 
     def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
-        return self._scalar * self._pv_crosscov._evaluate_linop(x)
+        covop = self._pv_crosscov._evaluate_linop(x)  # pylint: disable=protected-access
+
+        return self._scalar * covop
 
 
 class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance):
@@ -65,6 +68,10 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
             reverse=self._pv_crosscovs[0].reverse,
         )
 
+    @property
+    def pv_crosscovs(self) -> Sequence[_pv_crosscov.ProcessVectorCrossCovariance]:
+        return self._pv_crosscovs
+
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         return sum(pv_crosscov(x) for pv_crosscov in self._pv_crosscovs)
 
@@ -74,7 +81,10 @@ class SumProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovariance)
     def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
         return functools.reduce(
             operator.add,
-            (pv_crosscov._evaluate_linop(x) for pv_crosscov in self._pv_crosscovs),
+            (
+                pv_crosscov._evaluate_linop(x)  # pylint: disable=protected-access
+                for pv_crosscov in self._pv_crosscovs
+            ),
         )
 
 
@@ -115,4 +125,6 @@ class LinOpProcessVectorCrossCovariance(_pv_crosscov.ProcessVectorCrossCovarianc
         raise NotImplementedError()
 
     def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
-        return self._linop @ self._pv_crosscov._evaluate_linop(x)
+        covop = self._pv_crosscov._evaluate_linop(x)  # pylint: disable=protected-access
+
+        return self._linop @ covop

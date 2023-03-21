@@ -7,11 +7,11 @@ from linpde_gp import linfunctls
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
 
-@linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=no-member
+@linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=protected-access,no-member
     ProcessVectorCrossCovariance
 )
 def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self._X)
+    return pv_crosscov.evaluate_linop(self.X)
 
 
 class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
@@ -156,7 +156,7 @@ class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
         return self.covfunc.linop(x, self._evaluation_fctl.X)
 
 
-@linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=no-member
+@linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=protected-access,no-member
     CovarianceFunction_Identity_Evaluation
 )
 def _(
@@ -307,7 +307,7 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
         return self.covfunc.linop(self._evaluation_fctl.X, x)
 
 
-@linfunctls._EvaluationFunctional.__call__.register  # pylint: disable=no-member
+@linfunctls._EvaluationFunctional.__call__.register  # pylint: disable=protected-access,no-member
 def _(
     self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /
 ) -> pn.linops.LinearOperator:

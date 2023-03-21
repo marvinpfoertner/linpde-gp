@@ -1,4 +1,3 @@
-import numpy as np
 import probnum as pn
 
 from linpde_gp.linfunctls import LinearFunctional
@@ -26,7 +25,7 @@ def _(
 def _(
     self, sum_pv_crosscov: SumProcessVectorCrossCovariance, /
 ) -> pn.linops.LinearOperator:
-    return sum(self(summand) for summand in sum_pv_crosscov._pv_crosscovs)
+    return sum(self(summand) for summand in sum_pv_crosscov.pv_crosscovs)
 
 
 @LinearFunctional.__call__.register(  # pylint: disable=no-member
