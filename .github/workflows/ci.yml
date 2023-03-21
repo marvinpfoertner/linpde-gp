@@ -42,11 +42,14 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             probnum/pyproject.toml
+            tests/requirements.txt
             linting-requirements.txt
       - name: Install `probnum`
         run: pip install ./probnum
       - name: Install `linpde-gp`
         run: pip install .[plotting]
+      - name: Install test dependencies
+        run: pip install -r tests/linting-requirements.txt
       - name: Install linting dependencies
         id: lint-deps
         run: pip install -r linting-requirements.txt
