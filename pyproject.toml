@@ -149,6 +149,11 @@ disable = [
 [tool.pylint.format]
 max-line-length = "88"
 
+[tool.pylint.imports]
+known-third-party = [
+    "probnum",
+]
+
 [tool.pylint.design]
 max-args = 10
 max-complexity = 14

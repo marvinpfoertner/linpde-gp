@@ -20,7 +20,7 @@ class ExpQuad(
             )
 
         return jnp.exp(
-            -self._squared_euclidean_distances_jax(
+            -self._squared_euclidean_distances_jax(  # pylint: disable=invalid-unary-operand-type
                 x0, x1, scale_factors=self._scale_factors
             )
         )

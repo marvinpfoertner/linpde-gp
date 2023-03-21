@@ -68,7 +68,9 @@ def evaluate_dimensionwise(
     x1: np.ndarray | None = None,
 ) -> tuple[np.ndarray]:
     return tuple(
-        k._evaluate(x0[..., i], x1[..., i] if x1 is not None else None)
+        k._evaluate(  # pylint: disable=protected-access
+            x0[..., i], x1[..., i] if x1 is not None else None
+        )
         for i, k in enumerate(ks)
     )
 
@@ -79,7 +81,9 @@ def evaluate_dimensionwise_jax(
     x1: jnp.ndarray | None = None,
 ) -> tuple[jnp.ndarray]:
     return tuple(
-        k._evaluate_jax(x0[..., i], x1[..., i] if x1 is not None else None)
+        k._evaluate_jax(  # pylint: disable=protected-access
+            x0[..., i], x1[..., i] if x1 is not None else None
+        )
         for i, k in enumerate(ks)
     )
 
@@ -89,7 +93,10 @@ def lazy_tensor_dimensionwise(
     x0s: Tuple[np.ndarray],
     x1s: Tuple[Optional[np.ndarray]],
 ) -> tuple[LazyTensor]:
-    return tuple(k._keops_lazy_tensor(x0s[i], x1s[i]) for i, k in enumerate(ks))
+    return tuple(
+        k._keops_lazy_tensor(x0s[i], x1s[i])  # pylint: disable=protected-access
+        for i, k in enumerate(ks)
+    )
 
 
 def split_outputs_contiguous(

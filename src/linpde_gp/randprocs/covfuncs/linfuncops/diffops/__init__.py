@@ -33,7 +33,7 @@ from ._tensor_product import (
 
 @diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
 def _(self, k: _tensor_product.TensorProduct, /, *, argnum: int = 0):
-    return TensorProduct_Identity_DirectionalDerivative(k, self, reverse=(argnum == 0))
+    return TensorProduct_Identity_DirectionalDerivative(k, self, reverse=argnum == 0)
 
 
 @diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
@@ -119,7 +119,7 @@ def _(
         return UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
             k.matern,
             direction=self.direction,
-            L1=k._L,
+            L1=k.L,
             reverse=(argnum == 1),
         )
 
@@ -160,7 +160,7 @@ def _(self, k: ExpQuad_Identity_WeightedLaplacian, /, *, argnum: int = 0):
         return ExpQuad_DirectionalDerivative_WeightedLaplacian(
             k.expquad,
             direction=self.direction,
-            L1=k._L,
+            L1=k.L,
             reverse=(argnum == 1),
         )
 
@@ -174,7 +174,7 @@ def _(self, k: ExpQuad_Identity_WeightedLaplacian, /, *, argnum: int = 0):
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: _tensor_product.TensorProduct, /, *, argnum: int = 0):
-    return TensorProduct_Identity_WeightedLaplacian(k, self, reverse=(argnum == 0))
+    return TensorProduct_Identity_WeightedLaplacian(k, self, reverse=argnum == 0)
 
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
@@ -233,12 +233,12 @@ def _(
 
     if argnum == 0 and not k.reverse:
         return UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
-            k.matern, L0=self, L1=k._L
+            k.matern, L0=self, L1=k.L
         )
 
     if argnum == 1 and k.reverse:
         return UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
-            k.matern, L0=k._L, L1=self
+            k.matern, L0=k.L, L1=self
         )
 
     return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
@@ -263,16 +263,16 @@ def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: i
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: _pn_covfuncs.ExpQuad, /, *, argnum: int = 0):
-    return ExpQuad_Identity_WeightedLaplacian(k, L=self, reverse=(argnum == 0))
+    return ExpQuad_Identity_WeightedLaplacian(k, L=self, reverse=argnum == 0)
 
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
 def _(self, k: ExpQuad_Identity_WeightedLaplacian, /, *, argnum: int = 0):
     if argnum == 0 and not k.reverse:
-        return ExpQuad_WeightedLaplacian_WeightedLaplacian(k.expquad, L0=self, L1=k._L)
+        return ExpQuad_WeightedLaplacian_WeightedLaplacian(k.expquad, L0=self, L1=k.L)
 
     if argnum == 1 and k.reverse:
-        return ExpQuad_WeightedLaplacian_WeightedLaplacian(k.matern, L0=k._L, L1=self)
+        return ExpQuad_WeightedLaplacian_WeightedLaplacian(k.matern, L0=k.L, L1=self)
 
     return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
 

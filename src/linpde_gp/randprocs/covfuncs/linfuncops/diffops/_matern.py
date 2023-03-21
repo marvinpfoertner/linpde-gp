@@ -33,6 +33,8 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
         self._direction = direction
         self._reverse = reverse
 
+        self._matern_scale_factors = self._matern._scale_factors
+
         self._poly = half_integer_matern_derivative_polynomial(
             self.matern.p, 1
         ) // Monomial(1)
@@ -51,7 +53,7 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
 
     @functools.cached_property
     def _scaled_direction(self) -> np.ndarray:
-        scaled_direction = self._matern._scale_factors
+        scaled_direction = self._matern_scale_factors
         scaled_direction *= self.direction
 
         if not self._reverse:
@@ -67,7 +69,7 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs = self._batched_sum(self._scaled_direction * scaled_diffs)
         scaled_dists = self._batched_euclidean_norm(scaled_diffs)
@@ -91,7 +93,7 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs = self._batched_sum_jax(self._scaled_direction * scaled_diffs)
         scaled_dists = self._batched_euclidean_norm_jax(scaled_diffs)
@@ -118,13 +120,15 @@ class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):
             x1 = x1.reshape(-1, 1)
 
         scaled_diffs = Vi(x0) - Vj(x1)
-        scaled_diffs *= Pm(self._matern._scale_factors)
+        scaled_diffs *= Pm(self._matern_scale_factors)
 
         proj_scaled_diffs = (Pm(self._scaled_direction) * scaled_diffs).sum()
         scaled_dists = scaled_diffs * scaled_diffs
         scaled_dists = scaled_dists.sum().sqrt()
 
-        res = self._poly._evaluate_keops(scaled_dists)
+        res = self._poly._evaluate_keops(  # pylint: disable=protected-access
+            scaled_dists
+        )
         res *= (-scaled_dists).exp()
         res *= proj_scaled_diffs
 
@@ -148,6 +152,7 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
+        self._matern_scale_factors = self._matern._scale_factors
 
         self._direction0 = direction0
         self._direction1 = direction1
@@ -167,11 +172,11 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
 
     @functools.cached_property
     def _scaled_direction0(self) -> np.ndarray:
-        return self._matern._scale_factors * self._direction0
+        return self._matern_scale_factors * self._direction0
 
     @functools.cached_property
     def _scaled_direction1(self) -> np.ndarray:
-        return self._matern._scale_factors * self._direction1
+        return self._matern_scale_factors * self._direction1
 
     @functools.cached_property
     def _directions_inprod(self) -> np.floating:
@@ -186,7 +191,7 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs0 = self._batched_sum(self._scaled_direction0 * scaled_diffs)
         proj_scaled_diffs1 = self._batched_sum(self._scaled_direction1 * scaled_diffs)
@@ -206,7 +211,7 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs0 = self._batched_sum_jax(
             self._scaled_direction0 * scaled_diffs
@@ -234,7 +239,7 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
             x1 = x1.reshape(-1, 1)
 
         scaled_diffs = Vi(x0) - Vj(x1)
-        scaled_diffs *= Pm(self._matern._scale_factors)
+        scaled_diffs *= Pm(self._matern_scale_factors)
 
         proj_scaled_diffs0 = (Pm(self._scaled_direction0) * scaled_diffs).sum()
         proj_scaled_diffs1 = (Pm(self._scaled_direction1) * scaled_diffs).sum()
@@ -242,13 +247,17 @@ class HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         scaled_dists = scaled_diffs * scaled_diffs
         scaled_dists = scaled_dists.sum().sqrt()
 
-        res = Pm(self._directions_inprod) * self._neg_poly_deriv._evaluate_keops(
+        res = Pm(
+            self._directions_inprod
+        ) * self._neg_poly_deriv._evaluate_keops(  # pylint: disable=protected-access
             scaled_dists
         )
         res -= (
             proj_scaled_diffs0
             * proj_scaled_diffs1
-            * self._poly_diff._evaluate_keops(scaled_dists)
+            * self._poly_diff._evaluate_keops(  # pylint: disable=protected-access
+                scaled_dists
+            )
         )
         res *= (-scaled_dists).exp()
 
@@ -275,6 +284,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
+        self._matern_scale_factors = self._matern._scale_factors
 
         self._direction0 = direction0
         self._direction1 = direction1
@@ -284,7 +294,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
     @functools.cached_property
     def _scaled_directions_prod(self) -> np.floating:
         return np.squeeze(
-            self._direction0 * self._direction1 * self._matern._scale_factors**2
+            self._direction0 * self._direction1 * self._matern_scale_factors**2
         )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
@@ -298,7 +308,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         scaled_dists = self._euclidean_distances(
             x0,
             x1,
-            scale_factors=self._matern._scale_factors,
+            scale_factors=self._matern_scale_factors,
         )
 
         return (
@@ -318,13 +328,13 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         scaled_dists = self._euclidean_distances_jax(
             x0,
             x1,
-            scale_factors=self._matern._scale_factors,
+            scale_factors=self._matern_scale_factors,
         )
 
         return (
             self._scaled_directions_prod
             * self._poly.jax(scaled_dists)
-            * jnp.exp(-scaled_dists)
+            * jnp.exp(-scaled_dists)  # pylint: disable=invalid-unary-operand-type
         )
 
     def _keops_lazy_tensor(
@@ -333,12 +343,14 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(
         scaled_dists = self._euclidean_distances_keops(
             x0,
             x1,
-            scale_factors=self._matern._scale_factors,
+            scale_factors=self._matern_scale_factors,
         )
 
         return (
             Pm(self._scaled_directions_prod)
-            * self._poly._evaluate_keops(scaled_dists)
+            * self._poly._evaluate_keops(  # pylint: disable=protected-access
+                scaled_dists
+            )
             * (-scaled_dists).exp()
         )
 
@@ -366,11 +378,17 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
         self._L = L
         self._reverse = bool(reverse)
 
+        self._matern_scale_factors = self._matern._scale_factors
+
         self._poly = half_integer_matern_derivative_polynomial(matern.p, 2)
 
     @property
     def matern(self) -> covfuncs.Matern:
         return self._matern
+
+    @property
+    def L(self) -> diffops.WeightedLaplacian:
+        return self._L
 
     @property
     def reverse(self) -> bool:
@@ -379,12 +397,12 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
     @functools.cached_property
     def _output_scale_factor(self) -> np.floating:
         return np.squeeze(
-            self._L.weights * self._matern._scale_factors * self._matern._scale_factors
+            self._L.weights * self._matern_scale_factors * self._matern_scale_factors
         )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         scaled_dists = self._euclidean_distances(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
@@ -393,12 +411,12 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
         scaled_dists = self._euclidean_distances_jax(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
             self._output_scale_factor
-            * jnp.exp(-scaled_dists)
+            * jnp.exp(-scaled_dists)  # pylint: disable=invalid-unary-operand-type
             * self._poly.jax(scaled_dists)
         )
 
@@ -406,13 +424,15 @@ class UnivariateHalfIntegerMatern_Identity_WeightedLaplacian(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
     ) -> "LazyTensor":
         scaled_dists = self._euclidean_distances_keops(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
             Pm(self._output_scale_factor)
             * (-scaled_dists).exp()
-            * self._poly._evaluate_keops(scaled_dists)
+            * self._poly._evaluate_keops(  # pylint: disable=protected-access
+                scaled_dists
+            )
         )
 
 
@@ -436,6 +456,8 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
         super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
+        self._matern_scale_factors = self._matern._scale_factors
+
         self._L0 = L0
         self._L1 = L1
 
@@ -448,12 +470,12 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
     @functools.cached_property
     def _output_scale_factor(self) -> float:
         return np.squeeze(
-            self._L0.weights * self._L1.weights * self._matern._scale_factors**4
+            self._L0.weights * self._L1.weights * self._matern_scale_factors**4
         )[()]
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         scaled_dists = self._euclidean_distances(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
@@ -462,12 +484,12 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
         scaled_dists = self._euclidean_distances_jax(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
             self._output_scale_factor
-            * jnp.exp(-scaled_dists)
+            * jnp.exp(-scaled_dists)  # pylint: disable=invalid-unary-operand-type
             * self._poly.jax(scaled_dists)
         )
 
@@ -475,13 +497,15 @@ class UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
     ) -> "LazyTensor":
         scaled_dists = self._euclidean_distances_keops(
-            x0, x1, scale_factors=self._matern._scale_factors
+            x0, x1, scale_factors=self._matern_scale_factors
         )
 
         return (
             Pm(self._output_scale_factor)
             * (-scaled_dists).exp()
-            * self._poly._evaluate_keops(scaled_dists)
+            * self._poly._evaluate_keops(  # pylint: disable=protected-access
+                scaled_dists
+            )
         )
 
 
@@ -506,6 +530,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
         super().__init__(input_shape=matern.input_shape)
 
         self._matern = matern
+        self._matern_scale_factors = self._matern._scale_factors
 
         self._direction = direction
         self._L1 = L1
@@ -522,7 +547,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
 
     @functools.cached_property
     def _scaled_direction(self) -> np.ndarray:
-        scaled_direction = self._L1.weights * self._matern._scale_factors**3
+        scaled_direction = self._L1.weights * self._matern_scale_factors**3
         scaled_direction *= self._direction
 
         if self._reverse:
@@ -538,7 +563,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs = self._batched_sum(self._scaled_direction * scaled_diffs)
         scaled_dists = self._batched_euclidean_norm(scaled_diffs)
@@ -553,7 +578,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
             )
 
         scaled_diffs = x0 - x1
-        scaled_diffs *= self._matern._scale_factors
+        scaled_diffs *= self._matern_scale_factors
 
         proj_scaled_diffs = self._batched_sum_jax(self._scaled_direction * scaled_diffs)
         scaled_dists = self._batched_euclidean_norm_jax(scaled_diffs)
@@ -570,7 +595,7 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
         if len(x1.shape) < 2:
             x1 = x1.reshape(-1, 1)
         scaled_diffs = Vi(x0) - Vj(x1)
-        scaled_diffs *= Pm(self._matern._scale_factors)
+        scaled_diffs *= Pm(self._matern_scale_factors)
 
         proj_scaled_diffs = (Pm(self._scaled_direction) * scaled_diffs).sum()
         scaled_dists = scaled_diffs * scaled_diffs
@@ -578,7 +603,9 @@ class UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian(
 
         return (
             (-scaled_dists).exp()
-            * self._poly._evaluate_keops(scaled_dists)
+            * self._poly._evaluate_keops(  # pylint: disable=protected-access
+                scaled_dists
+            )
             * proj_scaled_diffs
         )
 

@@ -2,14 +2,16 @@ from collections.abc import Sequence
 
 from jax import numpy as jnp
 import numpy as np
-from probnum.randprocs import covfuncs
+from probnum.randprocs import pn_covfuncs
 
 from ._jax import JaxCovarianceFunctionMixin
 
 
-class StackCovarianceFunction(JaxCovarianceFunctionMixin, covfuncs.CovarianceFunction):
+class StackCovarianceFunction(
+    JaxCovarianceFunctionMixin, pn_covfuncs.CovarianceFunction
+):
     def __init__(
-        self, *covfuncs: covfuncs.CovarianceFunction, output_idx: int = 1
+        self, *covfuncs: pn_covfuncs.CovarianceFunction, output_idx: int = 1
     ) -> None:
         if any(
             covfunc.input_shape_0 != covfuncs[0].input_shape_0 for covfunc in covfuncs
@@ -44,7 +46,7 @@ class StackCovarianceFunction(JaxCovarianceFunctionMixin, covfuncs.CovarianceFun
         )
 
     @property
-    def covfuncs(self) -> Sequence[covfuncs.CovarianceFunction]:
+    def covfuncs(self) -> Sequence[pn_covfuncs.CovarianceFunction]:
         return self._covfuncs
 
     @property
