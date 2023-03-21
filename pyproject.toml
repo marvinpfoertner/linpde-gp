@@ -38,6 +38,11 @@ dynamic = [
     "version",
 ]
 
+[project.optional-dependencies]
+plotting = [
+    "matplotlib>=3.4.3",
+]
+
 [project.urls]
 github = "https://github.com/marvinpfoertner/linpde-gp"
 
