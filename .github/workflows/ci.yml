@@ -44,10 +44,15 @@ jobs:
             probnum/pyproject.toml
             tests/requirements.txt
             linting-requirements.txt
+      - name: Install probnum from submodule
+        working-directory: ./probnum
+        # The git fetch is needed because probnum reads its version information from the SCM
+        run: |
+          git fetch --tags --unshallow
+          pip install .
       - name: Install linting dependencies
         id: lint-deps
         run: |
-          pip install ./probnum
           pip install ".[plotting]"
           pip install -r tests/requirements.txt
           pip install -r linting-requirements.txt
@@ -80,9 +85,14 @@ jobs:
             pyproject.toml
             probnum/pyproject.toml
             tests/requirements.txt
+      - name: Install probnum from submodule
+        working-directory: ./probnum
+        # The git fetch is needed because probnum reads its version information from the SCM
+        run: |
+          git fetch --tags --unshallow
+          pip install .
       - name: Install test dependencies
         run: |
-          pip install ./probnum
           pip install .
           pip install -r tests/requirements.txt
       - name: Run tests with `pytest`
@@ -116,9 +126,14 @@ jobs:
             probnum/pyproject.toml
             experiments/requirements.txt
             .github/workflows/experiment-requirements.txt
+      - name: Install probnum from submodule
+        working-directory: ./probnum
+        # The git fetch is needed because probnum reads its version information from the SCM
+        run: |
+          git fetch --tags --unshallow
+          pip install .
       - name: Install experiment dependencies
         run: |
-          pip install ./probnum
           pip install .
           pip install -r experiments/requirements.txt
           pip install -r .github/workflows/experiment-requirements.txt
