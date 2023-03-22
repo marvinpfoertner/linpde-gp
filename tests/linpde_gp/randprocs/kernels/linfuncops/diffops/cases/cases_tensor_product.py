@@ -63,7 +63,7 @@ def case_tensor_product_directional_derivative_directional_derivative() -> (
         ),
         L0=diffops.DirectionalDerivative(direction0),
         L1=diffops.DirectionalDerivative(direction1),
-        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_DirectionalDerivative,
+        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_DirectionalDerivative,  # pylint: disable=line-too-long
     )
 
 
@@ -118,7 +118,7 @@ def case_tensor_product_weighted_laplacian_weighted_laplacian() -> (
         ),
         L0=diffops.WeightedLaplacian(weights0),
         L1=diffops.WeightedLaplacian(weights1),
-        expected_type=covfuncs_diffops.TensorProduct_WeightedLaplacian_WeightedLaplacian,
+        expected_type=covfuncs_diffops.TensorProduct_WeightedLaplacian_WeightedLaplacian,  # pylint: disable=line-too-long
     )
 
 
@@ -139,7 +139,7 @@ def case_tensor_product_directional_derivative_weighted_laplacian() -> (
         ),
         L0=diffops.DirectionalDerivative(direction),
         L1=diffops.WeightedLaplacian(weights),
-        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_WeightedLaplacian,
+        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_WeightedLaplacian,  # pylint: disable=line-too-long
     )
 
 
@@ -160,7 +160,7 @@ def case_tensor_product_weighted_laplacian_directional_derivative() -> (
         ),
         L0=diffops.WeightedLaplacian(weights),
         L1=diffops.DirectionalDerivative(direction),
-        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_WeightedLaplacian,
+        expected_type=covfuncs_diffops.TensorProduct_DirectionalDerivative_WeightedLaplacian,  # pylint: disable=line-too-long
     )
 
 

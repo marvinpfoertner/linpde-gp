@@ -50,8 +50,9 @@ def case_expquad_directional_derivative_directional_derivative(
 ) -> CovarianceFunctionDiffOpTestCase:
     k = covfuncs.ExpQuad(input_shape)
 
-    rng = np.random.default_rng(413598)
+    rng = np.random.default_rng(52469753628)
 
+    # pylint: disable=duplicate-code
     direction0 = rng.standard_normal(size=input_shape)
     direction1 = rng.standard_normal(size=input_shape)
 
@@ -59,7 +60,7 @@ def case_expquad_directional_derivative_directional_derivative(
         k=k,
         L0=diffops.DirectionalDerivative(direction0),
         L1=diffops.DirectionalDerivative(direction1),
-        expected_type=covfuncs_diffops.ExpQuad_DirectionalDerivative_DirectionalDerivative,
+        expected_type=covfuncs_diffops.ExpQuad_DirectionalDerivative_DirectionalDerivative,  # pylint: disable=line-too-long
     )
 
 
