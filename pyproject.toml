@@ -8,7 +8,7 @@
 name = "linpde-gp"
 description = "Linear PDE Solvers as Gaussian Process Inference"
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.10,<3.12"
 license = { text = "MIT" }
 keywords = [
     "partial-differential-equations",
@@ -26,11 +26,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
     "numpy>=1.21.3",
     "scipy>=1.4",
-    "probnum>=0.1.24,<0.1.25",
+    "probnum~=0.1.25.dev",
     "jax[cpu]>=0.2.18",
     "pykeops>=2.1.1,<3.0",
 ]
