@@ -660,3 +660,6 @@ class PDFWriter(matplotlib.animation.AbstractMovieWriter):
         )
 
         self._frame_idx += 1
+
+    def finish(self) -> None:  # pylint: disable=useless-parent-delegation
+        super().finish()
