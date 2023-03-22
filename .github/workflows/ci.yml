@@ -70,17 +70,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
+            probnum/pyproject.toml
             tests/requirements.txt
-      - name: Install `linpde-gp`
-        run: pip install -e .
       - name: Install test dependencies
-        run: pip install -r tests/requirements.txt
+        run: |
+          pip install ./probnum
+          pip install .
+          pip install -r tests/requirements.txt
       - name: Run tests with `pytest`
         run: pytest
 
@@ -109,12 +113,13 @@ jobs:
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
+            probnum/pyproject.toml
             experiments/requirements.txt
             .github/workflows/experiment-requirements.txt
-      - name: Install `linpde-gp`
-        run: pip install -e .
       - name: Install experiment dependencies
         run: |
+          pip install ./probnum
+          pip install .
           pip install -r experiments/requirements.txt
           pip install -r .github/workflows/experiment-requirements.txt
       - name: Run all experiment notebooks with `nbconvert`
