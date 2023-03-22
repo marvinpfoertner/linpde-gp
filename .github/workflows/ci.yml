@@ -54,8 +54,7 @@ jobs:
       - name: Lint code with `pylint`
         run: pylint src --jobs 0
       - name: Lint tests with `pylint`
-        run: pylint tests --disable="redefined-outer-name"
-        continue-on-error: true  # TODO: remove this once the tests are cleaned up
+        run: pylint tests/**/*.py --disable="redefined-outer-name"
         if: success() || steps.lint-deps.outcome == 'success'
 
   tests:
