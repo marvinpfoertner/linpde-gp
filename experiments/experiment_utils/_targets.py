@@ -7,6 +7,7 @@ _tueplots_bundles = {
     "jmlr": jmlr_bundle,
     "research_project": jmlr_bundle,
     "thesis_talk": beamer_moml_bundle,
+    "uk_2023": beamer_moml_bundle,
 }
 
 _colors = {
