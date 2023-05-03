@@ -1,14 +1,15 @@
 import abc
 from collections.abc import Sequence
+from dataclasses import dataclass
+import pickle
 from typing import Optional
 
-import pickle
 import numpy as np
 import probnum as pn
+
 from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
-from dataclasses import dataclass
 
 
 @dataclass

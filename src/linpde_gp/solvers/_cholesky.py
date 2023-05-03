@@ -1,10 +1,13 @@
-from ._gp_solver import GPSolver, ConcreteGPSolver, GPInferenceParams
-from .covfuncs import DowndateCovarianceFunction
-import numpy as np
+from typing import Optional
+
 from jax import numpy as jnp
+import numpy as np
+
 from linpde_gp.linops import BlockMatrix2x2
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
-from typing import Optional
+
+from ._gp_solver import ConcreteGPSolver, GPInferenceParams, GPSolver
+from .covfuncs import DowndateCovarianceFunction
 
 
 class CholeskyCovarianceFunction(DowndateCovarianceFunction):

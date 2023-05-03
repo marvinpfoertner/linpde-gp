@@ -1,4 +1,5 @@
 from typing import Optional
+
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
@@ -28,7 +29,9 @@ class Zero(JaxCovarianceFunctionMixin, covfuncs.CovarianceFunction):
             dtype=np.result_type(x0, x1),
         )
 
-    def _evaluate_linop(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> pn.linops.LinearOperator:
+    def _evaluate_linop(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> pn.linops.LinearOperator:
         shape = (
             self.output_size_0 * x0.shape[0],
             self.output_size_1 * (x1.shape[0] if x1 is not None else x0.shape[0]),

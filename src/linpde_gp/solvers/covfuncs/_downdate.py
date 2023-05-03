@@ -1,11 +1,11 @@
 import abc
 import functools
-from typing import Optional
-import numpy as np
+
 import jax
 import jax.numpy as jnp
+import numpy as np
+
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
-from probnum.typing import ShapeLike
 
 
 class DowndateCovarianceFunction(JaxCovarianceFunction):

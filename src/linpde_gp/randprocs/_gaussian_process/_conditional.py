@@ -15,13 +15,13 @@ from linpde_gp.linfuncops import LinearFunctionOperator
 from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.linops import BlockMatrix, BlockMatrix2x2
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
-from linpde_gp.typing import RandomVariableLike
 from linpde_gp.solvers import (
-    GPSolver,
-    GPInferenceParams,
-    ConcreteGPSolver,
     CholeskySolver,
+    ConcreteGPSolver,
+    GPInferenceParams,
+    GPSolver,
 )
+from linpde_gp.typing import RandomVariableLike
 
 
 class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
