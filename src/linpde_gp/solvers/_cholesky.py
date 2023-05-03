@@ -1,5 +1,3 @@
-from typing import Optional
-
 from jax import numpy as jnp
 import numpy as np
 
