@@ -9,9 +9,7 @@ from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
 
 
 class DowndateCovarianceFunction(JaxCovarianceFunction):
-    """
-    Covariance function that is obtained by downdating a prior covariance function.
-    """
+    """Covariance function that is obtained by downdating a prior covariance function."""
 
     def __init__(self, prior_cov: JaxCovarianceFunction):
         self._prior_cov = prior_cov

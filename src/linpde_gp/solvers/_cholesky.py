@@ -33,19 +33,10 @@ class CholeskyCovarianceFunction(DowndateCovarianceFunction):
 
 
 class ConcreteCholeskySolver(ConcreteGPSolver):
-    """
-    Concrete solver that uses the Cholesky decomposition.
+    """Concrete solver that uses the Cholesky decomposition.
 
     Uses a block Cholesky decomposition if possible.
     """
-
-    def __init__(
-        self,
-        gp_params: GPInferenceParams,
-        load_path: Optional[str] = None,
-        save_path: Optional[str] = None,
-    ):
-        super().__init__(gp_params, load_path, save_path)
 
     def _compute_representer_weights(self):
         if self._gp_params.prev_representer_weights is not None:
@@ -69,17 +60,12 @@ class ConcreteCholeskySolver(ConcreteGPSolver):
         state = {"representer_weights": self._representer_weights}
         return state
 
-    def _load_state(self, dict):
-        self._representer_weights = dict["representer_weights"]
+    def _load_state(self, state: dict):
+        self._representer_weights = state["representer_weights"]
 
 
 class CholeskySolver(GPSolver):
     """Solver that uses the Cholesky decomposition."""
-
-    def __init__(
-        self, load_path: Optional[str] = None, save_path: Optional[str] = None
-    ):
-        super().__init__(load_path, save_path)
 
     def get_concrete_solver(
         self, gp_params: GPInferenceParams

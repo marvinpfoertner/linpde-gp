@@ -36,7 +36,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         b: None | RandomVariableLike = None,
         solver: GPSolver = CholeskySolver(),
     ):
-        Y, L, b, kLa, Lm, gram = cls._preprocess_observations(
+        Y, L, b, kLa, gram = cls._preprocess_observations(
             prior=prior,
             Y=Y,
             X=X,
@@ -212,7 +212,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         b: RandomVariableLike | None = None,
         solver: GPSolver = CholeskySolver(),
     ):
-        Y, L, b, kLa, pred_mean, gram = self._preprocess_observations(
+        Y, L, b, kLa, gram = self._preprocess_observations(
             prior=self._prior,
             Y=Y,
             X=X,
@@ -310,11 +310,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         Lf = L(prior)
         kLa = L(prior.cov, argnum=1)
 
-        # Compute predictive mean and covariance matrix
-        pred_mean = Lf.mean
+        # Compute predictive covariance matrix
         gram = Lf.cov
 
-        pred_mean = pred_mean.reshape(-1, order="C")
         # Check observations
         Y = np.asarray(Y)
         if (
@@ -343,13 +341,12 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         assert Y.size == Lf.cov.shape[1]
 
         if b is not None:
-            pred_mean = pred_mean + np.asarray(b.mean).reshape(-1, order="C")
             gram = gram + pn.linops.aslinop(b.cov)
 
         gram.is_symmetric = True
         gram.is_positive_definite = True
 
-        return Y, L, b, kLa, pred_mean, gram
+        return Y, L, b, kLa, gram
 
 
 pn.randprocs.GaussianProcess.condition_on_observations = (

@@ -14,9 +14,7 @@ from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
 
 @dataclass
 class GPInferenceParams:
-    """
-    Parameters for affine Gaussian process inference.
-    """
+    """Parameters for affine Gaussian process inference."""
 
     prior: pn.randprocs.GaussianProcess
     prior_gram: pn.linops.LinearOperator
@@ -53,14 +51,11 @@ class ConcreteGPSolver(abc.ABC):
 
     @abc.abstractmethod
     def _compute_representer_weights(self):
-        """
-        Compute the representer weights.
-        """
+        """Compute the representer weights."""
         raise NotImplementedError
 
     def compute_representer_weights(self):
-        """
-        Compute representer weights, or directly return cached
+        """Compute representer weights, or directly return cached
         result from previous computation.
         """
         if self._representer_weights is None:
@@ -105,7 +100,7 @@ class ConcreteGPSolver(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _load_state(self, dict):
+    def _load_state(self, state: dict):
         """Load solver state from dict."""
         raise NotImplementedError
 
@@ -127,8 +122,7 @@ class ConcreteGPSolver(abc.ABC):
 
 
 class GPSolver(abc.ABC):
-    """
-    User-facing interface for Gaussian process solvers used to pass
+    """User-facing interface for Gaussian process solvers used to pass
     hyperparameters.
     """
 
@@ -140,8 +134,7 @@ class GPSolver(abc.ABC):
 
     @abc.abstractmethod
     def get_concrete_solver(self, gp_params: GPInferenceParams) -> ConcreteGPSolver:
-        """
-        Get concrete solver.
+        """Get concrete solver.
         Subclasses must implement this method.
         """
         raise NotImplementedError
