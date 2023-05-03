@@ -48,14 +48,14 @@ class ConcreteCholeskySolver(ConcreteGPSolver):
         super().__init__(gp_params, load_path, save_path)
 
     def _compute_representer_weights(self):
-        if self._gp_params.prior_representer_weights is not None:
+        if self._gp_params.prev_representer_weights is not None:
             # Update existing representer weights
             assert isinstance(self._gp_params.prior_gram, BlockMatrix2x2)
             new_residual = self._get_residual(
                 self._gp_params.Ys[-1], self._gp_params.Ls[-1], self._gp_params.bs[-1]
             )
             return self._gp_params.prior_gram.schur_update(
-                self._gp_params.prior_representer_weights, new_residual
+                self._gp_params.prev_representer_weights, new_residual
             )
         full_residual = self._get_full_residual()
         return self._gp_params.prior_gram.solve(full_residual)

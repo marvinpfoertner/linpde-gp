@@ -66,6 +66,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         kLas: ConditionalGaussianProcess.PriorPredictiveCrossCovariance,
         gram_matrix: pn.linops.LinearOperator,
         solver: GPSolver,
+        full_representer_weights: np.ndarray | None = None,
     ):
         self._prior = prior
 
@@ -77,7 +78,9 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
         self._gram_matrix = gram_matrix
 
-        inference_params = GPInferenceParams(prior, gram_matrix, Ys, Ls, bs, kLas, None)
+        inference_params = GPInferenceParams(
+            prior, gram_matrix, Ys, Ls, bs, kLas, None, full_representer_weights
+        )
         self._solver = solver.get_concrete_solver(inference_params)
         self._abstract_solver = solver
 
@@ -104,10 +107,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
 
     @property
     def representer_weights(self) -> np.ndarray:
-        if self._representer_weights is None:
-            self._representer_weights = self._solver.compute_representer_weights()
-
-        return self._representer_weights
+        return self._solver.compute_representer_weights()
 
     class PriorPredictiveCrossCovariance(ProcessVectorCrossCovariance):
         def __init__(
@@ -397,6 +397,7 @@ def _(
         kLas=self(conditional_gp._kLas),
         gram_matrix=conditional_gp.gram,
         solver=conditional_gp.abstract_solver,
+        full_representer_weights=conditional_gp.representer_weights,
     )
 
 

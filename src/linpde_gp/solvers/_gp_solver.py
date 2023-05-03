@@ -24,7 +24,8 @@ class GPInferenceParams:
     Ls: Sequence[LinearFunctional]
     bs: Sequence[pn.randvars.Normal | pn.randvars.Constant | None]
     kLas: ProcessVectorCrossCovariance
-    prior_representer_weights: np.ndarray
+    prev_representer_weights: Optional[np.ndarray]
+    full_representer_weights: Optional[np.ndarray]
 
 
 class ConcreteGPSolver(abc.ABC):
@@ -43,7 +44,9 @@ class ConcreteGPSolver(abc.ABC):
         self._load_path = load_path
         self._save_path = save_path
 
-        self._representer_weights = None
+        # Typically None, but in some cases (e.g. applying a linear function
+        # operator to a trained GP), the representer weights are already known
+        self._representer_weights = self._gp_params.full_representer_weights
 
         if self._load_path is not None:
             self.load()
