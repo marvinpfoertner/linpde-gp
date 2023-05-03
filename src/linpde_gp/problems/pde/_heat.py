@@ -78,7 +78,7 @@ class HeatEquationDirichletProblem(InitialBoundaryValueProblem):
                     isinstance(initial_values, functions.TruncatedSineSeries)
                     and initial_values.domain == domain[1]
                 ):
-                    solution = Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_BoundaryZero(
+                    solution = Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_BoundaryZero(  # pylint: disable=line-too-long
                         t0=t0,
                         spatial_domain=spatial_domain,
                         initial_values=initial_values,
@@ -117,7 +117,9 @@ class Solution_HeatEquation_DirichletProblem_1D_InitialTruncatedSineSeries_Bound
     def _decay_rates(self) -> np.ndarray:
         return self._alpha * self._initial_values.half_angular_frequencies**2
 
-    def _evaluate(self, txs: np.ndarray) -> np.ndarray:
+    def _evaluate(  # pylint: disable=arguments-renamed
+        self, txs: np.ndarray
+    ) -> np.ndarray:
         l, _ = self._spatial_domain
 
         ts, xs = np.split(txs, 2, axis=-1)

@@ -73,7 +73,7 @@ def test_compare_solutions(ibvp):
     X_ic = ibvp.initial_domain.uniform_grid(N_ic, inset=1e-6)
     Y_ic = ibvp.initial_condition.values(X_ic[..., 1])
 
-    u_ic = u_prior.condition_on_observations(Y_ic, X_ic)
+    u_ic = u_prior.condition_on_observations(Y_ic, X_ic)  # pylint: disable=no-member
     assert_initial_condition((X_ic, Y_ic), u_ic)
 
     u_ic_bc = u_ic

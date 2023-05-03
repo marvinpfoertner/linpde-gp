@@ -57,12 +57,10 @@ def symm_5x5():
 
 @pytest.fixture
 def sbm_nested(symm_5x5):
-    """
-    SBM_1 = [A B
-            B.T D]
-    SBM_2 = [SBM_1 E
-            E.T    F]
-    """
+    # SBM_1 = [A B
+    #         B.T D]
+    # SBM_2 = [SBM_1 E
+    #         E.T    F]
     A = pn.linops.Matrix(symm_5x5[:2, :2])
     D = pn.linops.Matrix(symm_5x5[2:4, 2:4])
     B = pn.linops.Matrix(symm_5x5[:2, 2:4])

@@ -88,3 +88,9 @@ class LambdaLinearDifferentialOperator(LinearDifferentialOperator):
 
     def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
         return self._jax_diffop_fn(f, **kwargs)
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()

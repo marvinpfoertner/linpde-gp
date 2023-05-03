@@ -1,4 +1,3 @@
-from numpy import isin
 import probnum as pn
 
 from linpde_gp.typing import RandomProcessLike

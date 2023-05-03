@@ -19,7 +19,7 @@ from ._matern import Matern
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k: covfuncs.Zero, /, *, argnum: int = 0):
-    from ..crosscov import Zero
+    from ..crosscov import Zero  # pylint: disable=import-outside-toplevel
 
     return Zero(
         randproc_input_shape=k.input_shape_1 if argnum == 0 else k.input_shape_0,
@@ -31,12 +31,15 @@ def _(self, k: covfuncs.Zero, /, *, argnum: int = 0):
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k_scaled: ScaledCovarianceFunction, /, *, argnum: int = 0):
+    # pylint: disable=protected-access
     return k_scaled._scalar * self(k_scaled._covfunc, argnum=argnum)
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
-    from ..crosscov import StackedProcessVectorCrossCovariance
+    from ..crosscov import (  # pylint: disable=import-outside-toplevel
+        StackedProcessVectorCrossCovariance,
+    )
 
     return StackedProcessVectorCrossCovariance(
         *(self(covfunc, argnum=argnum) for covfunc in k.covfuncs)
@@ -55,7 +58,9 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, argnum: int = 0):
     res = self.linfunctl(res, argnum=argnum)
 
     if self.linop is not None:
-        from ..crosscov import LinOpProcessVectorCrossCovariance
+        from ..crosscov import (  # pylint: disable=import-outside-toplevel
+            LinOpProcessVectorCrossCovariance,
+        )
 
         res = LinOpProcessVectorCrossCovariance(self.linop, res)
 
@@ -66,14 +71,18 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, argnum: int = 0):
 def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
     match argnum:
         case 0:
-            from ..crosscov.linfunctls import CovarianceFunction_Dirac_Identity
+            from ..crosscov.linfunctls import (  # pylint: disable=import-outside-toplevel
+                CovarianceFunction_Dirac_Identity,
+            )
 
             return CovarianceFunction_Dirac_Identity(
                 covfunc=k,
                 dirac=self,
             )
         case 1:
-            from ..crosscov.linfunctls import CovarianceFunction_Identity_Dirac
+            from ..crosscov.linfunctls import (  # pylint: disable=import-outside-toplevel
+                CovarianceFunction_Identity_Dirac,
+            )
 
             return CovarianceFunction_Identity_Dirac(
                 covfunc=k,
@@ -87,14 +96,18 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
 def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
     match argnum:
         case 0:
-            from ..crosscov.linfunctls import CovarianceFunction_Evaluation_Identity
+            from ..crosscov.linfunctls import (  # pylint: disable=import-outside-toplevel
+                CovarianceFunction_Evaluation_Identity,
+            )
 
             return CovarianceFunction_Evaluation_Identity(
                 covfunc=k,
                 evaluation_fctl=self,
             )
         case 1:
-            from ..crosscov.linfunctls import CovarianceFunction_Identity_Evaluation
+            from ..crosscov.linfunctls import (  # pylint: disable=import-outside-toplevel
+                CovarianceFunction_Identity_Evaluation,
+            )
 
             return CovarianceFunction_Identity_Evaluation(
                 covfunc=k,
@@ -162,12 +175,14 @@ def _(self, k: pn.randprocs.covfuncs.Matern, /, argnum: int = 0):
     GalerkinCovarianceFunction
 )
 def _(self, k: GalerkinCovarianceFunction, /, argnum: int = 0):
-    if k._projection is self:
-        from ..crosscov import ParametricProcessVectorCrossCovariance
+    if k.P is self:
+        from ..crosscov import (  # pylint: disable=import-outside-toplevel
+            ParametricProcessVectorCrossCovariance,
+        )
 
         return ParametricProcessVectorCrossCovariance(
-            crosscov=k._PkPa,
-            basis=k._projection._basis,
+            crosscov=k.PkP,
+            basis=k.P.basis,
             reverse=(argnum == 0),
         )
 

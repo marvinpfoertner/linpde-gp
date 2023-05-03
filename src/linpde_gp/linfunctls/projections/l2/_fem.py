@@ -30,6 +30,10 @@ class L2Projection_UnivariateLinearInterpolationBasis(_linfunctl.LinearFunctiona
     def basis(self) -> functions.bases.UnivariateLinearInterpolationBasis:
         return self._basis
 
+    @property
+    def normalized(self) -> bool:
+        return self._normalized
+
     @functools.cached_property
     def normalizer(self) -> pn.linops.LinearOperator:
         if not self._normalized:
@@ -59,10 +63,13 @@ class L2Projection_UnivariateLinearInterpolationBasis(_linfunctl.LinearFunctiona
 
     @__call__.register(pn.functions.Function)
     def _(self, f: pn.functions.Function, /) -> np.ndarray:
+        def integrand(idx: int, x: float):
+            return self._basis.eval_elem(idx, x) * f(x)
+
         res = np.array(
             [
                 scipy.integrate.quad(
-                    lambda x: self._basis.eval_elem(idx, x) * f(x),
+                    functools.partial(integrand, idx),
                     *self._basis.support_bounds(idx),
                 )[0]
                 for idx in range(len(self._basis))

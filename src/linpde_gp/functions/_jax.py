@@ -75,7 +75,9 @@ class JaxLambdaFunction(JaxFunction):
         if vectorize:
             fn = jnp.vectorize(
                 fn,
-                signature=f"({input_signature_component})->({output_signature_component})",
+                signature=(
+                    f"({input_signature_component})->({output_signature_component})"
+                ),
             )
 
         self._fn = fn

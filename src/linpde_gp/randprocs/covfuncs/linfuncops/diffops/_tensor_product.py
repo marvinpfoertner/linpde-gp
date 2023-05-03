@@ -1,15 +1,15 @@
 from collections.abc import Mapping
 import functools
 import operator
-from typing import Optional, Tuple
+from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
-from pykeops.numpy import LazyTensor, Pm, Vi, Vj
+from pykeops.numpy import LazyTensor
 
 from linpde_gp.linfuncops import diffops
 
-from ..._jax import JaxCovarianceFunction, JaxCovarianceFunctionMixin
+from ..._jax import JaxCovarianceFunction
 from ..._tensor_product import (
     TensorProduct,
     evaluate_dimensionwise,
@@ -104,7 +104,9 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
         x0s, x1s = split_outputs_contiguous(x0, x1, len(self._k.factors))
         ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0s, x1s)
         kLs_or_Lks_x0_x1 = {
-            dim_idx: kL_or_Lk._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
+            dim_idx: kL_or_Lk._keops_lazy_tensor(  # pylint: disable=protected-access
+                x0s[dim_idx], x1s[dim_idx]
+            )
             for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
         }
 
@@ -265,15 +267,21 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
         x0s, x1s = split_outputs_contiguous(x0, x1, len(self._k.factors))
         ks_x0_x1 = lazy_tensor_dimensionwise(self._k.factors, x0s, x1s)
         L0ks_x0_x1 = {
-            dim_idx: L0k._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
+            dim_idx: L0k._keops_lazy_tensor(  # pylint: disable=protected-access
+                x0s[dim_idx], x1s[dim_idx]
+            )
             for dim_idx, L0k in self._L0ks.items()
         }
         kL1s_x0_x1 = {
-            dim_idx: kL1._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
+            dim_idx: kL1._keops_lazy_tensor(  # pylint: disable=protected-access
+                x0s[dim_idx], x1s[dim_idx]
+            )
             for dim_idx, kL1 in self._kL1s.items()
         }
         L0kL1s_x0_x1 = {
-            dim_idx: L0kL1._keops_lazy_tensor(x0s[dim_idx], x1s[dim_idx])
+            dim_idx: L0kL1._keops_lazy_tensor(  # pylint: disable=protected-access
+                x0s[dim_idx], x1s[dim_idx]
+            )
             for dim_idx, L0kL1 in self._L0kL1s.items()
         }
 

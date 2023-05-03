@@ -82,7 +82,8 @@ class BlockMatrix(pn.linops.LinearOperator):
 
 # TODO: Inherit from `BlockMatrix`
 class BlockMatrix2x2(pn.linops.LinearOperator):
-    """
+    """2x2 Block Matrix
+
     A linear operator that represents a linear system of the form:
 
         | A  B | | x | = | u |
@@ -241,6 +242,7 @@ class BlockMatrix2x2(pn.linops.LinearOperator):
         return block_sqrt
 
     def _solve(self, B: np.ndarray) -> np.ndarray:
+        # pylint: disable=too-many-return-statements
         b0, b1 = self._split_input(B, axis=-2)
         if self.is_block_diagonal:
             return np.concatenate((self.A.inv() @ b0, self.D.inv() @ b1), axis=-2)

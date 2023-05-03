@@ -9,7 +9,7 @@ from typing import Optional
 from jax import numpy as jnp
 import numpy as np
 from probnum.randprocs.covfuncs import CovarianceFunction
-from probnum.typing import ArrayLike, ShapeLike
+from probnum.typing import ArrayLike
 
 from ... import linfuncops
 
@@ -108,7 +108,7 @@ class JaxCovarianceFunction(JaxCovarianceFunctionMixin, CovarianceFunction):
     ...
 
 
-class JaxIsotropicMixin:
+class JaxIsotropicMixin:  # pylint: disable=too-few-public-methods
     def _squared_euclidean_distances_jax(
         self: JaxCovarianceFunctionMixin,
         x0: jnp.ndarray,

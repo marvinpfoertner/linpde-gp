@@ -1,3 +1,5 @@
+import functools
+
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
@@ -42,11 +44,14 @@ class CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis(
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         basis = self._projection.basis
 
+        def integrand(idx: int, x: float, t: float):
+            return basis.eval_elem(idx, t) * self._covfunc(x, t)
+
         res = np.vectorize(
             lambda x: np.array(
                 [
                     scipy.integrate.quad(
-                        lambda t: basis.eval_elem(idx, t) * self._covfunc(x, t),
+                        functools.partial(integrand, idx, x),
                         *basis.support_bounds(idx),
                     )[0]
                     for idx in range(len(basis))
@@ -116,8 +121,8 @@ def _(
 def _(
     self, pv_crosscov: _parametric.ParametricProcessVectorCrossCovariance, /
 ) -> np.ndarray:
-    if self._basis is pv_crosscov._basis and self._normalized:
-        return pv_crosscov._crosscov.todense()
+    if self.basis is pv_crosscov.basis and self.normalized:
+        return pv_crosscov.crosscov.todense()
 
     raise NotImplementedError()
 

@@ -11,7 +11,7 @@ from .._pv_crosscov import ProcessVectorCrossCovariance
     ProcessVectorCrossCovariance
 )
 def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self._X)
+    return pv_crosscov.evaluate_linop(self.X)
 
 
 class CovarianceFunction_Identity_Dirac(ProcessVectorCrossCovariance):

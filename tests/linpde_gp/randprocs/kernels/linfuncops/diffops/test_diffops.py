@@ -23,6 +23,7 @@ def X(input_shape: ShapeType) -> np.ndarray:
 @parametrize_with_cases("test_case", cases=case_modules)
 def test_L0kL1_expected_type(test_case: CovarianceFunctionDiffOpTestCase):
     if test_case.expected_type is not None:
+        # pylint: disable=unidiomatic-typecheck
         assert type(test_case.L0kL1) == test_case.expected_type
 
 
@@ -62,7 +63,7 @@ def test_L0kL1_linop_keops_equals_no_keops(test_case: CovarianceFunctionDiffOpTe
 
     no_keops_linop = test_case.L0kL1.linop(Xs, Xs)
     try:
-        no_keops_linop._use_keops = False
+        no_keops_linop._use_keops = False  # pylint: disable=protected-access
         no_keops_mat = no_keops_linop @ np.eye(no_keops_linop.shape[1])
     except AttributeError:
         # for _use_keops

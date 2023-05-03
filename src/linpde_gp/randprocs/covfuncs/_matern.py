@@ -16,7 +16,7 @@ class Matern(
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
         if self.nu == np.inf:
             return jnp.exp(
-                -self._squared_euclidean_distances_jax(
+                -self._squared_euclidean_distances_jax(  # pylint: disable=invalid-unary-operand-type
                     x0, x1, scale_factors=self._scale_factors
                 )
             )
@@ -36,7 +36,9 @@ class Matern(
                 res += coeffs[i]
 
             # Exponential part
-            res *= jnp.exp(-scaled_distances)
+            res *= jnp.exp(
+                -scaled_distances  # pylint: disable=invalid-unary-operand-type
+            )
 
             return res
 

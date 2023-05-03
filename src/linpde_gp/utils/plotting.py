@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.animation
 import matplotlib.axes
 import matplotlib.collections
+import matplotlib.figure
 import matplotlib.lines
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
@@ -34,7 +35,7 @@ def plot_piecewise_linear_function(
     f: linpde_gp.functions.PiecewiseLinear,
     /,
     ax: matplotlib.axes.Axes,
-    xs: np.ndarray | None,
+    xs: np.ndarray | None,  # pylint: disable=unused-argument
     color=None,
     label=None,
     **plot_kwargs,
@@ -61,17 +62,18 @@ linpde_gp.functions.PiecewiseLinear.plot = plot_piecewise_linear_function
 def plot_random_process(randproc: pn.randprocs.RandomProcess, *args, **kwargs):
     if randproc.input_shape == ():
         return _plot_1d_random_process(randproc, *args, **kwargs)
-    elif randproc.input_shape == (2,):
+
+    if randproc.input_shape == (2,):
         return _plot_2d_random_process(randproc, *args, **kwargs)
-    else:
-        raise TypeError()
+
+    raise TypeError()
 
 
 pn.randprocs.RandomProcess.plot = plot_random_process
 randprocs.DeterministicProcess.plot = plot_random_process
 
 
-def _plot_1d_random_process(
+def _plot_1d_random_process(  # pylint: disable=too-many-locals
     randproc: pn.randprocs.RandomProcess,
     /,
     ax: matplotlib.axes.Axes,
@@ -85,8 +87,8 @@ def _plot_1d_random_process(
     rel_fill_alpha: float = 0.1,
     rel_sample_alpha: float = 0.1,
     label: Optional[str] = None,
-    mean_line2d_kwargs: dict[str, Any] = {},
-    samples_kwargs: dict[str, Any] = {},
+    mean_line2d_kwargs: dict[str, Any] | None = None,
+    samples_kwargs: dict[str, Any] | None = None,
     vertical: bool = False,
     **kwargs,
 ) -> Tuple[
@@ -95,6 +97,9 @@ def _plot_1d_random_process(
     List[matplotlib.lines.Line2D],
 ]:
     # Plot mean function
+    if mean_line2d_kwargs is None:
+        mean_line2d_kwargs = {}
+
     mean_lines2d = randproc.mean.plot(
         ax,
         xs,
@@ -132,6 +137,9 @@ def _plot_1d_random_process(
         std_poly = None
 
     # Plot samples
+    if samples_kwargs is None:
+        samples_kwargs = {}
+
     samples_line2d = []
 
     if num_samples > 0:
@@ -178,7 +186,7 @@ def plot_random_process_samples(
 pn.randprocs.RandomProcess.plot_samples = plot_random_process_samples
 
 
-def _plot_2d_random_process(
+def _plot_2d_random_process(  # pylint: disable=too-many-locals
     f: pn.randprocs.RandomProcess,
     ax: mplot3d.Axes3D,
     xy: np.ndarray,
@@ -203,7 +211,8 @@ def _plot_2d_random_process(
     slice_samples_linewidth: float | None = None,
     **kwargs,
 ):
-    """
+    """Plot a bivariate :class:`pn.randprocs.RandomProcess`.
+
     Notes
     -----
     The axes of the subplot must be set up with
@@ -247,7 +256,7 @@ def _plot_2d_random_process(
         slice_cred_int_color = (
             slice_cred_int_color
             if slice_cred_int_color is not None
-            else ax._get_lines.get_next_color()
+            else ax._get_lines.get_next_color()  # pylint: disable=protected-access
         )
 
         if slice_std_factor > 0.0:
@@ -274,7 +283,7 @@ def _plot_2d_random_process(
                 slice_cred_int_upper,
                 axis=slice_axis,
                 zorder=slice_upper_zorder,
-                color=lower_cred_int_poly._facecolor3d,
+                color=lower_cred_int_poly._facecolor3d,  # pylint: disable=no-member,protected-access
                 alpha=slice_cred_int_alpha,
             )
 
@@ -460,7 +469,11 @@ def fill_between_3d(
                 axis=-2,
             ),
         ),
-        facecolors=(color if color is not None else ax._get_lines.get_next_color(),),
+        facecolors=(
+            color
+            if color is not None
+            else ax._get_lines.get_next_color(),  # pylint: disable=protected-access
+        ),
         **kwargs,
     )
 
@@ -499,7 +512,10 @@ def plot_local_taylor_processes(
         taylor_process_x = linpde_gp.randprocs.ParametricGaussianProcess(
             weights=coeffs_x,
             feature_fn=pn.functions.LambdaFunction(
-                lambda x: (x - x0)[:, None] ** np.arange(coeffs_x.size),
+                lambda x: (
+                    (x - x0)[:, None]  # pylint: disable=cell-var-from-loop
+                    ** np.arange(coeffs_x.size)  # pylint: disable=cell-var-from-loop
+                ),
                 input_shape=(),
                 output_shape=(coeffs_x.size,),
             ),
@@ -522,7 +538,7 @@ def plot_local_taylor_processes(
             color = mean_lines2d[0].get_color()
 
 
-def plot_local_curvature(
+def plot_local_curvature(  # pylint: disable=too-many-locals
     ax: matplotlib.axes.Axes,
     xs,
     f_xs,
@@ -596,7 +612,7 @@ def plot_local_curvature(
     if label is not None:
         means_line2d[0].set_label(label)
 
-    colors = [line2d.get_color() for line2d in means_line2d]
+    line_colors = [line2d.get_color() for line2d in means_line2d]
 
     # Plot credible interval
     if cred_int > 0.0:
@@ -605,12 +621,14 @@ def plot_local_curvature(
 
         fills = []
 
-        for grid, mean, fill_delta, color in zip(grids, means, fill_deltas, colors):
+        for grid, mean, fill_delta, line_color in zip(
+            grids, means, fill_deltas, line_colors
+        ):
             fill = ax.fill_between(
                 grid,
                 mean - fill_delta,
                 mean + fill_delta,
-                color=color,
+                color=line_color,
                 alpha=alpha * rel_fill_alpha,
             )
 
@@ -627,10 +645,12 @@ class PDFWriter(matplotlib.animation.AbstractMovieWriter):
     def isAvailable(cls):
         return True
 
-    def setup(self, fig: "Figure", outfile: str, dpi: Optional[float] = None) -> None:
+    def setup(
+        self, fig: matplotlib.figure.Figure, outfile: str, dpi: Optional[float] = None
+    ) -> None:
         super().setup(fig, outfile, dpi=dpi)
 
-        self._frame_idx = 0
+        self._frame_idx = 0  # pylint: disable=attribute-defined-outside-init
 
     def grab_frame(self, **savefig_kwargs):
         self.fig.savefig(
@@ -641,5 +661,5 @@ class PDFWriter(matplotlib.animation.AbstractMovieWriter):
 
         self._frame_idx += 1
 
-    def finish(self) -> None:
+    def finish(self) -> None:  # pylint: disable=useless-parent-delegation
         super().finish()

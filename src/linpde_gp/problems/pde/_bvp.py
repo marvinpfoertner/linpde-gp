@@ -106,8 +106,8 @@ class BoundaryValueProblem:
         if self.solution is not None:
             if self.solution.input_shape != self.domain.shape:
                 raise ValueError(
-                    "The input shape of the solution function should be equal to the shape "
-                    "of the domain."
+                    "The input shape of the solution function should be equal to the "
+                    "shape of the domain."
                 )
 
             if self.solution.output_shape != self.pde.diffop.input_codomain_shape:

@@ -12,7 +12,7 @@ from ._domain import Domain
 
 class CartesianProduct(Domain):
     def __init__(self, *domains: DomainLike) -> None:
-        from ._asdomain import asdomain
+        from ._asdomain import asdomain  # pylint: disable=import-outside-toplevel
 
         self._domains = tuple(asdomain(domain) for domain in domains)
 
@@ -43,8 +43,8 @@ class CartesianProduct(Domain):
 
     @functools.cached_property
     def _as_box(self):
-        from ._box import Box, Interval
-        from ._point import Point
+        from ._box import Box, Interval  # pylint: disable=import-outside-toplevel
+        from ._point import Point  # pylint: disable=import-outside-toplevel
 
         if not all(
             isinstance(domain, (Interval, Box, Point)) for domain in self._domains

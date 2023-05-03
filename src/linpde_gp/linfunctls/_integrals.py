@@ -37,7 +37,7 @@ class LebesgueIntegral(_linfunctl.LinearFunctional):
     @__call__.register
     def _(self, f: pn.functions.Function, /) -> np.ndarray:
         try:
-            super().__call__(f)
+            return super().__call__(f)
         except NotImplementedError as err:
             import scipy.integrate  # pylint: disable=import-outside-toplevel
 

@@ -106,10 +106,8 @@ class UnivariateLinearInterpolationBasis(pn.functions.Function):
     def __len__(self):
         return self._output_shape[0]
 
-    def l2_projection(
-        self, normalized: bool = True
-    ) -> "linpde_gp.linfunctls.projections.l2.L2Projection_UnivariateLinearInterpolationBasis":
-        from linpde_gp.linfunctls.projections.l2 import (
+    def l2_projection(self, normalized: bool = True):
+        from linpde_gp.linfunctls.projections.l2 import (  # pylint: disable=import-outside-toplevel
             L2Projection_UnivariateLinearInterpolationBasis,
         )
 

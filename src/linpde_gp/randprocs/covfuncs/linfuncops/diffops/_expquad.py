@@ -152,6 +152,8 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxCovarianceFunction):
         self._expquad = expquad
         self._L = L
 
+        self._expquad_scale_factors = self._expquad._scale_factors
+
         super().__init__(input_shape=self._expquad.input_shape)
 
         self._reverse = bool(reverse)
@@ -161,22 +163,26 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxCovarianceFunction):
         return self._expquad
 
     @property
+    def L(self) -> diffops.WeightedLaplacian:
+        return self._L
+
+    @property
     def reverse(self) -> bool:
         return self._reverse
 
     @functools.cached_property
     def _weighted_inv_lengthscales_sq(self) -> np.ndarray:
-        return 2.0 * self._L.weights * self._expquad._scale_factors**2
+        return 2.0 * self._L.weights * self._expquad_scale_factors**2
 
     @functools.cached_property
     def _scale_factors_sq(self) -> np.ndarray:
         return (
-            2.0 * self._weighted_inv_lengthscales_sq * self._expquad._scale_factors**2
+            2.0 * self._weighted_inv_lengthscales_sq * self._expquad_scale_factors**2
         )
 
     @functools.cached_property
     def _trace_term(self):
-        return np.sum(2.0 * self._L.weights * self._expquad._scale_factors**2)
+        return np.sum(2.0 * self._L.weights * self._expquad_scale_factors**2)
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         if x1 is None:
@@ -191,7 +197,7 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxCovarianceFunction):
         return (
             self._batched_sum(self._scale_factors_sq * diffs * diffs) - self._trace_term
         ) * np.exp(
-            -self._batched_euclidean_norm_sq(self._expquad._scale_factors * diffs)
+            -self._batched_euclidean_norm_sq(self._expquad_scale_factors * diffs)
         )
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
@@ -208,7 +214,7 @@ class ExpQuad_Identity_WeightedLaplacian(_jax.JaxCovarianceFunction):
             self._batched_sum_jax(self._scale_factors_sq * diffs * diffs)
             - self._trace_term
         ) * jnp.exp(
-            -self._batched_euclidean_norm_sq_jax(self._expquad._scale_factors * diffs)
+            -self._batched_euclidean_norm_sq_jax(self._expquad_scale_factors * diffs)
         )
 
 
@@ -222,6 +228,8 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
         super().__init__(input_shape=expquad.input_shape)
 
         self._expquad = expquad
+        self._expquad_scale_factors = self._expquad._scale_factors
+
         self._L0 = L0
         self._L1 = L1
 
@@ -230,10 +238,25 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
             L=self._L0,
             reverse=True,
         )
+        self._expquad_laplacian_0_scale_factors_sq = (
+            self._expquad_laplacian_0._scale_factors_sq
+        )
+        self._expquad_laplacian_0_trace_term = self._expquad_laplacian_0._trace_term
+        self._expquad_laplacian_0_weighted_inv_lengthscales_sq = (
+            self._expquad_laplacian_0._weighted_inv_lengthscales_sq
+        )
+
         self._expquad_laplacian_1 = ExpQuad_Identity_WeightedLaplacian(
             self._expquad,
             L=self._L1,
             reverse=False,
+        )
+        self._expquad_laplacian_1_scale_factors_sq = (
+            self._expquad_laplacian_1._scale_factors_sq
+        )
+        self._expquad_laplacian_1_trace_term = self._expquad_laplacian_1._trace_term
+        self._expquad_laplacian_1_weighted_inv_lengthscales_sq = (
+            self._expquad_laplacian_1._weighted_inv_lengthscales_sq
         )
 
     @property
@@ -243,24 +266,25 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
     @functools.cached_property
     def _scale_factors_sq(self) -> np.ndarray:
         return (
-            self._expquad_laplacian_0._scale_factors_sq
-            * self._expquad_laplacian_1._weighted_inv_lengthscales_sq
+            self._expquad_laplacian_0_scale_factors_sq
+            * self._expquad_laplacian_1_weighted_inv_lengthscales_sq
         )
 
     @functools.cached_property
     def _trace_term(self):
         return np.sum(
-            self._expquad_laplacian_0._weighted_inv_lengthscales_sq
-            * self._expquad_laplacian_1._weighted_inv_lengthscales_sq
+            self._expquad_laplacian_0_weighted_inv_lengthscales_sq
+            * self._expquad_laplacian_1_weighted_inv_lengthscales_sq
         )
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         if x1 is None:
+            # pylint: disable=protected-access
             return np.full_like(  # pylint: disable=unexpected-keyword-arg
                 x0,
                 (
-                    self._expquad_laplacian_0._trace_term
-                    * self._expquad_laplacian_1._trace_term
+                    self._expquad_laplacian_0_trace_term
+                    * self._expquad_laplacian_1_trace_term
                     + 2 * self._trace_term
                 ),
                 shape=x0.shape[: x0.ndim - self.input_ndim],
@@ -271,20 +295,20 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
         return (
             (
                 self._batched_sum(
-                    self._expquad_laplacian_0._scale_factors_sq * diffs**2
+                    self._expquad_laplacian_0_scale_factors_sq * diffs**2
                 )
-                - self._expquad_laplacian_0._trace_term
+                - self._expquad_laplacian_0_trace_term
             )
             * (
                 self._batched_sum(
-                    self._expquad_laplacian_1._scale_factors_sq * diffs**2
+                    self._expquad_laplacian_1_scale_factors_sq * diffs**2
                 )
-                - self._expquad_laplacian_1._trace_term
+                - self._expquad_laplacian_1_trace_term
             )
             - 4 * self._batched_sum(self._scale_factors_sq * diffs**2)
             + 2 * self._trace_term
         ) * np.exp(
-            -self._batched_euclidean_norm_sq(self._expquad._scale_factors * diffs)
+            -self._batched_euclidean_norm_sq(self._expquad_scale_factors * diffs)
         )
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
@@ -292,8 +316,8 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
             return jnp.full_like(
                 x0,
                 (
-                    self._expquad_laplacian_0._trace_term
-                    * self._expquad_laplacian_1._trace_term
+                    self._expquad_laplacian_0_trace_term
+                    * self._expquad_laplacian_1_trace_term
                     + 2 * self._trace_term
                 ),
                 shape=x0.shape[: x0.ndim - self.input_ndim],
@@ -304,20 +328,20 @@ class ExpQuad_WeightedLaplacian_WeightedLaplacian(_jax.JaxCovarianceFunction):
         return (
             (
                 self._batched_sum_jax(
-                    self._expquad_laplacian_0._scale_factors_sq * diffs**2
+                    self._expquad_laplacian_0_scale_factors_sq * diffs**2
                 )
-                - self._expquad_laplacian_0._trace_term
+                - self._expquad_laplacian_0_trace_term
             )
             * (
                 self._batched_sum_jax(
-                    self._expquad_laplacian_1._scale_factors_sq * diffs**2
+                    self._expquad_laplacian_1_scale_factors_sq * diffs**2
                 )
-                - self._expquad_laplacian_1._trace_term
+                - self._expquad_laplacian_1_trace_term
             )
             - 4 * self._batched_sum_jax(self._scale_factors_sq * diffs**2)
             + 2 * self._trace_term
         ) * jnp.exp(
-            -self._batched_euclidean_norm_sq_jax(self._expquad._scale_factors * diffs)
+            -self._batched_euclidean_norm_sq_jax(self._expquad_scale_factors * diffs)
         )
 
 
@@ -330,6 +354,7 @@ class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxCovarianceFunction
         reverse: bool = False,
     ):
         self._expquad = expquad
+        self._expquad_scale_factors = self._expquad._scale_factors
 
         super().__init__(input_shape=self._expquad.input_shape)
 
@@ -343,6 +368,9 @@ class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxCovarianceFunction
             L=self._L1,
             reverse=self._reverse,
         )
+        self._expquad_laplacian_weighted_inv_lengthscales_sq = (
+            self._expquad_laplacian._weighted_inv_lengthscales_sq
+        )
 
     @property
     def expquad(self) -> ExpQuad:
@@ -350,13 +378,13 @@ class ExpQuad_DirectionalDerivative_WeightedLaplacian(_jax.JaxCovarianceFunction
 
     @functools.cached_property
     def _rescaled_direction(self) -> np.ndarray:
-        return self._direction * 2.0 * self._expquad._scale_factors**2
+        return self._direction * 2.0 * self._expquad_scale_factors**2
 
     @functools.cached_property
     def _rescaled_weighted_direction(self) -> np.ndarray:
         return (
             self._rescaled_direction
-            * self._expquad_laplacian._weighted_inv_lengthscales_sq
+            * self._expquad_laplacian_weighted_inv_lengthscales_sq
         )
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:

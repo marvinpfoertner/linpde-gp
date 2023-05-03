@@ -31,6 +31,14 @@ class GalerkinCovarianceFunction(pn.randprocs.covfuncs.CovarianceFunction):
             output_shape_1=self._covfunc.output_shape_1,
         )
 
+    @property
+    def P(self) -> linfunctls.LinearFunctional:
+        return self._projection
+
+    @property
+    def PkP(self):
+        return self._PkPa
+
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
         PaPkPaP_x0_x1 = self._PaPkPaP(x0, x1)
 

@@ -23,6 +23,14 @@ class ParametricProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
             reverse=reverse,
         )
 
+    @property
+    def crosscov(self) -> pn.linops.LinearOperator:
+        return self._crosscov
+
+    @property
+    def basis(self) -> pn.functions.Function:
+        return self._basis
+
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
         pv_crosscov = self._crosscov(self._basis(x), axis=-1)
 
@@ -32,4 +40,4 @@ class ParametricProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
         return pv_crosscov
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        return super()._evaluate_jax(x)
+        raise NotImplementedError()
