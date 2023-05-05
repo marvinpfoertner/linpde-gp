@@ -5,6 +5,7 @@ from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
+import probnum as pn
 from pykeops.numpy import LazyTensor
 
 from linpde_gp.linfuncops import diffops
@@ -12,6 +13,7 @@ from linpde_gp.linfuncops import diffops
 from ..._jax import JaxCovarianceFunction
 from ..._tensor_product import (
     TensorProduct,
+    TensorProductGrid,
     evaluate_dimensionwise,
     evaluate_dimensionwise_jax,
     lazy_tensor_dimensionwise,
@@ -97,6 +99,40 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
             )
 
         return res
+
+    def linop(
+        self, x0: pn.utils.ArrayLike, x1: Optional[pn.utils.ArrayLike] = None
+    ) -> pn.linops.LinearOperator:
+        # Use Kronecker-based linop if possible
+        if isinstance(x0, TensorProductGrid) and (
+            x1 is None or isinstance(x1, TensorProductGrid)
+        ):
+            if isinstance(x1, TensorProductGrid):
+                x1_factors = x0.factors
+            else:
+                x1_factors = [None for _ in x0.factors]
+            ks_x0_x1 = tuple(
+                k.linop(x0.factors[i], x1_factors[i])
+                for i, k in enumerate(self._k.factors)
+            )
+            kLs_or_Lks_x0_x1 = {
+                dim_idx: kL_or_Lk.linop(x0.factors[dim_idx], x1_factors[dim_idx])
+                for dim_idx, kL_or_Lk in self._kLs_or_Lks.items()
+            }
+            res = None
+            for dim_idx, kL_or_Lk_x0_x1 in kLs_or_Lks_x0_x1.items():
+                kronecker_factors = (
+                    ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :]
+                )
+                kronecker = functools.reduce(
+                    lambda x, y: pn.linops.Kronecker(x, y), kronecker_factors
+                )
+                if res is None:
+                    res = kronecker
+                else:
+                    res += kronecker
+            return res
+        return super().linop(x0, x1)
 
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
@@ -260,6 +296,71 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
                     )
 
         return res
+
+    def linop(
+        self, x0: pn.utils.ArrayLike, x1: Optional[pn.utils.ArrayLike] = None
+    ) -> pn.linops.LinearOperator:
+        # Use Kronecker-based linop if possible
+        if isinstance(x0, TensorProductGrid) and (
+            x1 is None or isinstance(x1, TensorProductGrid)
+        ):
+            if isinstance(x1, TensorProductGrid):
+                x1_factors = x0.factors
+            else:
+                x1_factors = [None for _ in x0.factors]
+            ks_x0_x1 = tuple(
+                k.linop(x0.factors[i], x1_factors[i])
+                for i, k in enumerate(self._k.factors)
+            )
+            L0ks_x0_x1 = {
+                dim_idx: L0k.linop(x0.factors[dim_idx], x1_factors[dim_idx])
+                for dim_idx, L0k in self._L0ks.items()
+            }
+            kL1s_x0_x1 = {
+                dim_idx: kL1.linop(x0.factors[dim_idx], x1_factors[dim_idx])
+                for dim_idx, kL1 in self._kL1s.items()
+            }
+            L0kL1s_x0_x1 = {
+                dim_idx: L0kL1.linop(x0.factors[dim_idx], x1_factors[dim_idx])
+                for dim_idx, L0kL1 in self._L0kL1s.items()
+            }
+            res = None
+
+            for i, L0k_x0_x1 in L0ks_x0_x1.items():
+                for j, kL1_x0_x1 in kL1s_x0_x1.items():
+                    if i == j:
+                        kronecker_factors = (
+                            ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :]
+                        )
+                    else:
+                        # Order matters here!
+                        if i < j:
+                            kronecker_factors = (
+                                ks_x0_x1[:i]
+                                + (L0k_x0_x1,)
+                                + ks_x0_x1[i + 1 : j]
+                                + (kL1_x0_x1,)
+                                + ks_x0_x1[j + 1 :]
+                            )
+                        else:
+                            # i > j
+                            kronecker_factors = (
+                                ks_x0_x1[:j]
+                                + (kL1_x0_x1,)
+                                + ks_x0_x1[j + 1 : i]
+                                + (L0k_x0_x1,)
+                                + ks_x0_x1[i + 1 :]
+                            )
+                    kronecker = functools.reduce(
+                        lambda x, y: pn.linops.Kronecker(x, y), kronecker_factors
+                    )
+                    if res is None:
+                        res = kronecker
+                    else:
+                        res += kronecker
+            return res
+
+        return super().linop(x0, x1)
 
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]

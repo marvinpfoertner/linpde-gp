@@ -61,6 +61,28 @@ class TensorProduct(
             operator.mul, lazy_tensor_dimensionwise(self._factors, x0s, x1s)
         )
 
+    def linop(
+        self, x0: ArrayLike, x1: Optional[ArrayLike] = None
+    ) -> pn.linops.LinearOperator:
+        # Use Kronecker-based linop if possible
+        if isinstance(x0, TensorProductGrid) and (
+            x1 is None or isinstance(x1, TensorProductGrid)
+        ):
+            if isinstance(x1, TensorProductGrid):
+                x1_factors = x1.factors
+            else:
+                x1_factors = [None for _ in x0.factors]
+            kronecker_factors = [
+                self._factors[idx].linop(x0_factor, x1_factor)
+                for (idx, (x0_factor, x1_factor)) in enumerate(
+                    zip(x0.factors, x1_factors)
+                )
+            ]
+            return functools.reduce(
+                lambda x, y: pn.linops.Kronecker(x, y), kronecker_factors
+            )
+        return super().linop(x0, x1)
+
 
 def evaluate_dimensionwise(
     ks: Iterable[pn.randprocs.covfuncs.CovarianceFunction],
