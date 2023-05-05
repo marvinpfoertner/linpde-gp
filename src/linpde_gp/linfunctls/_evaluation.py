@@ -24,7 +24,7 @@ class _EvaluationFunctional(_linfunctl.LinearFunctional):
         input_codomain_shape: ShapeLike,
         X: ArrayLike,
     ) -> None:
-        self._X = np.asarray(X)
+        self._X = np.asanyarray(X)
 
         self._X_batch_shape = self._X.shape[: self._X.ndim - len(input_domain_shape)]
         assert self._X.shape == self._X_batch_shape + input_domain_shape
