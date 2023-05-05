@@ -62,8 +62,8 @@ class IndependentMultiOutputCovarianceFunction(JaxCovarianceFunction):
 
         return result
 
-    def _evaluate_linop(
-        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    def linop(
+        self, x0: pn.utils.ArrayLike, x1: Optional[pn.utils.ArrayLike] = None
     ) -> pn.linops.LinearOperator:
         return pn.linops.BlockDiagonalMatrix(
             *(covfunc.linop(x0, x1) for covfunc in self.covfuncs)
