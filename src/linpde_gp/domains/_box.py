@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
@@ -7,6 +9,9 @@ from probnum.typing import ArrayLike, ShapeLike
 from ._cartesian_product import CartesianProduct
 from ._interval import Interval
 from ._point import Point
+
+if TYPE_CHECKING:
+    from linpde_gp.randprocs.covfuncs import TensorProductGrid
 
 
 class Box(CartesianProduct):
@@ -94,3 +99,19 @@ class Box(CartesianProduct):
             grids[idx] = noncollapsed_grid
 
         return np.stack(grids, axis=-1)
+
+    def uniform_grid_tensor_product(
+        self, shape: ShapeLike, inset: ArrayLike = 0.0
+    ) -> TensorProductGrid:
+        from linpde_gp.randprocs.covfuncs import TensorProductGrid
+
+        shape = pn.utils.as_shape(shape, ndim=len(self._interior_idcs))
+        insets = np.broadcast_to(inset, len(self._interior_idcs))
+
+        return TensorProductGrid(
+            *(
+                self[int(idx)].uniform_grid(num_points, inset=inset)
+                for idx, num_points, inset in zip(self._interior_idcs, shape, insets)
+            ),
+            indexing="ij",
+        )
