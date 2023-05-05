@@ -162,6 +162,8 @@ class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
 def _(
     self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /
 ) -> pn.linops.LinearOperator:
+    if self == pv_crosscov.evaluation_fctl:
+        return pv_crosscov.covfunc.linop(self.X)
     return pv_crosscov.evaluate_linop(self.X)
 
 
@@ -311,4 +313,6 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
 def _(
     self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /
 ) -> pn.linops.LinearOperator:
+    if self == pv_crosscov.evaluation_fctl:
+        return pv_crosscov.covfunc.linop(self.X)
     return pv_crosscov.evaluate_linop(self.X)
