@@ -274,8 +274,10 @@ def _mul_rational_polynomial(self, other: RationalPolynomial) -> RationalPolynom
     )
 
 
-@RationalPolynomial.__mul__.register  # pylint: disable=no-member
-@RationalPolynomial.__rmul__.register  # pylint: disable=no-member
+@RationalPolynomial.__mul__.register(Fraction)  # pylint: disable=no-member
+@RationalPolynomial.__mul__.register(int)  # pylint: disable=no-member
+@RationalPolynomial.__rmul__.register(Fraction)  # pylint: disable=no-member
+@RationalPolynomial.__rmul__.register(int)  # pylint: disable=no-member
 def _mul_rational_polynomial_fraction(self, other: Fraction | int):
     return RationalPolynomial((other * coeff for coeff in self.rational_coefficients))
 
