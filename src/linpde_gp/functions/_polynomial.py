@@ -179,9 +179,23 @@ class RationalPolynomial(Polynomial):
         return self._rational_coeffs
 
     def __repr__(self) -> str:
-        return " + ".join(
-            f"{coeff.numerator}/{coeff.denominator} * x^{k}"
+        if all(coeff == 0 for coeff in self._rational_coeffs):
+            return "0"
+
+        return " ".join(
+            str(coeff)
+            if k == 0
+            else (
+                "".join(
+                    [
+                        "+" if coeff > 0 else "-",
+                        f" {str(abs(coeff))}" if abs(coeff) != 1 else "",
+                        f" x^{k}",
+                    ]
+                )
+            )
             for k, coeff in enumerate(self._rational_coeffs)
+            if coeff != 0
         )
 
     def differentiate(self) -> RationalPolynomial:
