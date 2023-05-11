@@ -229,6 +229,10 @@ class RationalPolynomial(Polynomial):
         return super().__rmul__(other)
 
     @functools.singledispatchmethod
+    def __divmod__(self, other):
+        return NotImplemented
+
+    @functools.singledispatchmethod
     def __floordiv__(self, other):
         return NotImplemented
 
@@ -284,6 +288,21 @@ def _mul_rational_polynomial_monomial(self, other: Monomial) -> RationalPolynomi
             *self.rational_coefficients,
         )
     )
+
+
+@RationalPolynomial.__divmod__.register  # pylint: disable=no-member
+def _divmod_rational_polynomial(self, other: RationalPolynomial) -> RationalPolynomial:
+    rem = self
+    quot_coeffs = []
+
+    for i in reversed(range(other.degree, self.degree + 1)):
+        c = rem.rational_coefficients[i] / other.rational_coefficients[-1]
+
+        quot_coeffs.append(c)
+
+        rem = rem - c * other * Monomial(i - other.degree)
+
+    return RationalPolynomial(reversed(quot_coeffs)), rem
 
 
 @RationalPolynomial.__floordiv__.register  # pylint: disable=no-member
