@@ -50,19 +50,19 @@ class WendlandPolynomial(functions.RationalPolynomial):
 
     @property
     def d(self) -> int:
-        """The maximal dimension :math:`d` of the input space :math:`\mathbb{R}^d`, on
+        r"""The maximal dimension :math:`d` of the input space :math:`\mathbb{R}^d`, on
         which the associated Wendland kernel is positive definite."""
         return self._d
 
     @property
     def k(self) -> int:
-        """Smoothness parameter. The associated Wendland function :math:`\phi_{d, k}` is
-        :math:`2k`-times continuously differentiable."""
+        r"""Smoothness parameter. The associated Wendland function :math:`\phi_{d, k}`
+        is :math:`2k`-times continuously differentiable."""
         return self._k
 
     @property
     def l(self) -> int:
-        """Degree :math:`\lfloor \frac{d}{2} \rfloor + k + 1` of the Wendland
+        r"""Degree :math:`\lfloor \frac{d}{2} \rfloor + k + 1` of the Wendland
         polynomial."""
         return self._d // 2 + self._k + 1
 
@@ -118,10 +118,14 @@ class WendlandFunction(functions.JaxFunction):
         """Polynomial part :math:`p_{d, k}` of the Wendland function."""
         return self._p_dk
 
-    def _evaluate(self, r: np.ndarray) -> np.ndarray:
+    def _evaluate(  # pylint: disable=arguments-renamed
+        self, r: np.ndarray
+    ) -> np.ndarray:
         return np.where(r <= 1, self._p_dk(r), np.zeros_like(r))
 
-    def _evaluate_jax(self, r: jnp.ndarray) -> jnp.ndarray:
+    def _evaluate_jax(  # pylint: disable=arguments-renamed
+        self, r: jnp.ndarray
+    ) -> jnp.ndarray:
         return jnp.where(r <= 1, self._p_dk(r), jnp.zeros_like(r))
 
 
