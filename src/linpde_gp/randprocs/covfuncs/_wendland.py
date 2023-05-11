@@ -1,8 +1,9 @@
-import fractions
 from collections.abc import Iterable
+import fractions
 
-import numpy as np
 from jax import numpy as jnp
+import numpy as np
+
 from linpde_gp import functions
 
 
