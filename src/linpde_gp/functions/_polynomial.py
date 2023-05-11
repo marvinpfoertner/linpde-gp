@@ -221,6 +221,14 @@ class RationalPolynomial(Polynomial):
         return super().__sub__(other)
 
     @functools.singledispatchmethod
+    def __mul__(self, other):
+        return super().__mul__(other)
+
+    @functools.singledispatchmethod
+    def __rmul__(self, other):
+        return super().__rmul__(other)
+
+    @functools.singledispatchmethod
     def __floordiv__(self, other):
         return NotImplemented
 
@@ -245,6 +253,35 @@ def _(self, other: RationalPolynomial) -> RationalPolynomial:
             for coeff0, coeff1 in itertools.zip_longest(
                 self.rational_coefficients, other.rational_coefficients, fillvalue=0
             )
+        )
+    )
+
+
+@RationalPolynomial.__mul__.register  # pylint: disable=no-member
+def _mul_rational_polynomial(self, other: RationalPolynomial) -> RationalPolynomial:
+    return RationalPolynomial(
+        (
+            sum(
+                self.rational_coefficients[i] * other.rational_coefficients[k - i]
+                for i in range(max(0, k - other.degree), min(k, self.degree) + 1)
+            )
+            for k in range(self.degree + other.degree + 1)
+        )
+    )
+
+
+@RationalPolynomial.__mul__.register  # pylint: disable=no-member
+@RationalPolynomial.__rmul__.register  # pylint: disable=no-member
+def _mul_rational_polynomial_fraction(self, other: Fraction | int):
+    return RationalPolynomial((other * coeff for coeff in self.rational_coefficients))
+
+
+@RationalPolynomial.__mul__.register  # pylint: disable=no-member
+def _mul_rational_polynomial_monomial(self, other: Monomial) -> RationalPolynomial:
+    return RationalPolynomial(
+        (
+            *(0 for _ in range(other.degree)),
+            *self.rational_coefficients,
         )
     )
 
