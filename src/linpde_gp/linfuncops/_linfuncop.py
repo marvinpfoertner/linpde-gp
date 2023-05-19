@@ -127,6 +127,7 @@ class LinearFunctionOperator:
 
         return NotImplemented
 
+    @functools.singledispatchmethod
     def __matmul__(self, other) -> LinearFunctionOperator:
         from ._arithmetic import (  # pylint: disable=import-outside-toplevel
             CompositeLinearFunctionOperator,

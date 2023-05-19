@@ -52,6 +52,9 @@ class ScaledLinearFunctionOperator(LinearFunctionOperator):
 
         return super().__rmul__(other)
 
+    def __repr__(self) -> str:
+        return f"{self._scalar} * {self._linfuncop}"
+
 
 class SumLinearFunctionOperator(LinearFunctionOperator):
     def __init__(self, *summands: LinearFunctionOperator) -> None:
@@ -94,6 +97,9 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
     def _(self, randproc: pn.randprocs.RandomProcess, /) -> pn.randprocs.RandomProcess:
         return super().__call__(randproc)
 
+    def __repr__(self):
+        return " + ".join(str(summand) for summand in self._summands)
+
 
 class CompositeLinearFunctionOperator(LinearFunctionOperator):
     def __init__(self, *linfuncops: LinearFunctionOperator) -> None:
@@ -116,3 +122,11 @@ class CompositeLinearFunctionOperator(LinearFunctionOperator):
             reversed(self._linfuncops),
             f,
         )
+
+    def __repr__(self) -> str:
+        return " @ ".join(repr(linfuncop) for linfuncop in self._linfuncops)
+
+
+@LinearFunctionOperator.__matmul__.register
+def _(self, other: SumLinearFunctionOperator) -> SumLinearFunctionOperator:
+    return SumLinearFunctionOperator(*(self @ summand for summand in other._summands))
