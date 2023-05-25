@@ -30,13 +30,17 @@ class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
 
         self._poly = poly
 
-    def _evaluate(self, r: np.ndarray) -> np.ndarray:
+    def _evaluate(  # pylint: disable=arguments-renamed
+        self, r: np.ndarray
+    ) -> np.ndarray:
         return self._neg_inv_sqrt_2nu * (
             np.exp(-self._sqrt_2nu * r) * self._poly(self._sqrt_2nu * r)
             - self._poly.coefficients[0]
         )
 
-    def _evaluate_jax(self, r: jnp.ndarray) -> jnp.ndarray:
+    def _evaluate_jax(  # pylint: disable=arguments-renamed
+        self, r: jnp.ndarray
+    ) -> jnp.ndarray:
         return self._neg_inv_sqrt_2nu * (
             jnp.exp(-self._sqrt_2nu * r) * self._poly.jax(self._sqrt_2nu * r)
             - self._poly.coefficients[0]
@@ -104,7 +108,7 @@ class HalfIntegerMatern_Identity_LebesgueIntegral(
 )
 def _(self, kL_or_Lk: HalfIntegerMatern_Identity_LebesgueIntegral, /) -> ScalarType:
     if self.domain != kL_or_Lk.integral.domain:
-        import scipy.integrate
+        import scipy.integrate  # pylint: disable=import-outside-toplevel
 
         return scipy.integrate.quad(kL_or_Lk, *self.domain)[0]
 
