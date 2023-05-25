@@ -5,7 +5,7 @@ from probnum.typing import ScalarType
 from linpde_gp import functions, linfunctls
 from linpde_gp.randprocs import covfuncs
 
-from ... import _pv_crosscov
+from .._base import LinearFunctionalProcessVectorCrossCovariance
 
 
 class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
@@ -47,8 +47,8 @@ class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
         )
 
 
-class HalfIntegerMatern_Identity_LebesgueIntegral(
-    _pv_crosscov.ProcessVectorCrossCovariance
+class UnivariateHalfIntegerMaternLebesgueIntegral(
+    LinearFunctionalProcessVectorCrossCovariance
 ):
     def __init__(
         self,
@@ -56,37 +56,29 @@ class HalfIntegerMatern_Identity_LebesgueIntegral(
         integral: linfunctls.LebesgueIntegral,
         reverse: bool = False,
     ):
-        self._matern = matern
-        self._integral = integral
-        self._reverse = bool(reverse)
-
         assert self._matern.input_shape == ()
-        assert self._integral.input_domain_shape == ()
-        assert self._integral.input_codomain_shape == ()
-        assert self._integral.output_shape == ()
 
         super().__init__(
-            randproc_input_shape=(),
-            randproc_output_shape=(),
-            randvar_shape=(),
+            covfunc=matern,
+            linfunctl=integral,
             reverse=reverse,
         )
 
         self._matern_radial_antideriv = HalfIntegerMaternRadialAntiderivative(
-            self._matern
+            self.matern
         )
 
     @property
     def matern(self) -> covfuncs.Matern:
-        return self._matern
+        return self.covfunc
 
     @property
     def integral(self) -> linfunctls.LebesgueIntegral:
-        return self._integral
+        return self.linfunctl
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        l = self._matern.lengthscale
-        a, b = self._integral.domain
+        l = self.matern.lengthscale
+        a, b = self.integral.domain
 
         return l * (
             (-1) ** (b < x) * self._matern_radial_antideriv(np.abs(b - x) / l)
@@ -94,8 +86,8 @@ class HalfIntegerMatern_Identity_LebesgueIntegral(
         )
 
     def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        l = self._matern.lengthscale
-        a, b = self._integral.domain
+        l = self.matern.lengthscale
+        a, b = self.integral.domain
 
         return l * (
             (-1) ** (b < x) * self._matern_radial_antideriv.jax(jnp.abs(b - x) / l)
@@ -104,9 +96,9 @@ class HalfIntegerMatern_Identity_LebesgueIntegral(
 
 
 @linfunctls.LebesgueIntegral.__call__.register(  # pylint: disable=no-member
-    HalfIntegerMatern_Identity_LebesgueIntegral
+    UnivariateHalfIntegerMaternLebesgueIntegral
 )
-def _(self, kL_or_Lk: HalfIntegerMatern_Identity_LebesgueIntegral, /) -> ScalarType:
+def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> ScalarType:
     if self.domain != kL_or_Lk.integral.domain:
         import scipy.integrate  # pylint: disable=import-outside-toplevel
 
