@@ -106,11 +106,7 @@ def _(self, kL_or_Lk: HalfIntegerMatern_Identity_LebesgueIntegral, /) -> ScalarT
     if self.domain != kL_or_Lk.integral.domain:
         import scipy.integrate
 
-        return scipy.integrate.dblquad(
-            kL_or_Lk.matern,
-            *self.domain,
-            *kL_or_Lk._L.domain,
-        )[0]
+        return scipy.integrate.quad(kL_or_Lk, *self.domain)[0]
 
     # adapted from `probnum.quad.kernel_embeddings._matern_lebesgue`
     ell = kL_or_Lk.matern.lengthscales

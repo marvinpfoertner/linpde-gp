@@ -65,7 +65,7 @@ def _(self, pv_crosscov: CovarianceFunction_Identity_LebesgueIntegral, /):
         L1 = pv_crosscov._L
 
     return scipy.integrate.dblquad(
-        pv_crosscov._k,
+        lambda x1, x0: pv_crosscov._k(x0, x1),
         *L0.domain,
         *L1.domain,
     )[0]
