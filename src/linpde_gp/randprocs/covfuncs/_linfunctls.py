@@ -14,7 +14,6 @@ from linpde_gp.linfunctls.projections.l2 import (
 from linpde_gp.randprocs import covfuncs
 
 from ._galerkin import GalerkinCovarianceFunction
-from ._matern import Matern
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
@@ -118,15 +117,27 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
 
 
 @LebesgueIntegral.__call__.register  # pylint: disable=no-member
-def _(self, k: Matern, /, *, argnum: int = 0):
+def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
     if argnum not in (0, 1):
         raise ValueError("`argnum` must either be 0 or 1.")
 
     from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
-        Matern_Identity_LebesgueIntegral,
+        CovarianceFunction_Identity_LebesgueIntegral,
     )
 
-    return Matern_Identity_LebesgueIntegral(
+    return CovarianceFunction_Identity_LebesgueIntegral(k, self, reverse=(argnum == 0))
+
+
+@LebesgueIntegral.__call__.register  # pylint: disable=no-member
+def _(self, k: pn.randprocs.covfuncs.Matern, /, *, argnum: int = 0):
+    if argnum not in (0, 1):
+        raise ValueError("`argnum` must either be 0 or 1.")
+
+    from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
+        HalfIntegerMatern_Identity_LebesgueIntegral,
+    )
+
+    return HalfIntegerMatern_Identity_LebesgueIntegral(
         matern=k,
         integral=self,
         reverse=(argnum == 0),
