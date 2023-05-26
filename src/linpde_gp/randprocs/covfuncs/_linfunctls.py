@@ -134,10 +134,10 @@ def _(self, k: pn.randprocs.covfuncs.Matern, /, *, argnum: int = 0):
         raise ValueError("`argnum` must either be 0 or 1.")
 
     from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
-        HalfIntegerMatern_Identity_LebesgueIntegral,
+        UnivariateHalfIntegerMaternLebesgueIntegral,
     )
 
-    return HalfIntegerMatern_Identity_LebesgueIntegral(
+    return UnivariateHalfIntegerMaternLebesgueIntegral(
         matern=k,
         integral=self,
         reverse=(argnum == 0),

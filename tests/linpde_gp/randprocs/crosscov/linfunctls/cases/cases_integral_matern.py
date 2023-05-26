@@ -38,7 +38,7 @@ def case_matern_lebesgue_integral(
         Lk_fallback=_Lk_fallback(k, L),
         kL_fallback=_kL_fallback(k, L),
         X_test=np.linspace(a - half_width, b + half_width, 10),
-        expected_type=covfunc_integrals.HalfIntegerMatern_Identity_LebesgueIntegral,
+        expected_type=covfunc_integrals.UnivariateHalfIntegerMaternLebesgueIntegral,
     )
 
 

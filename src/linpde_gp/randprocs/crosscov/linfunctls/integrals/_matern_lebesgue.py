@@ -56,7 +56,7 @@ class UnivariateHalfIntegerMaternLebesgueIntegral(
         integral: linfunctls.LebesgueIntegral,
         reverse: bool = False,
     ):
-        assert self._matern.input_shape == ()
+        assert matern.input_shape == ()
 
         super().__init__(
             covfunc=matern,

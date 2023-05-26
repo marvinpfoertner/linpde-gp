@@ -1,2 +1,2 @@
 from ._covfunc_lebesgue import CovarianceFunction_Identity_LebesgueIntegral
-from ._matern_lebesgue import HalfIntegerMatern_Identity_LebesgueIntegral
+from ._matern_lebesgue import UnivariateHalfIntegerMaternLebesgueIntegral
