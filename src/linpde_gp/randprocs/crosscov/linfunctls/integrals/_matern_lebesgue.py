@@ -139,45 +139,18 @@ class UnivariateHalfIntegerMaternLebesgueIntegral(
     UnivariateHalfIntegerMaternLebesgueIntegral
 )
 def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> ScalarType:
-    if self.domain != kL_or_Lk.integral.domain:
-        import scipy.integrate  # pylint: disable=import-outside-toplevel
+    matern_radial_antideriv_2 = HalfIntegerMaternRadialSecondAntiderivative(
+        kL_or_Lk.matern
+    )
 
-        return scipy.integrate.quad(kL_or_Lk, *self.domain)[0]
+    l = kL_or_Lk.matern.lengthscales
 
-    # adapted from `probnum.quad.kernel_embeddings._matern_lebesgue`
-    ell = kL_or_Lk.matern.lengthscales
     a, b = self.domain
+    c, d = kL_or_Lk.integral.domain
 
-    match kL_or_Lk.matern.p:
-        case 0:
-            r = b - a
-
-            return 2.0 * ell * (r + ell * (np.exp(-r / ell) - 1.0))
-        case 3:
-            c = np.sqrt(7.0) * (b - a)
-
-            return (
-                1.0
-                / (105.0 * ell)
-                * (
-                    2.0
-                    * np.exp(-c / ell)
-                    * (
-                        7.0 * np.sqrt(7.0) * (b**3 - a**3)
-                        + 84.0 * b**2 * ell
-                        + 57.0 * np.sqrt(7.0) * b * ell**2
-                        + 105.0 * ell**3
-                        + 21.0 * a**2 * (np.sqrt(7.0) * b + 4.0 * ell)
-                        - 3.0
-                        * a
-                        * (
-                            7.0 * np.sqrt(7.0) * b**2
-                            + 56.0 * b * ell
-                            + 19.0 * np.sqrt(7.0) * ell**2
-                        )
-                    )
-                    - 6.0 * ell**2 * (35.0 * ell - 16.0 * c)
-                )
-            )
-
-    raise NotImplementedError
+    return l**2 * (
+        matern_radial_antideriv_2(np.abs(b - c) / l)
+        - matern_radial_antideriv_2(np.abs(a - c) / l)
+        - matern_radial_antideriv_2(np.abs(b - d) / l)
+        + matern_radial_antideriv_2(np.abs(a - d) / l)
+    )
