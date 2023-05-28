@@ -117,7 +117,9 @@ def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
 
 
 @LebesgueIntegral.__call__.register  # pylint: disable=no-member
-def _(self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0):
+def covfunc_lebesgue_integral(
+    self, k: pn.randprocs.covfuncs.CovarianceFunction, /, *, argnum: int = 0
+):
     if argnum not in (0, 1):
         raise ValueError("`argnum` must either be 0 or 1.")
 
@@ -138,15 +140,18 @@ def _(self, k: pn.randprocs.covfuncs.Matern, /, *, argnum: int = 0):
     if argnum not in (0, 1):
         raise ValueError("`argnum` must either be 0 or 1.")
 
-    from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
-        UnivariateHalfIntegerMaternLebesgueIntegral,
-    )
+    if k.input_shape == () and k.is_half_integer:
+        from ..crosscov.linfunctls.integrals import (  # pylint: disable=import-outside-toplevel
+            UnivariateHalfIntegerMaternLebesgueIntegral,
+        )
 
-    return UnivariateHalfIntegerMaternLebesgueIntegral(
-        matern=k,
-        integral=self,
-        reverse=(argnum == 0),
-    )
+        return UnivariateHalfIntegerMaternLebesgueIntegral(
+            matern=k,
+            integral=self,
+            reverse=(argnum == 0),
+        )
+
+    return covfunc_lebesgue_integral(self, k, argnum=argnum)
 
 
 @L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
