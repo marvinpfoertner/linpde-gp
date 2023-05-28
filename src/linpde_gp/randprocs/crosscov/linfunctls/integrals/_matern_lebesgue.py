@@ -5,25 +5,27 @@ from probnum.typing import ScalarType
 from linpde_gp import functions, linfunctls
 from linpde_gp.randprocs import covfuncs
 
-from .._base import LinearFunctionalProcessVectorCrossCovariance
+from ._radial_lebesgue import (
+    UnivariateRadialCovarianceFunctionLebesgueIntegral,
+    univariate_radial_covfunc_lebesgue_integral_lebesgue_integral,
+)
 
 
 class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
-    def __init__(self, matern: covfuncs.Matern) -> None:
+    def __init__(self, order_int: int) -> None:
         super().__init__(input_shape=(), output_shape=())
 
-        self._matern = matern
-        self._sqrt_2nu = np.sqrt(2 * self._matern.nu)
+        self._sqrt_2nu = np.sqrt(2 * order_int + 1)
         self._neg_inv_sqrt_2nu = -(1.0 / self._sqrt_2nu)
 
         # Compute the polynomial part of the function
         p_i = functions.RationalPolynomial(
-            covfuncs.Matern.half_integer_coefficients(matern.p)
+            covfuncs.Matern.half_integer_coefficients(order_int)
         )
 
         poly = p_i
 
-        for _ in range(matern.p):
+        for _ in range(order_int):
             p_i = p_i.differentiate()
 
             poly += p_i
@@ -48,22 +50,20 @@ class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
 
 
 class HalfIntegerMaternRadialSecondAntiderivative(functions.JaxFunction):
-    def __init__(self, matern: covfuncs.Matern) -> None:
+    def __init__(self, order_int: int) -> None:
         super().__init__(input_shape=(), output_shape=())
 
-        self._matern = matern
-
-        self._sqrt_2nu = np.sqrt(2 * self._matern.nu)
-        self._neg_inv_2nu = -(1.0 / (2 * self._matern.nu))
+        self._sqrt_2nu = np.sqrt(2 * order_int + 1)
+        self._neg_inv_2nu = -(1.0 / (2 * order_int + 1))
 
         # Compute the polynomial part of the function
         p_i = functions.RationalPolynomial(
-            covfuncs.Matern.half_integer_coefficients(matern.p)
+            covfuncs.Matern.half_integer_coefficients(order_int)
         )
 
         poly = p_i
 
-        for i in range(1, matern.p + 1):
+        for i in range(1, order_int + 1):
             p_i = p_i.differentiate()
 
             poly += (i + 1) * p_i
@@ -88,7 +88,7 @@ class HalfIntegerMaternRadialSecondAntiderivative(functions.JaxFunction):
 
 
 class UnivariateHalfIntegerMaternLebesgueIntegral(
-    LinearFunctionalProcessVectorCrossCovariance
+    UnivariateRadialCovarianceFunctionLebesgueIntegral
 ):
     def __init__(
         self,
@@ -97,60 +97,29 @@ class UnivariateHalfIntegerMaternLebesgueIntegral(
         reverse: bool = False,
     ):
         assert matern.input_shape == ()
+        assert matern.is_half_integer
 
         super().__init__(
-            covfunc=matern,
-            linfunctl=integral,
+            radial_covfunc=matern,
+            integral=integral,
+            radial_antideriv=HalfIntegerMaternRadialAntiderivative(matern.p),
             reverse=reverse,
-        )
-
-        self._matern_radial_antideriv = HalfIntegerMaternRadialAntiderivative(
-            self.matern
         )
 
     @property
     def matern(self) -> covfuncs.Matern:
         return self.covfunc
 
-    @property
-    def integral(self) -> linfunctls.LebesgueIntegral:
-        return self.linfunctl
-
-    def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        l = self.matern.lengthscale
-        a, b = self.integral.domain
-
-        return l * (
-            (-1) ** (b < x) * self._matern_radial_antideriv(np.abs(b - x) / l)
-            - (-1) ** (a < x) * self._matern_radial_antideriv(np.abs(a - x) / l)
-        )
-
-    def _evaluate_jax(self, x: jnp.ndarray) -> jnp.ndarray:
-        l = self.matern.lengthscale
-        a, b = self.integral.domain
-
-        return l * (
-            (-1) ** (b < x) * self._matern_radial_antideriv.jax(jnp.abs(b - x) / l)
-            - (-1) ** (a < x) * self._matern_radial_antideriv.jax(jnp.abs(a - x) / l)
-        )
-
 
 @linfunctls.LebesgueIntegral.__call__.register(  # pylint: disable=no-member
     UnivariateHalfIntegerMaternLebesgueIntegral
 )
 def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> ScalarType:
-    matern_radial_antideriv_2 = HalfIntegerMaternRadialSecondAntiderivative(
-        kL_or_Lk.matern
-    )
-
-    l = kL_or_Lk.matern.lengthscales
-
-    a, b = self.domain
-    c, d = kL_or_Lk.integral.domain
-
-    return l**2 * (
-        matern_radial_antideriv_2(np.abs(b - c) / l)
-        - matern_radial_antideriv_2(np.abs(a - c) / l)
-        - matern_radial_antideriv_2(np.abs(b - d) / l)
-        + matern_radial_antideriv_2(np.abs(a - d) / l)
+    return univariate_radial_covfunc_lebesgue_integral_lebesgue_integral(
+        kL_or_Lk.matern,
+        self,
+        kL_or_Lk.integral,
+        radial_antideriv_2=HalfIntegerMaternRadialSecondAntiderivative(
+            kL_or_Lk.matern.p
+        ),
     )
