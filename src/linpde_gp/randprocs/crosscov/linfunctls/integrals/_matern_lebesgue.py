@@ -47,6 +47,46 @@ class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
         )
 
 
+class HalfIntegerMaternRadialSecondAntiderivative(functions.JaxFunction):
+    def __init__(self, matern: covfuncs.Matern) -> None:
+        super().__init__(input_shape=(), output_shape=())
+
+        self._matern = matern
+
+        self._sqrt_2nu = np.sqrt(2 * self._matern.nu)
+        self._neg_inv_2nu = -(1.0 / (2 * self._matern.nu))
+
+        # Compute the polynomial part of the function
+        p_i = functions.RationalPolynomial(
+            covfuncs.Matern.half_integer_coefficients(matern.p)
+        )
+
+        poly = p_i
+
+        for i in range(1, matern.p + 1):
+            p_i = p_i.differentiate()
+
+            poly += (i + 1) * p_i
+
+        self._poly = poly
+
+    def _evaluate(  # pylint: disable=arguments-renamed
+        self, r: np.ndarray
+    ) -> np.ndarray:
+        return self._neg_inv_2nu * (
+            np.exp(-self._sqrt_2nu * r) * self._poly(self._sqrt_2nu * r)
+            - self._poly.coefficients[0]
+        )
+
+    def _evaluate_jax(  # pylint: disable=arguments-renamed
+        self, r: jnp.ndarray
+    ) -> jnp.ndarray:
+        return self._neg_inv_2nu * (
+            jnp.exp(-self._sqrt_2nu * r) * self._poly.jax(self._sqrt_2nu * r)
+            - self._poly.coefficients[0]
+        )
+
+
 class UnivariateHalfIntegerMaternLebesgueIntegral(
     LinearFunctionalProcessVectorCrossCovariance
 ):
