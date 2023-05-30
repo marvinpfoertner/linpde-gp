@@ -32,20 +32,26 @@ class HalfIntegerMaternRadialAntiderivative(functions.JaxFunction):
 
         self._poly = poly
 
+        self._C_1 = -self._neg_inv_sqrt_2nu * self._poly.coefficients[0]
+
     def _evaluate(  # pylint: disable=arguments-renamed
         self, r: np.ndarray
     ) -> np.ndarray:
-        return self._neg_inv_sqrt_2nu * (
-            np.exp(-self._sqrt_2nu * r) * self._poly(self._sqrt_2nu * r)
-            - self._poly.coefficients[0]
+        return (
+            self._neg_inv_sqrt_2nu
+            * np.exp(-self._sqrt_2nu * r)
+            * self._poly(self._sqrt_2nu * r)
+            + self._C_1
         )
 
     def _evaluate_jax(  # pylint: disable=arguments-renamed
         self, r: jnp.ndarray
     ) -> jnp.ndarray:
-        return self._neg_inv_sqrt_2nu * (
-            jnp.exp(-self._sqrt_2nu * r) * self._poly.jax(self._sqrt_2nu * r)
-            - self._poly.coefficients[0]
+        return (
+            self._neg_inv_sqrt_2nu
+            * jnp.exp(-self._sqrt_2nu * r)
+            * self._poly.jax(self._sqrt_2nu * r)
+            + self._C_1
         )
 
 
@@ -54,7 +60,10 @@ class HalfIntegerMaternRadialSecondAntiderivative(functions.JaxFunction):
         super().__init__(input_shape=(), output_shape=())
 
         self._sqrt_2nu = np.sqrt(2 * order_int + 1)
-        self._neg_inv_2nu = -(1.0 / (2 * order_int + 1))
+        self._inv_2nu = 1.0 / (2 * order_int + 1)
+
+        self._antideriv_1 = HalfIntegerMaternRadialAntiderivative(order_int)
+        self._C_1 = self._antideriv_1._C_1
 
         # Compute the polynomial part of the function
         p_i = functions.RationalPolynomial(
@@ -70,20 +79,26 @@ class HalfIntegerMaternRadialSecondAntiderivative(functions.JaxFunction):
 
         self._poly = poly
 
+        self._C_2 = -self._inv_2nu * self._poly.coefficients[0]
+
     def _evaluate(  # pylint: disable=arguments-renamed
         self, r: np.ndarray
     ) -> np.ndarray:
-        return self._neg_inv_2nu * (
-            np.exp(-self._sqrt_2nu * r) * self._poly(self._sqrt_2nu * r)
-            - self._poly.coefficients[0]
+        return (
+            self._inv_2nu * np.exp(-self._sqrt_2nu * r) * self._poly(self._sqrt_2nu * r)
+            + self._C_1 * r
+            + self._C_2
         )
 
     def _evaluate_jax(  # pylint: disable=arguments-renamed
         self, r: jnp.ndarray
     ) -> jnp.ndarray:
-        return self._neg_inv_2nu * (
-            jnp.exp(-self._sqrt_2nu * r) * self._poly.jax(self._sqrt_2nu * r)
-            - self._poly.coefficients[0]
+        return (
+            self._inv_2nu
+            * jnp.exp(-self._sqrt_2nu * r)
+            * self._poly.jax(self._sqrt_2nu * r)
+            + self._C_1 * r
+            + self._C_2
         )
 
 
