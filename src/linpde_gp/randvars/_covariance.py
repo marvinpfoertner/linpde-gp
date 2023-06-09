@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import functools
 import operator
+from typing import Type
 
 import numpy as np
 import probnum as pn
@@ -131,6 +132,26 @@ class Covariance(abc.ABC):
             )
 
         return np.reshape(event1, (-1,), order="C")
+
+    def __neg__(self) -> Covariance:
+        return -1.0 * self
+
+    def __add__(self, other) -> Covariance | Type[NotImplemented]:
+        if isinstance(other, Covariance):
+            from ._covariance_arithmetic import SumCovariance
+
+            return SumCovariance(self, other)
+        return NotImplemented
+
+    def __sub__(self, other) -> Covariance | Type[NotImplemented]:
+        return self + (-other)
+
+    def __rmul__(self, other) -> Covariance | Type[NotImplemented]:
+        if np.ndim(other) == 0:
+            from ._covariance_arithmetic import ScaledCovariance
+
+            return ScaledCovariance(self, other)
+        return NotImplemented
 
 
 class ArrayCovariance(Covariance):

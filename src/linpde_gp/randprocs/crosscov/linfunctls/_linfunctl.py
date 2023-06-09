@@ -1,7 +1,10 @@
+import functools
+import operator
+
 import probnum as pn
 
 from linpde_gp.linfunctls import LinearFunctional
-from linpde_gp.randvars import ArrayCovariance, Covariance, LinearOperatorCovariance
+from linpde_gp.randvars import ArrayCovariance, Covariance
 
 from .._arithmetic import (
     LinOpProcessVectorCrossCovariance,
@@ -17,17 +20,15 @@ from ._evaluation import (
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, pv_crosscov: ScaledProcessVectorCrossCovariance, /) -> Covariance:
-    inner_cov = self(pv_crosscov.pv_crosscov)
-    linop_res = pv_crosscov.scalar * inner_cov.linop
-    return LinearOperatorCovariance(linop_res, inner_cov.shape0, inner_cov.shape1)
+    return pv_crosscov.scalar * self(pv_crosscov.pv_crosscov)
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member
 def _(self, sum_pv_crosscov: SumProcessVectorCrossCovariance, /) -> Covariance:
-    first_cov = self(sum_pv_crosscov.pv_crosscovs[0])
-    shape0, shape1 = first_cov.shape0, first_cov.shape1
-    linop_res = sum(self(summand).linop for summand in sum_pv_crosscov.pv_crosscovs)
-    return LinearOperatorCovariance(linop_res, shape0, shape1)
+    return functools.reduce(
+        operator.add,
+        (self(summand) for summand in sum_pv_crosscov.pv_crosscovs),
+    )
 
 
 @LinearFunctional.__call__.register(  # pylint: disable=no-member
