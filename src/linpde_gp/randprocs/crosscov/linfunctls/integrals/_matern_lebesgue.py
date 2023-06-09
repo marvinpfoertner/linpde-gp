@@ -1,6 +1,5 @@
 from jax import numpy as jnp
 import numpy as np
-from probnum.typing import ScalarType
 
 from linpde_gp import functions, linfunctls
 from linpde_gp.randprocs import covfuncs

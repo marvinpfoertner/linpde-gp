@@ -1,6 +1,5 @@
 import numpy as np
 import probnum as pn
-from probnum.typing import LinearOperatorLike
 
 from linpde_gp.randvars import Covariance
 
