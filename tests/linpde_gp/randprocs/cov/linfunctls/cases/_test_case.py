@@ -1,7 +1,6 @@
 import dataclasses
 import functools
 
-import numpy as np
 import probnum as pn
 
 import linpde_gp
