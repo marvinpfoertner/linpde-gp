@@ -138,7 +138,9 @@ class Covariance(abc.ABC):
 
     def __add__(self, other) -> Covariance | Type[NotImplemented]:
         if isinstance(other, Covariance):
-            from ._covariance_arithmetic import SumCovariance
+            from ._covariance_arithmetic import (  # pylint: disable=import-outside-toplevel
+                SumCovariance,
+            )
 
             return SumCovariance(self, other)
         return NotImplemented
@@ -148,7 +150,9 @@ class Covariance(abc.ABC):
 
     def __rmul__(self, other) -> Covariance | Type[NotImplemented]:
         if np.ndim(other) == 0:
-            from ._covariance_arithmetic import ScaledCovariance
+            from ._covariance_arithmetic import (  # pylint: disable=import-outside-toplevel
+                ScaledCovariance,
+            )
 
             return ScaledCovariance(self, other)
         return NotImplemented
