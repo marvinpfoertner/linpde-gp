@@ -14,8 +14,8 @@ class CovarianceFunctionLinearFunctionalsTestCase:
     L0: linpde_gp.linfunctls.LinearFunctional | None
     L1: linpde_gp.linfunctls.LinearFunctional | None
 
-    L0kL1_fallback: np.ndarray
+    L0kL1_fallback: linpde_gp.randvars.Covariance
 
     @functools.cached_property
-    def L0kL1(self) -> np.ndarray:
+    def L0kL1(self) -> linpde_gp.randvars.Covariance:
         return self.L0(self.L1(self.covfunc, argnum=1))
