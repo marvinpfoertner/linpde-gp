@@ -4,6 +4,7 @@ from probnum.typing import ScalarType
 
 from linpde_gp import functions, linfunctls
 from linpde_gp.randprocs import covfuncs
+from linpde_gp.randvars import ArrayCovariance, Covariance
 
 from ._radial_lebesgue import (
     UnivariateRadialCovarianceFunctionLebesgueIntegral,
@@ -129,8 +130,8 @@ class UnivariateHalfIntegerMaternLebesgueIntegral(
 @linfunctls.LebesgueIntegral.__call__.register(  # pylint: disable=no-member
     UnivariateHalfIntegerMaternLebesgueIntegral
 )
-def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> ScalarType:
-    return univariate_radial_covfunc_lebesgue_integral_lebesgue_integral(
+def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> Covariance:
+    res = univariate_radial_covfunc_lebesgue_integral_lebesgue_integral(
         kL_or_Lk.matern,
         self,
         kL_or_Lk.integral,
@@ -138,3 +139,4 @@ def _(self, kL_or_Lk: UnivariateHalfIntegerMaternLebesgueIntegral, /) -> ScalarT
             kL_or_Lk.matern.p
         ),
     )
+    return ArrayCovariance.from_scalar(res)

@@ -18,6 +18,7 @@ from linpde_gp.linfunctls import LinearFunctional
 from linpde_gp.linops import BlockMatrix, BlockMatrix2x2
 from linpde_gp.randprocs.covfuncs import JaxCovarianceFunction
 from linpde_gp.randprocs.crosscov import ProcessVectorCrossCovariance
+from linpde_gp.randvars import Covariance, LinearOperatorCovariance
 from linpde_gp.typing import RandomVariableLike
 
 
@@ -266,7 +267,7 @@ class ConditionalGaussianProcess(pn.randprocs.GaussianProcess):
         )
 
         # Compute lower-left block in the new covariance matrix
-        gram_L_La_prev_blocks = L(self._kLas)
+        gram_L_La_prev_blocks = L(self._kLas).linop
 
         # Update the Cholesky decomposition of the previous covariance matrix and the
         # representer weights
@@ -421,8 +422,9 @@ def _(
 )
 def _(
     self, crosscov: ConditionalGaussianProcess.PriorPredictiveCrossCovariance, /
-) -> pn.linops.LinearOperator:
-    return BlockMatrix([[self(kLa_prev) for kLa_prev in crosscov]])
+) -> Covariance:
+    linop_res = BlockMatrix([[self(kLa_prev).linop for kLa_prev in crosscov]])
+    return LinearOperatorCovariance(linop_res, linop_res.shape[:1], linop_res.shape[1:])
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
@@ -455,7 +457,7 @@ def _(
     # pylint: disable=protected-access
 
     linfunctl_prior = self(conditional_gp._prior)
-    crosscov = self(conditional_gp._kLas)
+    crosscov = self(conditional_gp._kLas).linop
 
     mean = linfunctl_prior.mean + crosscov @ conditional_gp.representer_weights
     cov = linfunctl_prior.cov - crosscov @ conditional_gp.gram.inv() @ crosscov.T

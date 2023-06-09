@@ -1,7 +1,8 @@
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
-from probnum.typing import LinearOperatorLike
+
+from linpde_gp.randvars import Covariance
 
 from ._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -9,22 +10,22 @@ from ._pv_crosscov import ProcessVectorCrossCovariance
 class ParametricProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
     def __init__(
         self,
-        crosscov: LinearOperatorLike,
+        crosscov: Covariance,
         basis: pn.functions.Function,
         reverse: bool = False,
     ):
-        self._crosscov = pn.linops.aslinop(crosscov)
+        self._crosscov = crosscov
         self._basis = basis
 
         super().__init__(
             randproc_input_shape=basis.input_shape,
             randproc_output_shape=(),
-            randvar_shape=crosscov.shape[:1] if reverse else crosscov.shape[1:],
+            randvar_shape=crosscov.shape0 if reverse else crosscov.shape1,
             reverse=reverse,
         )
 
     @property
-    def crosscov(self) -> pn.linops.LinearOperator:
+    def crosscov(self) -> Covariance:
         return self._crosscov
 
     @property
@@ -32,7 +33,7 @@ class ParametricProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
         return self._basis
 
     def _evaluate(self, x: np.ndarray) -> np.ndarray:
-        pv_crosscov = self._crosscov(self._basis(x), axis=-1)
+        pv_crosscov = self._crosscov.linop(self._basis(x), axis=-1)
 
         if self.reverse:
             return np.moveaxis(pv_crosscov, -1, 0)

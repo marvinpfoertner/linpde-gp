@@ -152,10 +152,10 @@ class ArrayCovariance(Covariance):
 
         self._cov_array = np.asarray(cov_array)
 
-        if self._cov_array.shape == self.shape0 + self.shape1:
+        if self._cov_array.shape != self.shape0 + self.shape1:
             raise ValueError(
                 "The shape of `cov_array` must be `shape0 + shape1`, but"
-                f"`{self._cov_array} != {self.shape0} + {self.shape1}`."
+                f"`{self._cov_array.shape} != {self.shape0} + {self.shape1}`."
             )
 
     @property
@@ -185,7 +185,7 @@ class LinearOperatorCovariance(Covariance):
         if self._cov_linop.shape != (self.size0, self.size1):
             raise ValueError(
                 "The shape of `cov_linop` must be `(size0, size1)`, but"
-                f"`{self._cov_linop} != ({self.size0}, {self.size1})`."
+                f"`{self._cov_linop.shape} != ({self.size0}, {self.size1})`."
             )
 
     @functools.cached_property

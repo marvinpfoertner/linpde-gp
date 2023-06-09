@@ -3,6 +3,7 @@ import numpy as np
 import probnum as pn
 
 from linpde_gp import linfunctls
+from linpde_gp.randvars import Covariance, LinearOperatorCovariance
 
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -10,8 +11,11 @@ from .._pv_crosscov import ProcessVectorCrossCovariance
 @linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=protected-access,no-member
     ProcessVectorCrossCovariance
 )
-def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self.X)
+def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> Covariance:
+    shape0 = pv_crosscov.randvar_shape if pv_crosscov.reverse else self.output_shape
+    shape1 = self.output_shape if pv_crosscov.reverse else pv_crosscov.randvar_shape
+    linop_res = pv_crosscov.evaluate_linop(self.X)
+    return LinearOperatorCovariance(linop_res, shape0, shape1)
 
 
 class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
@@ -156,15 +160,6 @@ class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
         return self.covfunc.linop(x, self._evaluation_fctl.X)
 
 
-@linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=protected-access,no-member
-    CovarianceFunction_Identity_Evaluation
-)
-def _(
-    self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /
-) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self.X)
-
-
 class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
     def __init__(
         self,
@@ -305,10 +300,3 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
 
     def _evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
         return self.covfunc.linop(self._evaluation_fctl.X, x)
-
-
-@linfunctls._EvaluationFunctional.__call__.register  # pylint: disable=protected-access,no-member
-def _(
-    self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /
-) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self.X)
