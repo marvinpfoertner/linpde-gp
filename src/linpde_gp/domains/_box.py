@@ -78,40 +78,37 @@ class Box(CartesianProduct):
     def __eq__(self, other) -> bool:
         return isinstance(other, Box) and np.all(self.bounds == other.bounds)
 
-    def uniform_grid(self, shape: ShapeLike, inset: ArrayLike = 0.0) -> np.ndarray:
-        shape = pn.utils.as_shape(shape, ndim=len(self._interior_idcs))
-        insets = np.broadcast_to(inset, len(self._interior_idcs))
-
-        noncollapsed_grids = np.meshgrid(
-            *(
-                self[int(idx)].uniform_grid(num_points, inset=inset)
-                for idx, num_points, inset in zip(self._interior_idcs, shape, insets)
-            ),
-            indexing="ij",
+    def uniform_grid(
+        self, shape: ShapeLike, inset: ArrayLike = 0.0
+    ) -> "TensorProductGrid":
+        from linpde_gp.randprocs.covfuncs import (  # pylint: disable=import-outside-toplevel
+            TensorProductGrid,
         )
 
-        grids = [
-            np.broadcast_to(lower_bound, noncollapsed_grids[0].shape)
-            for lower_bound in self.bounds[..., 0]
-        ]
+        total_dim = len(self.bounds)
 
-        for idx, noncollapsed_grid in zip(self._interior_idcs, noncollapsed_grids):
-            grids[idx] = noncollapsed_grid
+        interior_shape = pn.utils.as_shape(shape, ndim=len(self._interior_idcs))
+        interior_inset = np.broadcast_to(inset, len(self._interior_idcs))
+        total_shape = np.ones((total_dim,), dtype=int)
+        total_insets = np.zeros((total_dim,), dtype=float)
 
-        return np.stack(grids, axis=-1)
+        for i, interior_idx in enumerate(self._interior_idcs):
+            total_shape[interior_idx] = interior_shape[i]
+            total_insets[interior_idx] = interior_inset[i]
 
-    def uniform_grid_tensor_product(
-        self, shape: ShapeLike, inset: ArrayLike = 0.0
-    ) -> TensorProductGrid:
-        from linpde_gp.randprocs.covfuncs import TensorProductGrid
-
-        shape = pn.utils.as_shape(shape, ndim=len(self._interior_idcs))
-        insets = np.broadcast_to(inset, len(self._interior_idcs))
+        def get_grid(idx, num_points, inset):
+            sub_domain = self[int(idx)]
+            if isinstance(sub_domain, Interval):
+                return sub_domain.uniform_grid(num_points, inset=inset)
+            assert isinstance(sub_domain, Point)
+            return np.broadcast_to(float(sub_domain), num_points)
 
         return TensorProductGrid(
             *(
-                self[int(idx)].uniform_grid(num_points, inset=inset)
-                for idx, num_points, inset in zip(self._interior_idcs, shape, insets)
+                get_grid(idx, num_points, inset)
+                for idx, num_points, inset in zip(
+                    range(total_dim), total_shape, total_insets
+                )
             ),
             indexing="ij",
         )
