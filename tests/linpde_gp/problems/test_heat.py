@@ -49,7 +49,7 @@ def assert_within_uncertainty_region(obs, gp: pn.randprocs.GaussianProcess):
 def get_noise(X):
     num_entries = np.prod(X.shape[:-1])
     return pn.randvars.Normal(
-        np.zeros(num_entries), np.diag(1e-5 * np.ones(num_entries))
+        np.zeros(X.shape[:-1]), np.diag(1e-5 * np.ones(num_entries))
     )
 
 
