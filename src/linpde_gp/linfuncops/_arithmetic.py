@@ -87,6 +87,10 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
             output_shapes=(output_domain_shape, output_codomain_shape),
         )
 
+    @property
+    def summands(self) -> tuple[LinearFunctionOperator, ...]:
+        return self._summands
+
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return functools.reduce(
@@ -127,6 +131,6 @@ class CompositeLinearFunctionOperator(LinearFunctionOperator):
         return " @ ".join(repr(linfuncop) for linfuncop in self._linfuncops)
 
 
-@LinearFunctionOperator.__matmul__.register
+@LinearFunctionOperator.__matmul__.register  # pylint: disable=no-member
 def _(self, other: SumLinearFunctionOperator) -> SumLinearFunctionOperator:
-    return SumLinearFunctionOperator(*(self @ summand for summand in other._summands))
+    return SumLinearFunctionOperator(*(self @ summand for summand in other.summands))
