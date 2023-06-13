@@ -78,9 +78,7 @@ class TensorProduct(
                     zip(x0.factors, x1_factors)
                 )
             ]
-            return functools.reduce(
-                pn.linops.Kronecker, kronecker_factors
-            )
+            return functools.reduce(pn.linops.Kronecker, kronecker_factors)
         return super().linop(x0, x1)
 
 
