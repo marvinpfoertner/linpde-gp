@@ -68,5 +68,4 @@ class StackCovarianceFunction(
     ) -> pn.linops.LinearOperator:
         if self._output_idx == 0:
             return BlockMatrix([[covfunc.linop(x0, x1)] for covfunc in self._covfuncs])
-        else:
-            return BlockMatrix([[covfunc.linop(x0, x1) for covfunc in self._covfuncs]])
+        return BlockMatrix([[covfunc.linop(x0, x1) for covfunc in self._covfuncs]])
