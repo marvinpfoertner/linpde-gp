@@ -124,9 +124,7 @@ class TensorProduct_Identity_DimSumDiffOp(JaxCovarianceFunction):
                 kronecker_factors = (
                     ks_x0_x1[:dim_idx] + (kL_or_Lk_x0_x1,) + ks_x0_x1[dim_idx + 1 :]
                 )
-                kronecker = functools.reduce(
-                    lambda x, y: pn.linops.Kronecker(x, y), kronecker_factors
-                )
+                kronecker = functools.reduce(pn.linops.Kronecker, kronecker_factors)
                 if res is None:
                     res = kronecker
                 else:
@@ -332,28 +330,25 @@ class TensorProduct_DimSumDiffop_DimSumDiffop(JaxCovarianceFunction):
                         kronecker_factors = (
                             ks_x0_x1[:i] + (L0kL1s_x0_x1[i],) + ks_x0_x1[i + 1 :]
                         )
-                    else:
+                    elif i < j:
                         # Order matters here!
-                        if i < j:
-                            kronecker_factors = (
-                                ks_x0_x1[:i]
-                                + (L0k_x0_x1,)
-                                + ks_x0_x1[i + 1 : j]
-                                + (kL1_x0_x1,)
-                                + ks_x0_x1[j + 1 :]
-                            )
-                        else:
-                            # i > j
-                            kronecker_factors = (
-                                ks_x0_x1[:j]
-                                + (kL1_x0_x1,)
-                                + ks_x0_x1[j + 1 : i]
-                                + (L0k_x0_x1,)
-                                + ks_x0_x1[i + 1 :]
-                            )
-                    kronecker = functools.reduce(
-                        lambda x, y: pn.linops.Kronecker(x, y), kronecker_factors
-                    )
+                        kronecker_factors = (
+                            ks_x0_x1[:i]
+                            + (L0k_x0_x1,)
+                            + ks_x0_x1[i + 1 : j]
+                            + (kL1_x0_x1,)
+                            + ks_x0_x1[j + 1 :]
+                        )
+                    else:
+                        # i > j
+                        kronecker_factors = (
+                            ks_x0_x1[:j]
+                            + (kL1_x0_x1,)
+                            + ks_x0_x1[j + 1 : i]
+                            + (L0k_x0_x1,)
+                            + ks_x0_x1[i + 1 :]
+                        )
+                    kronecker = functools.reduce(pn.linops.Kronecker, kronecker_factors)
                     if res is None:
                         res = kronecker
                     else:
