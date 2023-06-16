@@ -133,30 +133,6 @@ class Covariance(abc.ABC):
 
         return np.reshape(event1, (-1,), order="C")
 
-    def __neg__(self) -> Covariance:
-        return -1.0 * self
-
-    def __add__(self, other) -> Covariance | Type[NotImplemented]:
-        if isinstance(other, Covariance):
-            from ._covariance_arithmetic import (  # pylint: disable=import-outside-toplevel
-                SumCovariance,
-            )
-
-            return SumCovariance(self, other)
-        return NotImplemented
-
-    def __sub__(self, other) -> Covariance | Type[NotImplemented]:
-        return self + (-other)
-
-    def __rmul__(self, other) -> Covariance | Type[NotImplemented]:
-        if np.ndim(other) == 0:
-            from ._covariance_arithmetic import (  # pylint: disable=import-outside-toplevel
-                ScaledCovariance,
-            )
-
-            return ScaledCovariance(self, other)
-        return NotImplemented
-
 
 class ArrayCovariance(Covariance):
     @staticmethod
@@ -195,6 +171,28 @@ class ArrayCovariance(Covariance):
     def matrix(self) -> np.ndarray:
         return np.reshape(self.array, (self.size0, self.size1), order="C")
 
+    def __neg__(self) -> ArrayCovariance:
+        return -1.0 * self
+
+    def __add__(self, other) -> Covariance | Type[NotImplemented]:
+        if (
+            isinstance(other, ArrayCovariance)
+            and self.shape0 == other.shape0
+            and self.shape1 == other.shape1
+        ):
+            return ArrayCovariance(self.array + other.array, self.shape0, self.shape1)
+        if isinstance(other, LinearOperatorCovariance):
+            return other + self
+        return NotImplemented
+
+    def __sub__(self, other) -> Covariance | Type[NotImplemented]:
+        return self + (-other)
+
+    def __rmul__(self, other) -> ArrayCovariance | Type[NotImplemented]:
+        if np.ndim(other) == 0:
+            return ArrayCovariance(other * self.array, self.shape0, self.shape1)
+        return NotImplemented
+
 
 class LinearOperatorCovariance(Covariance):
     def __init__(
@@ -224,3 +222,27 @@ class LinearOperatorCovariance(Covariance):
     @property
     def matrix(self) -> np.ndarray:
         return self._cov_linop.todense(cache=True)
+
+    def __neg__(self) -> LinearOperatorCovariance:
+        return -1.0 * self
+
+    def __add__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        if (
+            isinstance(other, (ArrayCovariance, LinearOperatorCovariance))
+            and self.shape0 == other.shape0
+            and self.shape1 == other.shape1
+        ):
+            return LinearOperatorCovariance(
+                self.linop + other.linop, self.shape0, self.shape1
+            )
+        return NotImplemented
+
+    def __sub__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        return self + (-other)
+
+    def __rmul__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        if np.ndim(other) == 0:
+            return LinearOperatorCovariance(
+                other * self.linop, self.shape0, self.shape1
+            )
+        return NotImplemented
