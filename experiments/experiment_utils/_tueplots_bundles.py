@@ -1,7 +1,12 @@
+import warnings
+
 from tueplots import bundles, figsizes, fonts, fontsizes
 
 
-def jmlr(*, rel_width=1.0, nrows=1, ncols=1, family="serif", **kwargs):
+def jmlr(*, rel_width=1.0, rel_height=None, nrows=1, ncols=1, family="serif", **kwargs):
+    if rel_height is not None:
+        warnings.warn("The `rel_height` argument is not supported for the JMLR bundle")
+
     size = figsizes.jmlr2001(
         rel_width=rel_width,
         nrows=nrows,
