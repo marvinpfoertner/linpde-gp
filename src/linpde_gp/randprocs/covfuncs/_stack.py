@@ -1,8 +1,12 @@
 from collections.abc import Sequence
+from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
+import probnum as pn
 from probnum.randprocs import covfuncs as pn_covfuncs
+
+from linpde_gp.linops import BlockMatrix
 
 from ._jax import JaxCovarianceFunctionMixin
 
@@ -58,3 +62,10 @@ class StackCovarianceFunction(
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
         return jnp.stack([covfunc.jax(x0, x1) for covfunc in self._covfuncs], axis=-1)
+
+    def linop(
+        self, x0: pn.utils.ArrayLike, x1: Optional[pn.utils.ArrayLike] = None
+    ) -> pn.linops.LinearOperator:
+        if self._output_idx == 0:
+            return BlockMatrix([[covfunc.linop(x0, x1)] for covfunc in self._covfuncs])
+        return BlockMatrix([[covfunc.linop(x0, x1) for covfunc in self._covfuncs]])
