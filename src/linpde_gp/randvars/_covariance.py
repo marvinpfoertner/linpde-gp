@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import functools
 import operator
+from typing import Type
 
 import numpy as np
 import probnum as pn
@@ -152,10 +153,10 @@ class ArrayCovariance(Covariance):
 
         self._cov_array = np.asarray(cov_array)
 
-        if self._cov_array.shape == self.shape0 + self.shape1:
+        if self._cov_array.shape != self.shape0 + self.shape1:
             raise ValueError(
                 "The shape of `cov_array` must be `shape0 + shape1`, but"
-                f"`{self._cov_array} != {self.shape0} + {self.shape1}`."
+                f"`{self._cov_array.shape} != {self.shape0} + {self.shape1}`."
             )
 
     @property
@@ -169,6 +170,28 @@ class ArrayCovariance(Covariance):
     @functools.cached_property
     def matrix(self) -> np.ndarray:
         return np.reshape(self.array, (self.size0, self.size1), order="C")
+
+    def __neg__(self) -> ArrayCovariance:
+        return -1.0 * self
+
+    def __add__(self, other) -> Covariance | Type[NotImplemented]:
+        if (
+            isinstance(other, ArrayCovariance)
+            and self.shape0 == other.shape0
+            and self.shape1 == other.shape1
+        ):
+            return ArrayCovariance(self.array + other.array, self.shape0, self.shape1)
+        if isinstance(other, LinearOperatorCovariance):
+            return other + self
+        return NotImplemented
+
+    def __sub__(self, other) -> Covariance | Type[NotImplemented]:
+        return self + (-other)
+
+    def __rmul__(self, other) -> ArrayCovariance | Type[NotImplemented]:
+        if np.ndim(other) == 0:
+            return ArrayCovariance(other * self.array, self.shape0, self.shape1)
+        return NotImplemented
 
 
 class LinearOperatorCovariance(Covariance):
@@ -185,7 +208,7 @@ class LinearOperatorCovariance(Covariance):
         if self._cov_linop.shape != (self.size0, self.size1):
             raise ValueError(
                 "The shape of `cov_linop` must be `(size0, size1)`, but"
-                f"`{self._cov_linop} != ({self.size0}, {self.size1})`."
+                f"`{self._cov_linop.shape} != ({self.size0}, {self.size1})`."
             )
 
     @functools.cached_property
@@ -199,3 +222,27 @@ class LinearOperatorCovariance(Covariance):
     @property
     def matrix(self) -> np.ndarray:
         return self._cov_linop.todense(cache=True)
+
+    def __neg__(self) -> LinearOperatorCovariance:
+        return -1.0 * self
+
+    def __add__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        if (
+            isinstance(other, (ArrayCovariance, LinearOperatorCovariance))
+            and self.shape0 == other.shape0
+            and self.shape1 == other.shape1
+        ):
+            return LinearOperatorCovariance(
+                self.linop + other.linop, self.shape0, self.shape1
+            )
+        return NotImplemented
+
+    def __sub__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        return self + (-other)
+
+    def __rmul__(self, other) -> LinearOperatorCovariance | Type[NotImplemented]:
+        if np.ndim(other) == 0:
+            return LinearOperatorCovariance(
+                other * self.linop, self.shape0, self.shape1
+            )
+        return NotImplemented

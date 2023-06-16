@@ -10,6 +10,7 @@ import scipy.sparse
 from linpde_gp.linfunctls.projections.l2 import (
     L2Projection_UnivariateLinearInterpolationBasis,
 )
+from linpde_gp.randvars import ArrayCovariance, Covariance
 
 from .. import _parametric, _pv_crosscov
 
@@ -78,7 +79,7 @@ def _(
     self,
     pv_crosscov: CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis,
     /,
-) -> np.ndarray:
+) -> Covariance:
     if pv_crosscov.reverse:
         proj0 = pv_crosscov.projection
         proj1: L2Projection_UnivariateLinearInterpolationBasis = self
@@ -112,7 +113,7 @@ def _(
     res = proj1.normalizer(res, axis=-1)
     res = proj0.normalizer(res, axis=0)
 
-    return res
+    return ArrayCovariance(res, res.shape[0], res.shape[1])
 
 
 @L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
@@ -120,9 +121,9 @@ def _(
 )
 def _(
     self, pv_crosscov: _parametric.ParametricProcessVectorCrossCovariance, /
-) -> np.ndarray:
+) -> Covariance:
     if self.basis is pv_crosscov.basis and self.normalized:
-        return pv_crosscov.crosscov.todense()
+        return pv_crosscov.crosscov
 
     raise NotImplementedError()
 

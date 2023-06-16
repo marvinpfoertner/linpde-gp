@@ -2,6 +2,7 @@ import numpy as np
 import probnum as pn
 
 from linpde_gp import linfunctls
+from linpde_gp.randvars import Covariance
 
 from ._parametric import ParametricCovarianceFunction
 
@@ -17,6 +18,7 @@ class GalerkinCovarianceFunction(pn.randprocs.covfuncs.CovarianceFunction):
 
         self._kPa = self._projection(self._covfunc, argnum=1)
         self._PkPa = self._projection(self._kPa)
+        assert isinstance(self._PkPa, Covariance)
 
         self._kPaP = GalerkinCovarianceFunction._EmbeddedProcessVectorCrossCovariance(
             self._kPa, basis=self._projection.basis
@@ -36,7 +38,7 @@ class GalerkinCovarianceFunction(pn.randprocs.covfuncs.CovarianceFunction):
         return self._projection
 
     @property
-    def PkP(self):
+    def PkP(self) -> Covariance:
         return self._PkPa
 
     def _evaluate(self, x0: np.ndarray, x1: np.ndarray | None) -> np.ndarray:
