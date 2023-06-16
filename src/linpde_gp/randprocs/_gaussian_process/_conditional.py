@@ -424,7 +424,7 @@ def _(
     self, crosscov: ConditionalGaussianProcess.PriorPredictiveCrossCovariance, /
 ) -> Covariance:
     linop_res = BlockMatrix([[self(kLa_prev).linop for kLa_prev in crosscov]])
-    return LinearOperatorCovariance(linop_res, linop_res.shape[:1], linop_res.shape[1:])
+    return LinearOperatorCovariance(linop_res, self.output_shape, crosscov.randvar_shape)
 
 
 @LinearFunctionOperator.__call__.register(  # pylint: disable=no-member
