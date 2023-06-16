@@ -3,6 +3,7 @@ from typing import Optional
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
+from probnum.typing import ArrayLike
 
 from ._jax import JaxCovarianceFunction
 
@@ -63,7 +64,7 @@ class IndependentMultiOutputCovarianceFunction(JaxCovarianceFunction):
         return result
 
     def linop(
-        self, x0: pn.utils.ArrayLike, x1: Optional[pn.utils.ArrayLike] = None
+        self, x0: ArrayLike, x1: Optional[ArrayLike] = None
     ) -> pn.linops.LinearOperator:
         return pn.linops.BlockDiagonalMatrix(
             *(covfunc.linop(x0, x1) for covfunc in self.covfuncs)
