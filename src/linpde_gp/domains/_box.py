@@ -92,22 +92,22 @@ class Box(CartesianProduct):
         total_shape = np.ones((total_dim,), dtype=int)
         total_insets = np.zeros((total_dim,), dtype=float)
 
-        for i, interior_idx in enumerate(self._interior_idcs):
-            total_shape[interior_idx] = interior_shape[i]
-            total_insets[interior_idx] = interior_inset[i]
+        total_shape[self._interior_idcs] = interior_shape
+        total_insets[self._interior_idcs] = interior_inset
 
         def get_grid(idx, num_points, inset):
             sub_domain = self[int(idx)]
             if isinstance(sub_domain, Interval):
                 return sub_domain.uniform_grid(num_points, inset=inset)
             assert isinstance(sub_domain, Point)
+            assert num_points == 1
             return np.broadcast_to(float(sub_domain), num_points)
 
         return TensorProductGrid(
             *(
                 get_grid(idx, num_points, inset)
-                for idx, num_points, inset in zip(
-                    range(total_dim), total_shape, total_insets
+                for idx, (num_points, inset) in enumerate(
+                    zip(total_shape, total_insets)
                 )
             ),
             indexing="ij",
