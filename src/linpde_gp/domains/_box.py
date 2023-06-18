@@ -101,7 +101,7 @@ class Box(CartesianProduct):
                 return sub_domain.uniform_grid(num_points, inset=inset)
             assert isinstance(sub_domain, Point)
             assert num_points == 1
-            return np.broadcast_to(float(sub_domain), num_points)
+            return np.array(sub_domain).reshape((1,))
 
         return TensorProductGrid(
             *(
