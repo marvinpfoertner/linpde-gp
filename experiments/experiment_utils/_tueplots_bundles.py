@@ -1,7 +1,12 @@
+import warnings
+
 from tueplots import bundles, figsizes, fonts, fontsizes
 
 
-def jmlr(*, rel_width=1.0, nrows=1, ncols=1, family="serif", **kwargs):
+def jmlr(*, rel_width=1.0, rel_height=None, nrows=1, ncols=1, family="serif", **kwargs):
+    if rel_height is not None:
+        warnings.warn("The `rel_height` argument is not supported for the JMLR bundle")
+
     size = figsizes.jmlr2001(
         rel_width=rel_width,
         nrows=nrows,
@@ -13,15 +18,28 @@ def jmlr(*, rel_width=1.0, nrows=1, ncols=1, family="serif", **kwargs):
 
     tueplots_rcparams = {**font_config, **size, **fontsize_config}
 
-    tueplots_rcparams["text.latex.preamble"] += r"\usepackage{amsfonts}" + "\n"
-    tueplots_rcparams["text.latex.preamble"] += r"\usepackage{siunitx}" + "\n"
-    tueplots_rcparams["text.latex.preamble"] += r"\usepackage{bm}" + "\n"
+    _add_latex_preamble(tueplots_rcparams)
 
     return tueplots_rcparams
 
 
 def beamer_moml(*, rel_width=1.0, rel_height=0.8, nrows=1):
-    return bundles.beamer_moml(
+    tueplots_rcparams = bundles.beamer_moml(
         rel_width=rel_width,
         rel_height=rel_height,
     )
+
+    tueplots_rcparams["text.usetex"] = True
+
+    _add_latex_preamble(tueplots_rcparams)
+
+    return tueplots_rcparams
+
+
+def _add_latex_preamble(rcparams):
+    if "text.latex.preamble" not in rcparams:
+        rcparams["text.latex.preamble"] = ""
+
+    rcparams["text.latex.preamble"] += r"\usepackage{amsfonts}" + "\n"
+    rcparams["text.latex.preamble"] += r"\usepackage{siunitx}" + "\n"
+    rcparams["text.latex.preamble"] += r"\usepackage{bm}" + "\n"

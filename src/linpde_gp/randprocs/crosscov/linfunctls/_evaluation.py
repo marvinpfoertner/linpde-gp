@@ -3,6 +3,7 @@ import numpy as np
 import probnum as pn
 
 from linpde_gp import linfunctls
+from linpde_gp.randvars import Covariance, LinearOperatorCovariance
 
 from .._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -10,8 +11,11 @@ from .._pv_crosscov import ProcessVectorCrossCovariance
 @linfunctls._EvaluationFunctional.__call__.register(  # pylint: disable=protected-access,no-member
     ProcessVectorCrossCovariance
 )
-def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> pn.linops.LinearOperator:
-    return pv_crosscov.evaluate_linop(self.X)
+def _(self, pv_crosscov: ProcessVectorCrossCovariance, /) -> Covariance:
+    shape0 = pv_crosscov.randvar_shape if pv_crosscov.reverse else self.output_shape
+    shape1 = self.output_shape if pv_crosscov.reverse else pv_crosscov.randvar_shape
+    linop_res = pv_crosscov.evaluate_linop(self.X)
+    return LinearOperatorCovariance(linop_res, shape0, shape1)
 
 
 class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):

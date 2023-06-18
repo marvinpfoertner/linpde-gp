@@ -1,5 +1,11 @@
+import functools
+import operator
+
 import probnum as pn
-from probnum.randprocs.covfuncs._arithmetic_fallbacks import ScaledCovarianceFunction
+from probnum.randprocs.covfuncs._arithmetic_fallbacks import (
+    ScaledCovarianceFunction,
+    SumCovarianceFunction,
+)
 
 from linpde_gp.linfunctls import (
     CompositeLinearFunctional,
@@ -32,6 +38,14 @@ def _(self, k: covfuncs.Zero, /, *, argnum: int = 0):
 def _(self, k_scaled: ScaledCovarianceFunction, /, *, argnum: int = 0):
     # pylint: disable=protected-access
     return k_scaled._scalar * self(k_scaled._covfunc, argnum=argnum)
+
+
+@LinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: SumCovarianceFunction, /, *, argnum: int = 0):
+    # pylint: disable=protected-access
+    return functools.reduce(
+        operator.add, (self(summand, argnum=argnum) for summand in k._summands)
+    )
 
 
 @LinearFunctional.__call__.register  # pylint: disable=no-member

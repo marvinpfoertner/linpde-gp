@@ -3,6 +3,8 @@ from collections.abc import Sequence
 from jax import numpy as jnp
 import numpy as np
 
+from linpde_gp.linops import BlockMatrix
+
 from ._pv_crosscov import ProcessVectorCrossCovariance
 
 
@@ -53,3 +55,18 @@ class StackedProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
             [pv_crosscov.jax(x) for pv_crosscov in self._pv_crosscovs],
             axis=-1 if self.reverse else -self.randvar_ndim - 1,
         )
+
+    def _evaluate_linop(self, x: np.ndarray) -> BlockMatrix:
+        if self.reverse:
+            return BlockMatrix(
+                [[pv_crosscov.evaluate_linop(x) for pv_crosscov in self.pv_crosscovs]]
+            )
+        return BlockMatrix(
+            [[pv_crosscov.evaluate_linop(x)] for pv_crosscov in self.pv_crosscovs]
+        )
+
+    def __repr__(self) -> str:
+        res = "StackedPVCrossCov[\n\t"
+        res += ",\n\t".join(repr(pv_crosscov) for pv_crosscov in self.pv_crosscovs)
+        res += "\n]"
+        return res

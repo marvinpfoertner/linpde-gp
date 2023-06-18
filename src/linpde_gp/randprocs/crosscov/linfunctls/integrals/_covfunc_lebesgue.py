@@ -7,6 +7,7 @@ import probnum as pn
 import scipy.integrate
 
 from linpde_gp import linfunctls
+from linpde_gp.randvars import ArrayCovariance, Covariance
 
 from .._base import LinearFunctionalProcessVectorCrossCovariance
 
@@ -54,7 +55,7 @@ class CovarianceFunction_Identity_LebesgueIntegral(
 
 
 @linfunctls.LebesgueIntegral.__call__.register  # pylint: disable=no-member
-def _(self, Lk_or_kL: CovarianceFunction_Identity_LebesgueIntegral, /):
+def _(self, Lk_or_kL: CovarianceFunction_Identity_LebesgueIntegral, /) -> Covariance:
     if Lk_or_kL.reverse:  # Lk
         integral0 = Lk_or_kL.integral
         integral1 = self
@@ -62,8 +63,9 @@ def _(self, Lk_or_kL: CovarianceFunction_Identity_LebesgueIntegral, /):
         integral0 = self
         integral1 = Lk_or_kL.integral
 
-    return scipy.integrate.dblquad(
+    res = scipy.integrate.dblquad(
         lambda x1, x0: Lk_or_kL.covfunc(x0, x1),
         *integral0.domain,
         *integral1.domain,
     )[0]
+    return ArrayCovariance.from_scalar(res)
