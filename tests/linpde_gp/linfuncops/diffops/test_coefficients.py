@@ -1,6 +1,8 @@
 import numpy as np
+
 import pytest
 from pytest_cases import fixture
+
 from linpde_gp.linfuncops.diffops import PartialDerivativeCoefficients
 
 
@@ -122,6 +124,7 @@ def test_input_codomain_shape_mismatch():
     with pytest.raises(ValueError):
         PartialDerivativeCoefficients(coefficients_dict)
 
+
 def test_add_codomain_shape_mismatch():
     coefficients_dict1 = {(0, 0): {((1,), 0): 1.0}}
     coefficients_dict2 = {(0,): {((1,), 0): 1.0}}
@@ -129,6 +132,7 @@ def test_add_codomain_shape_mismatch():
     coefficients2 = PartialDerivativeCoefficients(coefficients_dict2)
     with pytest.raises(ValueError):
         coefficients1 + coefficients2
+
 
 def test_add_domain_shape_mismatch():
     coefficients_dict1 = {(0,): {((1,), 0): 1.0}}
