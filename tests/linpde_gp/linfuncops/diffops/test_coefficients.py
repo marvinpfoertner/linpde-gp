@@ -131,7 +131,7 @@ def test_add_codomain_shape_mismatch():
     coefficients1 = PartialDerivativeCoefficients(coefficients_dict1)
     coefficients2 = PartialDerivativeCoefficients(coefficients_dict2)
     with pytest.raises(ValueError):
-        coefficients1 + coefficients2
+        coefficients1 + coefficients2  # pylint: disable=pointless-statement
 
 
 def test_add_domain_shape_mismatch():
@@ -140,4 +140,4 @@ def test_add_domain_shape_mismatch():
     coefficients1 = PartialDerivativeCoefficients(coefficients_dict1)
     coefficients2 = PartialDerivativeCoefficients(coefficients_dict2)
     with pytest.raises(ValueError):
-        coefficients1 + coefficients2
+        coefficients1 + coefficients2  # pylint: disable=pointless-statement
