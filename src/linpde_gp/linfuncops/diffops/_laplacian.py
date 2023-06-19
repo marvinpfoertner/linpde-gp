@@ -12,7 +12,7 @@ from probnum.typing import ArrayLike, ShapeLike
 
 from linpde_gp import functions
 
-from ._lindiffop import LinearDifferentialOperator
+from ._lindiffop import LinearDifferentialOperator, PartialDerivativeCoefficients
 
 if TYPE_CHECKING:
     import linpde_gp
@@ -35,7 +35,17 @@ class WeightedLaplacian(LinearDifferentialOperator):
                 "most 1."
             )
 
-        super().__init__(input_shapes=(weights.shape, ()))
+        coefficients = PartialDerivativeCoefficients(
+            {
+                (): {
+                    (domain_index, 2): coefficient
+                    for domain_index, coefficient in np.ndenumerate(weights)
+                    if coefficient != 0.0
+                }
+            }
+        )
+
+        super().__init__(coefficients=coefficients, input_shapes=(weights.shape, ()))
 
         self._weights = weights
 

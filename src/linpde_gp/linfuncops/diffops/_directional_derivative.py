@@ -6,14 +6,28 @@ import numpy as np
 import probnum as pn
 from probnum.typing import ArrayLike, ShapeLike
 
-from ._lindiffop import LinearDifferentialOperator
+import linpde_gp  # pylint: disable=unused-import # for type hints
+
+from ._lindiffop import LinearDifferentialOperator, PartialDerivativeCoefficients
 
 
 class DirectionalDerivative(LinearDifferentialOperator):
     def __init__(self, direction: ArrayLike):
         self._direction = np.asarray(direction)
 
-        super().__init__(input_shapes=(self._direction.shape, ()))
+        coefficients = PartialDerivativeCoefficients(
+            {
+                (): {
+                    (domain_index, 1): coefficient
+                    for domain_index, coefficient in np.ndenumerate(self._direction)
+                    if coefficient != 0.0
+                }
+            }
+        )
+        super().__init__(
+            coefficients=coefficients,
+            input_shapes=(self._direction.shape, ()),
+        )
 
     @property
     def direction(self) -> np.ndarray:
