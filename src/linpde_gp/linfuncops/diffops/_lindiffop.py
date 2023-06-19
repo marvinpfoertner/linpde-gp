@@ -72,25 +72,3 @@ class LinearDifferentialOperator(LinearFunctionOperator):
         self, basis: pn.functions.Function, /
     ) -> "linpde_gp.linfunctls.LinearFunctional":
         raise NotImplementedError()
-
-
-class LambdaLinearDifferentialOperator(LinearDifferentialOperator):
-    def __init__(
-        self,
-        jax_diffop_fn,
-        /,
-        input_shapes: tuple[ShapeLike, ShapeLike],
-        output_codomain_shape: ShapeLike = (),
-    ) -> None:
-        super().__init__(input_shapes, output_codomain_shape)
-
-        self._jax_diffop_fn = jax_diffop_fn
-
-    def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
-        return self._jax_diffop_fn(f, **kwargs)
-
-    @functools.singledispatchmethod
-    def weak_form(
-        self, test_basis: pn.functions.Function, /
-    ) -> "linpde_gp.linfunctls.LinearFunctional":
-        raise NotImplementedError()
