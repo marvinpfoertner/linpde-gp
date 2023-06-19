@@ -70,7 +70,7 @@ class PartialDerivativeCoefficients:
     def _validate_shape(shape: ShapeType, bound: ShapeType) -> bool:
         if len(shape) != len(bound):
             return False
-        return all(x >= y for x, y in zip(shape, bound))
+        return all(x >= (y + 1) for x, y in zip(shape, bound))
 
     def validate_input_codomain_shape(self, input_codomain_shape: ShapeType) -> bool:
         return PartialDerivativeCoefficients._validate_shape(
