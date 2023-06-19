@@ -1,4 +1,5 @@
 from ._arithmetic import ScaledLinearDifferentialOperator
+from ._coefficients import PartialDerivativeCoefficients
 from ._derivative import Derivative
 from ._directional_derivative import (
     DirectionalDerivative,
