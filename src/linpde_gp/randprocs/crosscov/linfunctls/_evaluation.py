@@ -165,10 +165,14 @@ class CovarianceFunction_Identity_Evaluation(ProcessVectorCrossCovariance):
 )
 def _(
     self, pv_crosscov: CovarianceFunction_Identity_Evaluation, /
-) -> pn.linops.LinearOperator:
+) -> Covariance:
+    shape0 = pv_crosscov.randvar_shape if pv_crosscov.reverse else self.output_shape
+    shape1 = self.output_shape if pv_crosscov.reverse else pv_crosscov.randvar_shape
     if self == pv_crosscov.evaluation_fctl:
-        return pv_crosscov.covfunc.linop(self.X)
-    return pv_crosscov.evaluate_linop(self.X)
+        linop_res = pv_crosscov.covfunc.linop(self.X)
+    else:
+        linop_res = pv_crosscov.evaluate_linop(self.X)
+    return LinearOperatorCovariance(linop_res, shape0, shape1)
 
 
 class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
@@ -316,7 +320,11 @@ class CovarianceFunction_Evaluation_Identity(ProcessVectorCrossCovariance):
 @linfunctls._EvaluationFunctional.__call__.register  # pylint: disable=protected-access,no-member
 def _(
     self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /
-) -> pn.linops.LinearOperator:
+) -> Covariance:
+    shape0 = pv_crosscov.randvar_shape if pv_crosscov.reverse else self.output_shape
+    shape1 = self.output_shape if pv_crosscov.reverse else pv_crosscov.randvar_shape
     if self == pv_crosscov.evaluation_fctl:
-        return pv_crosscov.covfunc.linop(self.X)
-    return pv_crosscov.evaluate_linop(self.X)
+        linop_res = pv_crosscov.covfunc.linop(self.X)
+    else:
+        linop_res = pv_crosscov.evaluate_linop(self.X)
+    return LinearOperatorCovariance(linop_res, shape0, shape1)
