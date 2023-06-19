@@ -124,7 +124,7 @@ class ProcessVectorCrossCovariance(abc.ABC):
         raise NotImplementedError()
 
     def evaluate_linop(self, x: np.ndarray) -> pn.linops.LinearOperator:
-        x = np.asarray(x)
+        x = np.asanyarray(x)
 
         # Shape checking
         if x.shape[x.ndim - self.randproc_input_ndim :] != self.randproc_input_shape:
