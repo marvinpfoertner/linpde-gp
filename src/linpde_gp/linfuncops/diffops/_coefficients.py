@@ -29,7 +29,7 @@ class PartialDerivativeCoefficients:
                 existing_key = key
                 self._input_codomain_shape_bound = key
             elif len(key) != len(existing_key):
-                raise ValueError(f"Input keys must all have the same shape.")
+                raise ValueError("Input keys must all have the same shape.")
             self._input_codomain_shape_bound = tuple(
                 max(x, y) for x, y in zip(self._input_codomain_shape_bound, key)
             )
@@ -42,7 +42,7 @@ class PartialDerivativeCoefficients:
                     existing_key = key
                     self._input_domain_shape_bound = key[0]
                 elif len(key[0]) != len(existing_key[0]):
-                    raise ValueError(f"Input keys must all have the same shape.")
+                    raise ValueError("Input keys must all have the same shape.")
                 self._input_domain_shape_bound = tuple(
                     max(x, y) for x, y in zip(self._input_domain_shape_bound, key[0])
                 )

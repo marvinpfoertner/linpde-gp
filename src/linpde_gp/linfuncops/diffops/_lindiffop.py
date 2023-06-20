@@ -22,11 +22,13 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     ) -> None:
         if not coefficients.validate_input_domain_shape(input_shapes[0]):
             raise ValueError(
-                f"Input domain shape {input_shapes[0]} is not compatible with the coefficients."
+                f"Input domain shape {input_shapes[0]} is not compatible "
+                "with the coefficients."
             )
         if not coefficients.validate_input_codomain_shape(input_shapes[1]):
             raise ValueError(
-                f"Input codomain shape {input_shapes[1]} is not compatible with the coefficients."
+                f"Input codomain shape {input_shapes[1]} is not compatible "
+                "with the coefficients."
             )
 
         super().__init__(
