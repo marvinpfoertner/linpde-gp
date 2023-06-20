@@ -33,7 +33,7 @@ class DirectionalDerivative(LinearDifferentialOperator):
         )
         super().__init__(
             coefficients=coefficients,
-            input_shapes=(self._direction.shape, ()),
+            input_shapes=(direction.shape, ()),
         )
 
         self._direction = direction

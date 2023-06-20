@@ -6,7 +6,7 @@ from probnum.typing import ShapeType
 
 
 class PartialDerivativeCoefficients:
-    """Partial derivative coefficients of a linear differential operator.
+    r"""Partial derivative coefficients of a linear differential operator.
 
     Any linear differential operator can be written as a sum of partial derivatives.
 
