@@ -13,13 +13,20 @@ from ._lindiffop import LinearDifferentialOperator, PartialDerivativeCoefficient
 
 class DirectionalDerivative(LinearDifferentialOperator):
     def __init__(self, direction: ArrayLike):
-        self._direction = np.asarray(direction)
+        direction = np.asarray(direction)
+        if direction.ndim > 1:
+            raise ValueError("Direction must be element of R^n.")
+
+        def get_one_hot(index: int) -> np.ndarray:
+            one_hot = np.zeros(direction.size, dtype=int)
+            one_hot[index] = 1
+            return tuple(one_hot)
 
         coefficients = PartialDerivativeCoefficients(
             {
                 (): {
-                    (domain_index, 1): coefficient
-                    for domain_index, coefficient in np.ndenumerate(self._direction)
+                    get_one_hot(domain_index): coefficient
+                    for domain_index, coefficient in enumerate(direction.reshape(-1))
                     if coefficient != 0.0
                 }
             }
@@ -28,6 +35,8 @@ class DirectionalDerivative(LinearDifferentialOperator):
             coefficients=coefficients,
             input_shapes=(self._direction.shape, ()),
         )
+
+        self._direction = direction
 
     @property
     def direction(self) -> np.ndarray:

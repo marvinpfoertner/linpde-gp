@@ -11,7 +11,7 @@ def dir_deriv() -> DirectionalDerivative:
 def test_coefficients(dir_deriv: DirectionalDerivative):
     assert len(dir_deriv.coefficients) == 1
     assert dir_deriv.coefficients[()] == {
-        ((0,), 1): 1.0,
-        ((1,), 1): 2.0,
-        ((2,), 1): 3.0,
+        (1, 0, 0): 1.0,
+        (0, 1, 0): 2.0,
+        (0, 0, 1): 3.0,
     }

@@ -9,7 +9,7 @@ from linpde_gp.linfuncops.diffops import (
 
 @fixture
 def coefficients() -> PartialDerivativeCoefficients:
-    return PartialDerivativeCoefficients({(1,): {((2,), 1): 1.0}})
+    return PartialDerivativeCoefficients({(1,): {(0, 0, 1): 1.0}})
 
 
 def test_coefficients_domain_shape_mismatch(
@@ -23,4 +23,4 @@ def test_coefficients_codomain_shape_mismatch(
     coefficients: PartialDerivativeCoefficients,
 ):
     with pytest.raises(ValueError):
-        LinearDifferentialOperator(coefficients, input_shapes=((4,), (1,)))
+        LinearDifferentialOperator(coefficients, input_shapes=((3,), (1,)))

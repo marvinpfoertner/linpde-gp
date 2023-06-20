@@ -11,7 +11,23 @@ class PartialDerivativeCoefficients:
     Any linear differential operator can be written as a sum of partial derivatives.
 
     The coefficients are stored in a dictionary of the form
-    {input_codomain_index: {(input_domain_index, order): coefficient}}.
+    {input_codomain_index: {multi_index: coefficient}}.
+
+    For example, the Laplacian operator in 2D can be written as
+
+    .. math::
+        \Delta = \frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2}
+
+    and is stored as
+
+    .. code-block:: python
+
+        {
+            (): {
+                (2, 0): 1.0,
+                (0, 2): 1.0,
+            }
+        }
 
     Parameters
     ----------
@@ -20,7 +36,7 @@ class PartialDerivativeCoefficients:
     """
 
     def __init__(
-        self, coefficient_dict: Dict[ShapeType, Dict[Tuple[ShapeType, int], float]]
+        self, coefficient_dict: Dict[ShapeType, Dict[Tuple[int, ...], float]]
     ) -> None:
         self._input_codomain_shape_bound = None
         existing_key = None
@@ -29,7 +45,7 @@ class PartialDerivativeCoefficients:
                 existing_key = key
                 self._input_codomain_shape_bound = key
             elif len(key) != len(existing_key):
-                raise ValueError("Input keys must all have the same shape.")
+                raise ValueError("Codomain indices must all have the same length.")
             self._input_codomain_shape_bound = tuple(
                 max(x, y) for x, y in zip(self._input_codomain_shape_bound, key)
             )
@@ -40,18 +56,15 @@ class PartialDerivativeCoefficients:
             for key in sub_dict.keys():
                 if existing_key is None:
                     existing_key = key
-                    self._input_domain_shape_bound = key[0]
-                elif len(key[0]) != len(existing_key[0]):
-                    raise ValueError("Input keys must all have the same shape.")
-                self._input_domain_shape_bound = tuple(
-                    max(x, y) for x, y in zip(self._input_domain_shape_bound, key[0])
-                )
+                    self._input_domain_size = len(key)
+                elif len(key) != len(existing_key):
+                    raise ValueError("Multi-indices must all have the same length.")
                 self._num_entries += 1
 
         self._coefficient_dict = coefficient_dict
 
     @property
-    def as_dict(self) -> Dict[ShapeType, Dict[Tuple[ShapeType, int], float]]:
+    def as_dict(self) -> Dict[ShapeType, Dict[Tuple[int, ...], float]]:
         return self._coefficient_dict
 
     @property
@@ -59,27 +72,28 @@ class PartialDerivativeCoefficients:
         return self._num_entries
 
     @property
-    def input_domain_ndim(self) -> int:
-        return len(self._input_domain_shape_bound)
+    def input_domain_size(self) -> int:
+        return self._input_domain_size
 
     @property
     def input_codomain_ndim(self) -> int:
         return len(self._input_codomain_shape_bound)
 
-    @staticmethod
-    def _validate_shape(shape: ShapeType, bound: ShapeType) -> bool:
-        if len(shape) != len(bound):
-            return False
-        return all(x >= (y + 1) for x, y in zip(shape, bound))
-
     def validate_input_codomain_shape(self, input_codomain_shape: ShapeType) -> bool:
-        return PartialDerivativeCoefficients._validate_shape(
-            input_codomain_shape, self._input_codomain_shape_bound
+        if len(input_codomain_shape) != len(self._input_codomain_shape_bound):
+            return False
+        return all(
+            x >= (y + 1)
+            for x, y in zip(input_codomain_shape, self._input_codomain_shape_bound)
         )
 
     def validate_input_domain_shape(self, input_domain_shape: ShapeType) -> bool:
-        return PartialDerivativeCoefficients._validate_shape(
-            input_domain_shape, self._input_domain_shape_bound
+        if len(input_domain_shape) == 0:
+            # R is isomorphic to R^1
+            return self._input_domain_size == 1
+        return (
+            len(input_domain_shape) == 1
+            and input_domain_shape[0] == self._input_domain_size
         )
 
     def __getitem__(self, key: ShapeType) -> Dict[Tuple[ShapeType, int], float]:
@@ -93,10 +107,10 @@ class PartialDerivativeCoefficients:
 
     def __add__(self, other) -> "PartialDerivativeCoefficients":
         if isinstance(other, PartialDerivativeCoefficients):
-            if self.input_domain_ndim != other.input_domain_ndim:
+            if self.input_domain_size != other.input_domain_size:
                 raise ValueError(
-                    "Cannot add coefficients with input domain ndim"
-                    f"{self.input_domain_ndim} != {other.input_domain_ndim}"
+                    "Cannot add coefficients with input domain sizes"
+                    f"{self.input_domain_size} != {other.input_domain_size}"
                 )
             if self.input_codomain_ndim != other.input_codomain_ndim:
                 raise ValueError(
