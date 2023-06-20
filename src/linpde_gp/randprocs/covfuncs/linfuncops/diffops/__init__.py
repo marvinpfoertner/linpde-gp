@@ -26,6 +26,60 @@ from ._tensor_product import (
     TensorProduct_WeightedLaplacian_WeightedLaplacian,
 )
 
+
+########################################################################################
+# Derivative ###########################################################################
+########################################################################################
+@diffops.Derivative.__call__.register  # pylint: disable=no-member
+def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
+    if self.order == 0:
+        return k
+    if self.order != 1 or k.input_size != 1:
+        return NotImplemented
+
+    if k.p is not None and self.order == 1:
+        return HalfIntegerMatern_Identity_DirectionalDerivative(
+            k,
+            direction=1.0,
+            reverse=(argnum == 0),
+        )
+
+    return NotImplemented
+
+
+@diffops.Derivative.__call__.register  # pylint: disable=no-member
+def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: int = 0):
+    assert k.matern.p is not None
+    if self.order == 0:
+        return k
+    if self.order != 1 or k.matern.input_size != 1:
+        return NotImplemented
+
+    if argnum == 0 and not k.reverse:
+        return (
+            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+            if k.matern.input_size == 1
+            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+        )(
+            k.matern,
+            direction0=1.0,
+            direction1=k.direction,
+        )
+
+    if argnum == 1 and k.reverse:
+        return (
+            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+            if k.matern.input_size == 1
+            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
+        )(
+            k.matern,
+            direction0=k.direction,
+            direction1=1.0,
+        )
+
+    return NotImplemented
+
+
 ########################################################################################
 # Directional Derivative ###############################################################
 ########################################################################################
