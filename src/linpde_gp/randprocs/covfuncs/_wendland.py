@@ -94,9 +94,9 @@ class WendlandCovarianceFunction(
             x0, x1, scale_factors=self._scale_factors
         )
 
-        return self._func._evaluate_keops(
+        return self._func._evaluate_keops(  # pylint: disable=protected-access
             scaled_dists
-        )  # pylint: disable=protected-access
+        )
 
 
 class WendlandPolynomial(functions.RationalPolynomial):
@@ -222,8 +222,8 @@ class WendlandFunction(functions.JaxFunction):
 
     def _evaluate_keops(self, r: LazyTensor) -> LazyTensor:
         return (1 - r).ifelse(
-            self._p_dk._evaluate_keops(r), 0.0
-        )  # pylint: disable=protected-access
+            self._p_dk._evaluate_keops(r), 0.0  # pylint: disable=protected-access
+        )
 
 
 ###########
