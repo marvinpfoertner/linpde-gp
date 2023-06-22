@@ -34,7 +34,8 @@ from ._tensor_product import (
 def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
     if k.input_shape != ():
         return ValueError(
-            "`Derivative` operator can only be applied to kernels with input shape `()`."
+            "`Derivative` operator can only be applied to kernels with "
+            "input shape `()`."
         )
     if self.order == 0:
         return k
@@ -56,7 +57,8 @@ def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: i
     assert k.matern.p is not None
     if k.input_shape != ():
         return ValueError(
-            "`Derivative` operator can only be applied to kernels with input shape `()`."
+            "`Derivative` operator can only be applied to kernels with "
+            "input shape `()`."
         )
     if self.order == 0:
         return k
