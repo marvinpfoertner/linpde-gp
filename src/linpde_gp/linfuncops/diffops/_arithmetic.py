@@ -19,7 +19,7 @@ class ScaledLinearDifferentialOperator(LinearDifferentialOperator):
         self._scalar = np.asarray(scalar, dtype=np.double)
 
         super().__init__(
-            coefficients=self._scalar * self._lindiffop.coefficients,
+            coefficients=float(self._scalar) * self._lindiffop.coefficients,
             input_shapes=self._lindiffop.input_shapes,
             output_codomain_shape=self._lindiffop.output_codomain_shape,
         )
