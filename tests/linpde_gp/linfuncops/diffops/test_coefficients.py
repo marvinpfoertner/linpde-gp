@@ -52,21 +52,8 @@ def random_coefficients(input_domain_size: int, input_codomain_shape: tuple):
             coefficient = 5 * rng.uniform(-1.0, 1.0)
             coefficient_dict[codomain_idx][domain_idx] = coefficient
 
-    return PartialDerivativeCoefficients(coefficient_dict)
-
-
-def test_partial_derivative_coefficients_validate_input_shapes(
-    random_coefficients: PartialDerivativeCoefficients,
-    input_domain_size,
-    input_codomain_shape,
-):
-    assert random_coefficients.validate_input_domain_shape((input_domain_size,))
-    if input_domain_size == 1:
-        assert random_coefficients.validate_input_domain_shape(())
-    assert random_coefficients.validate_input_codomain_shape(input_codomain_shape)
-    assert not random_coefficients.validate_input_domain_shape((input_domain_size + 1,))
-    assert not random_coefficients.validate_input_codomain_shape(
-        input_codomain_shape + (1,)
+    return PartialDerivativeCoefficients(
+        coefficient_dict, (input_domain_size,), input_codomain_shape
     )
 
 
@@ -76,7 +63,7 @@ def coefficients():
         (0, 0): {(0, 1, 0, 0): 1.0, (0, 0, 1, 0): 2.0},
         (1, 0): {(0, 0, 0, 1): 3.0},
     }
-    return PartialDerivativeCoefficients(coefficient_dict)
+    return PartialDerivativeCoefficients(coefficient_dict, (4,), (2, 1))
 
 
 def test_getitem(coefficients: PartialDerivativeCoefficients):
@@ -115,20 +102,20 @@ def test_rmul(coefficients: PartialDerivativeCoefficients):
 def test_input_domain_shape_mismatch():
     coefficients_dict = {(): {(0, 1): 1.0, (1, 0, 0): 4.0}}
     with pytest.raises(ValueError):
-        PartialDerivativeCoefficients(coefficients_dict)
+        PartialDerivativeCoefficients(coefficients_dict, (2,), ())
 
 
 def test_input_codomain_shape_mismatch():
     coefficients_dict = {(0,): {(0, 1): 1.0}, (1, 1): {(1, 0): 4.0}}
     with pytest.raises(ValueError):
-        PartialDerivativeCoefficients(coefficients_dict)
+        PartialDerivativeCoefficients(coefficients_dict, (2,), (2, 2))
 
 
 def test_add_codomain_shape_mismatch():
     coefficients_dict1 = {(0, 0): {(1, 0): 1.0}}
     coefficients_dict2 = {(0,): {(1, 0): 1.0}}
-    coefficients1 = PartialDerivativeCoefficients(coefficients_dict1)
-    coefficients2 = PartialDerivativeCoefficients(coefficients_dict2)
+    coefficients1 = PartialDerivativeCoefficients(coefficients_dict1, (2,), (1, 1))
+    coefficients2 = PartialDerivativeCoefficients(coefficients_dict2, (2,), (2,))
     with pytest.raises(ValueError):
         coefficients1 + coefficients2  # pylint: disable=pointless-statement
 
@@ -136,7 +123,7 @@ def test_add_codomain_shape_mismatch():
 def test_add_domain_shape_mismatch():
     coefficients_dict1 = {(0,): {(0, 1): 1.0}}
     coefficients_dict2 = {(0,): {(0, 0, 1): 1.0}}
-    coefficients1 = PartialDerivativeCoefficients(coefficients_dict1)
-    coefficients2 = PartialDerivativeCoefficients(coefficients_dict2)
+    coefficients1 = PartialDerivativeCoefficients(coefficients_dict1, (2,), (2,))
+    coefficients2 = PartialDerivativeCoefficients(coefficients_dict2, (3,), (2,))
     with pytest.raises(ValueError):
         coefficients1 + coefficients2  # pylint: disable=pointless-statement

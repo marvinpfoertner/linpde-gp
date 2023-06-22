@@ -1,11 +1,14 @@
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Dict, Tuple
+from typing import Dict, Iterator, Tuple
 
 import numpy as np
 from probnum.typing import ShapeType
 
 
-class PartialDerivativeCoefficients:
+class PartialDerivativeCoefficients(
+    Mapping[ShapeType, Mapping[Tuple[int, ...], float]]
+):
     r"""Partial derivative coefficients of a linear differential operator.
 
     Any linear differential operator can be written as a sum of partial derivatives.
@@ -36,65 +39,52 @@ class PartialDerivativeCoefficients:
     """
 
     def __init__(
-        self, coefficient_dict: Dict[ShapeType, Dict[Tuple[int, ...], float]]
+        self,
+        coefficient_dict: Dict[ShapeType, Dict[Tuple[int, ...], float]],
+        input_domain_shape: ShapeType,
+        input_codomain_shape: ShapeType,
     ) -> None:
-        self._input_codomain_shape_bound = None
-        existing_key = None
-        for key in coefficient_dict.keys():
-            if existing_key is None:
-                existing_key = key
-                self._input_codomain_shape_bound = key
-            elif len(key) != len(existing_key):
-                raise ValueError("Codomain indices must all have the same length.")
-            self._input_codomain_shape_bound = tuple(
-                max(x, y) for x, y in zip(self._input_codomain_shape_bound, key)
+        if len(input_domain_shape) > 1:
+            raise ValueError(
+                f"Input domain must be R or R^n, but got shape {input_domain_shape}."
             )
-
+        input_size = int(np.prod(input_domain_shape))
         self._num_entries = 0
-        existing_key = None
-        for sub_dict in coefficient_dict.values():
-            for key in sub_dict.keys():
-                if existing_key is None:
-                    existing_key = key
-                    self._input_domain_size = len(key)
-                elif len(key) != len(existing_key):
-                    raise ValueError("Multi-indices must all have the same length.")
+        for key in coefficient_dict.keys():
+            if len(key) != len(input_codomain_shape) or not all(
+                x < y for x, y in zip(key, input_codomain_shape)
+            ):
+                raise ValueError(
+                    f"Codomain index {key} does not match shape"
+                    "{input_codomain_shape}."
+                )
+            for sub_key in coefficient_dict[key].keys():
+                if len(sub_key) != input_size:
+                    raise ValueError(
+                        f"Multi-index {sub_key} does not match input domain shape "
+                        f"{input_domain_shape}."
+                    )
+                if any(x < 0 for x in sub_key):
+                    raise ValueError(
+                        f"Multi-index {sub_key} contains negative entries."
+                    )
                 self._num_entries += 1
 
         self._coefficient_dict = coefficient_dict
-
-    @property
-    def as_dict(self) -> Dict[ShapeType, Dict[Tuple[int, ...], float]]:
-        return self._coefficient_dict
+        self._input_domain_shape = input_domain_shape
+        self._input_codomain_shape = input_codomain_shape
 
     @property
     def num_entries(self) -> int:
         return self._num_entries
 
     @property
-    def input_domain_size(self) -> int:
-        return self._input_domain_size
+    def input_domain_shape(self) -> ShapeType:
+        return self._input_domain_shape
 
     @property
-    def input_codomain_ndim(self) -> int:
-        return len(self._input_codomain_shape_bound)
-
-    def validate_input_codomain_shape(self, input_codomain_shape: ShapeType) -> bool:
-        if len(input_codomain_shape) != len(self._input_codomain_shape_bound):
-            return False
-        return all(
-            x >= (y + 1)
-            for x, y in zip(input_codomain_shape, self._input_codomain_shape_bound)
-        )
-
-    def validate_input_domain_shape(self, input_domain_shape: ShapeType) -> bool:
-        if len(input_domain_shape) == 0:
-            # R is isomorphic to R^1
-            return self._input_domain_size == 1
-        return (
-            len(input_domain_shape) == 1
-            and input_domain_shape[0] == self._input_domain_size
-        )
+    def input_codomain_shape(self) -> ShapeType:
+        return self._input_codomain_shape
 
     def __getitem__(self, key: ShapeType) -> Dict[Tuple[ShapeType, int], float]:
         return self._coefficient_dict[key]
@@ -102,33 +92,38 @@ class PartialDerivativeCoefficients:
     def __len__(self) -> int:
         return len(self._coefficient_dict)
 
+    def __iter__(self) -> Iterator[ShapeType]:
+        return iter(self._coefficient_dict)
+
     def __neg__(self) -> "PartialDerivativeCoefficients":
         return -1.0 * self
 
     def __add__(self, other) -> "PartialDerivativeCoefficients":
         if isinstance(other, PartialDerivativeCoefficients):
-            if self.input_domain_size != other.input_domain_size:
+            if self.input_domain_shape != other.input_domain_shape:
                 raise ValueError(
-                    "Cannot add coefficients with input domain sizes"
-                    f"{self.input_domain_size} != {other.input_domain_size}"
+                    "Cannot add coefficients with input domain shapes"
+                    f"{self.input_domain_shape} != {other.input_domain_shape}"
                 )
-            if self.input_codomain_ndim != other.input_codomain_ndim:
+            if self.input_codomain_shape != other.input_codomain_shape:
                 raise ValueError(
-                    "Cannot add coefficients with input codomain ndim"
-                    f"{self.input_codomain_ndim} != {other.input_codomain_ndim}"
+                    "Cannot add coefficients with input codomain shapes"
+                    f"{self.input_codomain_shape} != {other.input_codomain_shape}"
                 )
 
             new_dic = deepcopy(self._coefficient_dict)
-            for key in other.as_dict.keys():
+            for key in dict(other).keys():
                 if key in new_dic.keys():
-                    for sub_key in other.as_dict[key].keys():
+                    for sub_key in dict(other)[key].keys():
                         if sub_key in new_dic[key].keys():
-                            new_dic[key][sub_key] += other.as_dict[key][sub_key]
+                            new_dic[key][sub_key] += dict(other)[key][sub_key]
                         else:
-                            new_dic[key][sub_key] = other.as_dict[key][sub_key]
+                            new_dic[key][sub_key] = dict(other)[key][sub_key]
                 else:
-                    new_dic[key] = deepcopy(other.as_dict[key])
-            return PartialDerivativeCoefficients(new_dic)
+                    new_dic[key] = deepcopy(dict(other)[key])
+            return PartialDerivativeCoefficients(
+                new_dic, self.input_domain_shape, self.input_codomain_shape
+            )
         return NotImplemented
 
     def __sub__(self, other) -> "PartialDerivativeCoefficients":
@@ -140,5 +135,7 @@ class PartialDerivativeCoefficients:
             for key in scaled_dic.keys():
                 for sub_key in scaled_dic[key].keys():
                     scaled_dic[key][sub_key] *= other
-            return PartialDerivativeCoefficients(scaled_dic)
+            return PartialDerivativeCoefficients(
+                scaled_dic, self.input_domain_shape, self.input_codomain_shape
+            )
         return NotImplemented

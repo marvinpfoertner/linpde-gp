@@ -47,7 +47,9 @@ class WeightedLaplacian(LinearDifferentialOperator):
                     for domain_index, coefficient in enumerate(weights.reshape(-1))
                     if coefficient != 0.0
                 }
-            }
+            },
+            input_domain_shape=weights.shape,
+            input_codomain_shape=(),
         )
 
         super().__init__(coefficients=coefficients, input_shapes=(weights.shape, ()))

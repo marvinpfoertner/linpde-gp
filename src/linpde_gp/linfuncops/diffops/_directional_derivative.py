@@ -29,7 +29,9 @@ class DirectionalDerivative(LinearDifferentialOperator):
                     for domain_index, coefficient in enumerate(direction.reshape(-1))
                     if coefficient != 0.0
                 }
-            }
+            },
+            input_domain_shape=direction.shape,
+            input_codomain_shape=(),
         )
         super().__init__(
             coefficients=coefficients,
