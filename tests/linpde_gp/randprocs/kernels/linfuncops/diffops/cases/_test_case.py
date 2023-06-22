@@ -13,6 +13,8 @@ class CovarianceFunctionDiffOpTestCase:
     L0: linpde_gp.linfuncops.LinearDifferentialOperator | None
     L1: linpde_gp.linfuncops.LinearDifferentialOperator | None
     expected_type: Type[pn.randprocs.covfuncs.CovarianceFunction] = None
+    L0_compare_to: linpde_gp.linfuncops.LinearDifferentialOperator | None = None
+    L1_compare_to: linpde_gp.linfuncops.LinearDifferentialOperator | None = None
 
     @functools.cached_property
     def k_jax(self) -> linpde_gp.randprocs.covfuncs.JaxCovarianceFunction:

@@ -70,3 +70,22 @@ def test_L0kL1_linop_keops_equals_no_keops(test_case: CovarianceFunctionDiffOpTe
         pytest.skip("No KeOps implementation available.")
 
     np.testing.assert_allclose(no_keops_mat, keops_mat)
+
+
+@parametrize_with_cases("test_case", cases=case_modules)
+def test_diffop_comparison(test_case: CovarianceFunctionDiffOpTestCase):
+    if test_case.L0_compare_to is None or test_case.L1_compare_to is None:
+        pytest.skip("No comparison available.")
+    Xs = X(test_case.k.input_shape)
+    kL0 = test_case.L0(test_case.k, argnum=0)
+    kL0_compare_to = test_case.L0_compare_to(test_case.k, argnum=0)
+    np.testing.assert_allclose(kL0.matrix(Xs), kL0_compare_to.matrix(Xs))
+    kL1 = test_case.L1(test_case.k, argnum=1)
+    kL1_compare_to = test_case.L1_compare_to(test_case.k, argnum=1)
+    np.testing.assert_allclose(kL1.matrix(Xs), kL1_compare_to.matrix(Xs))
+    L0kL1 = test_case.L0kL1(Xs[:, None], Xs[None, :])
+    L0kL1_compare_to = test_case.L0_compare_to(
+        test_case.L1_compare_to(test_case.k, argnum=1), argnum=0
+    )
+    L0kL1_compare_to = L0kL1_compare_to(Xs[:, None], Xs[None, :])
+    np.testing.assert_allclose(L0kL1, L0kL1_compare_to)
