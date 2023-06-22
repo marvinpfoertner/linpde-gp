@@ -32,9 +32,11 @@ from ._tensor_product import (
 ########################################################################################
 @diffops.Derivative.__call__.register  # pylint: disable=no-member
 def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
+    if k.input_shape != ():
+        return ValueError("`Derivative` operator can only be applied to kernels with input shape `()`.")
     if self.order == 0:
         return k
-    if self.order != 1 or k.input_size != 1:
+    if self.order > 1:
         return NotImplemented
 
     if k.p is not None and self.order == 1:
@@ -50,9 +52,11 @@ def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
 @diffops.Derivative.__call__.register  # pylint: disable=no-member
 def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: int = 0):
     assert k.matern.p is not None
+    if k.input_shape != ():
+        return ValueError("`Derivative` operator can only be applied to kernels with input shape `()`.")
     if self.order == 0:
         return k
-    if self.order != 1 or k.matern.input_size != 1:
+    if self.order > 1:
         return NotImplemented
 
     if argnum == 0 and not k.reverse:
