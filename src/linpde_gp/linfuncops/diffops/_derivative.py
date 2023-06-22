@@ -1,5 +1,7 @@
 import functools
+from typing import Callable
 
+import jax
 import probnum as pn
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
@@ -28,6 +30,18 @@ class Derivative(LinearDifferentialOperator):
         if self.order == 0:
             return f
         return super().__call__(f, **kwargs)
+
+    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
+        @jax.jit
+        def _f_deriv(*args):
+            def _f_arg(arg):
+                return f(*args[:argnum], arg, *args[argnum + 1 :])
+
+            _, deriv = jax.jvp(_f_arg, (args[argnum],), (1.0,))
+
+            return deriv
+
+        return _f_deriv
 
     @functools.singledispatchmethod
     def weak_form(
