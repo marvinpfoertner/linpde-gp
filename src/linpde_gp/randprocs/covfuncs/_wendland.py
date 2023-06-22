@@ -1,10 +1,102 @@
 from collections.abc import Iterable
 import fractions
+import functools
+from typing import Optional
 
+import jax
 from jax import numpy as jnp
 import numpy as np
+from probnum.randprocs.covfuncs import IsotropicMixin
+from probnum.typing import ArrayLike, ShapeLike
 
 from linpde_gp import functions
+
+from ._jax import JaxCovarianceFunction, JaxIsotropicMixin
+
+_USE_KEOPS = True
+try:
+    from pykeops.numpy import LazyTensor
+except ImportError:  # pragma: no cover
+    _USE_KEOPS = False
+
+
+class WendlandCovarianceFunction(
+    JaxCovarianceFunction, JaxIsotropicMixin, IsotropicMixin
+):
+    r"""A radial covariance function with compact support obtained via the Wendland
+    functions from [1]_.
+
+    Yields sparse covariance matrices, which can speed up computations.
+
+    Parameters
+    ----------
+    k :
+        Smoothness parameter. The associated Wendland function is
+        :math:`2k`-times continuously differentiable.
+
+    References
+    ---------
+    .. [1] Holger Wendland, Scattered Data Approximation. Cambridge University Press,
+           2004.
+    """
+
+    def __init__(
+        self,
+        input_shape: ShapeLike,
+        k: int,
+        lengthscales: Optional[ArrayLike] = None,
+    ):
+        super().__init__(input_shape=input_shape)
+        self._d = int(np.prod(input_shape))
+        self._k = k
+        self._func = WendlandFunction(self._d, self._k)
+
+        # Input lengthscales
+        self._lengthscales = np.asarray(
+            lengthscales if lengthscales is not None else 1.0,
+            dtype=np.double,
+        )
+
+    @property
+    def d(self):
+        return self._d
+
+    @property
+    def k(self):
+        return self._k
+
+    @functools.cached_property
+    def _scale_factors(self) -> np.ndarray:
+        return 1 / self._lengthscales
+
+    def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
+        scaled_dists = self._euclidean_distances(
+            x0, x1, scale_factors=self._scale_factors
+        )
+
+        return self._func(scaled_dists)
+
+    @functools.partial(jax.jit, static_argnums=0)
+    def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
+        scaled_dists = self._euclidean_distances_jax(
+            x0, x1, scale_factors=self._scale_factors
+        )
+
+        return self._func.jax(scaled_dists)
+
+    def _keops_lazy_tensor(
+        self, x0: np.ndarray, x1: Optional[np.ndarray]
+    ) -> "LazyTensor":
+        if not _USE_KEOPS:  # pragma: no cover
+            raise ImportError()
+
+        scaled_dists = self._euclidean_distances_keops(
+            x0, x1, scale_factors=self._scale_factors
+        )
+
+        return self._func._evaluate_keops(  # pylint: disable=protected-access
+            scaled_dists
+        )
 
 
 class WendlandPolynomial(functions.RationalPolynomial):
@@ -126,7 +218,12 @@ class WendlandFunction(functions.JaxFunction):
     def _evaluate_jax(  # pylint: disable=arguments-renamed
         self, r: jnp.ndarray
     ) -> jnp.ndarray:
-        return jnp.where(r <= 1, self._p_dk(r), jnp.zeros_like(r))
+        return jnp.where(r <= 1, self._p_dk.jax(r), jnp.zeros_like(r))
+
+    def _evaluate_keops(self, r: LazyTensor) -> LazyTensor:
+        return (1 - r).ifelse(
+            self._p_dk._evaluate_keops(r), 0.0  # pylint: disable=protected-access
+        )
 
 
 ###########

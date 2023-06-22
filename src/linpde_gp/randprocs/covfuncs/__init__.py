@@ -12,7 +12,7 @@ from ._matern import Matern
 from ._parametric import ParametricCovarianceFunction
 from ._stack import StackCovarianceFunction
 from ._tensor_product import TensorProduct, TensorProductGrid
-from ._wendland import WendlandFunction, WendlandPolynomial
+from ._wendland import WendlandCovarianceFunction, WendlandFunction, WendlandPolynomial
 from ._zero import Zero
 
 from . import _linfunctls, linfuncops  # isort: skip
