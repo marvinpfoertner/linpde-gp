@@ -43,7 +43,7 @@ def test_wendland_polynomial(true_poly_params):
 
     # Equal up to constant factor
     div, rem = divmod(true_polynomial, our_polynomial)
-    assert all(coeff == 0.0 for coeff in rem._coeffs)
+    assert all(coeff == 0.0 for coeff in rem.coefficients)
     assert div.degree == 0
 
 
@@ -51,7 +51,7 @@ def test_wendland_polynomial(true_poly_params):
 @pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
 def r(seed):
     rng = np.random.default_rng(seed)
-    return rng.uniform(-1, 1, size=(100))
+    return rng.uniform(-1, 1, size=100)
 
 
 @pytest.mark.parametrize("d", [1, 3, 5])
