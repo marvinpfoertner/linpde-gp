@@ -3,13 +3,16 @@ from pytest_cases import fixture
 
 from linpde_gp.linfuncops.diffops import (
     LinearDifferentialOperator,
+    MultiIndex,
     PartialDerivativeCoefficients,
 )
 
 
 @fixture
 def coefficients() -> PartialDerivativeCoefficients:
-    return PartialDerivativeCoefficients({(1,): {(0, 0, 1): 1.0}}, (3,), (2,))
+    return PartialDerivativeCoefficients(
+        {(1,): {MultiIndex((0, 0, 1)): 1.0}}, (3,), (2,)
+    )
 
 
 def test_coefficients_domain_shape_mismatch(

@@ -12,7 +12,8 @@ from probnum.typing import ArrayLike, ShapeLike
 
 from linpde_gp import functions
 
-from ._lindiffop import LinearDifferentialOperator, PartialDerivativeCoefficients
+from ._coefficients import MultiIndex, PartialDerivativeCoefficients
+from ._lindiffop import LinearDifferentialOperator
 
 if TYPE_CHECKING:
     import linpde_gp
@@ -29,22 +30,11 @@ class WeightedLaplacian(LinearDifferentialOperator):
     def __init__(self, weights: ArrayLike) -> None:
         weights = np.asarray(weights)
 
-        if weights.ndim > 1:
-            raise ValueError(
-                "The Laplacian operator only supports functions with input ndim of at "
-                "most 1."
-            )
-
-        def get_one_hot(index: int) -> tuple[int, ...]:
-            one_hot = np.zeros(weights.size, dtype=int)
-            one_hot[index] = 2
-            return tuple(one_hot)
-
         coefficients = PartialDerivativeCoefficients(
             {
                 (): {
-                    get_one_hot(domain_index): coefficient
-                    for domain_index, coefficient in enumerate(weights.reshape(-1))
+                    MultiIndex.from_one_hot(domain_index, weights.shape, 2): coefficient
+                    for domain_index, coefficient in np.ndenumerate(weights)
                     if coefficient != 0.0
                 }
             },
