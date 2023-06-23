@@ -2,6 +2,7 @@ import functools
 from typing import Callable
 
 import jax
+from jax.experimental.jet import jet
 import probnum as pn
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
@@ -43,9 +44,11 @@ class Derivative(LinearDifferentialOperator):
             def _f_arg(arg):
                 return f(*args[:argnum], arg, *args[argnum + 1 :])
 
-            _, deriv = jax.jvp(_f_arg, (args[argnum],), (1.0,))
+            _, series_out = jet(
+                _f_arg, (args[argnum],), ((1.0,) + (self._order - 1) * (0.0,),)
+            )
 
-            return deriv
+            return series_out[-1]
 
         return _f_deriv
 
