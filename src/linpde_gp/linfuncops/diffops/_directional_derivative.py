@@ -17,7 +17,7 @@ class DirectionalDerivative(LinearDifferentialOperator):
         if direction.ndim > 1:
             raise ValueError("Direction must be element of R^n.")
 
-        def get_one_hot(index: int) -> np.ndarray:
+        def get_one_hot(index: int) -> tuple[int, ...]:
             one_hot = np.zeros(direction.size, dtype=int)
             one_hot[index] = 1
             return tuple(one_hot)

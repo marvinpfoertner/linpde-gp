@@ -1,6 +1,5 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterator
 from copy import deepcopy
-from typing import Dict, Iterator, Tuple
 
 import numpy as np
 from probnum.typing import ShapeType
@@ -40,7 +39,7 @@ class PartialDerivativeCoefficients(
 
     def __init__(
         self,
-        coefficient_dict: Dict[ShapeType, Dict[Tuple[int, ...], float]],
+        coefficient_dict: dict[ShapeType, dict[tuple[int, ...], float]],
         input_domain_shape: ShapeType,
         input_codomain_shape: ShapeType,
     ) -> None:
@@ -50,23 +49,23 @@ class PartialDerivativeCoefficients(
             )
         input_size = int(np.prod(input_domain_shape))
         self._num_entries = 0
-        for key in coefficient_dict.keys():
-            if len(key) != len(input_codomain_shape) or not all(
-                x < y for x, y in zip(key, input_codomain_shape)
+        for codomain_idx in coefficient_dict.keys():
+            if len(codomain_idx) != len(input_codomain_shape) or not all(
+                x < y for x, y in zip(codomain_idx, input_codomain_shape)
             ):
                 raise ValueError(
-                    f"Codomain index {key} does not match shape"
+                    f"Codomain index {codomain_idx} does not match shape"
                     "{input_codomain_shape}."
                 )
-            for sub_key in coefficient_dict[key].keys():
-                if len(sub_key) != input_size:
+            for multi_index in coefficient_dict[codomain_idx].keys():
+                if len(multi_index) != input_size:
                     raise ValueError(
-                        f"Multi-index {sub_key} does not match input domain shape "
+                        f"Multi-index {multi_index} does not match input domain shape "
                         f"{input_domain_shape}."
                     )
-                if any(x < 0 for x in sub_key):
+                if any(x < 0 for x in multi_index):
                     raise ValueError(
-                        f"Multi-index {sub_key} contains negative entries."
+                        f"Multi-index {multi_index} contains negative entries."
                     )
                 self._num_entries += 1
 
@@ -86,7 +85,7 @@ class PartialDerivativeCoefficients(
     def input_codomain_shape(self) -> ShapeType:
         return self._input_codomain_shape
 
-    def __getitem__(self, key: ShapeType) -> Dict[Tuple[ShapeType, int], float]:
+    def __getitem__(self, key: ShapeType) -> dict[tuple[int, ...], float]:
         return self._coefficient_dict[key]
 
     def __len__(self) -> int:
@@ -111,18 +110,18 @@ class PartialDerivativeCoefficients(
                     f"{self.input_codomain_shape} != {other.input_codomain_shape}"
                 )
 
-            new_dic = deepcopy(self._coefficient_dict)
-            for key in dict(other).keys():
-                if key in new_dic.keys():
-                    for sub_key in dict(other)[key].keys():
-                        if sub_key in new_dic[key].keys():
-                            new_dic[key][sub_key] += dict(other)[key][sub_key]
+            new_dict = deepcopy(self._coefficient_dict)
+            for codomain_idx in other.keys():
+                if codomain_idx in new_dict.keys():
+                    for multi_index in other[codomain_idx].keys():
+                        if multi_index in new_dict[codomain_idx].keys():
+                            new_dict[codomain_idx][multi_index] += other[codomain_idx][multi_index]
                         else:
-                            new_dic[key][sub_key] = dict(other)[key][sub_key]
+                            new_dict[codomain_idx][multi_index] = other[codomain_idx][multi_index]
                 else:
-                    new_dic[key] = deepcopy(dict(other)[key])
+                    new_dict[codomain_idx] = deepcopy(other[codomain_idx])
             return PartialDerivativeCoefficients(
-                new_dic, self.input_domain_shape, self.input_codomain_shape
+                new_dict, self.input_domain_shape, self.input_codomain_shape
             )
         return NotImplemented
 
@@ -131,11 +130,11 @@ class PartialDerivativeCoefficients(
 
     def __rmul__(self, other) -> "PartialDerivativeCoefficients":
         if np.ndim(other) == 0:
-            scaled_dic = deepcopy(self._coefficient_dict)
-            for key in scaled_dic.keys():
-                for sub_key in scaled_dic[key].keys():
-                    scaled_dic[key][sub_key] *= other
+            scaled_dict = deepcopy(self._coefficient_dict)
+            for codomain_idx in scaled_dict.keys():
+                for multi_index in scaled_dict[codomain_idx].keys():
+                    scaled_dict[codomain_idx][multi_index] *= other
             return PartialDerivativeCoefficients(
-                scaled_dic, self.input_domain_shape, self.input_codomain_shape
+                scaled_dict, self.input_domain_shape, self.input_codomain_shape
             )
         return NotImplemented

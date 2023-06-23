@@ -35,7 +35,7 @@ class WeightedLaplacian(LinearDifferentialOperator):
                 "most 1."
             )
 
-        def get_one_hot(index: int) -> np.ndarray:
+        def get_one_hot(index: int) -> tuple[int, ...]:
             one_hot = np.zeros(weights.size, dtype=int)
             one_hot[index] = 2
             return tuple(one_hot)
