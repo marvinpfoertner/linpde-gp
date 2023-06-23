@@ -33,7 +33,7 @@ class WeightedLaplacian(LinearDifferentialOperator):
         coefficients = PartialDerivativeCoefficients(
             {
                 (): {
-                    MultiIndex.from_one_hot(domain_index, weights.shape, 2): coefficient
+                    MultiIndex.from_index(domain_index, weights.shape, 2): coefficient
                     for domain_index, coefficient in np.ndenumerate(weights)
                     if coefficient != 0.0
                 }

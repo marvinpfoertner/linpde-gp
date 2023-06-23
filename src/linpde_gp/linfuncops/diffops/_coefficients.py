@@ -24,7 +24,7 @@ class MultiIndex:
         self._multi_index.setflags(write=False)
 
     @classmethod
-    def from_one_hot(
+    def from_index(
         cls, index: tuple[int, ...], shape: ShapeType, order: int
     ) -> "MultiIndex":
         multi_index = np.zeros(shape, dtype=int)
@@ -32,11 +32,11 @@ class MultiIndex:
         return cls(multi_index)
 
     @functools.cached_property
-    def total_order(self) -> int:
+    def order(self) -> int:
         return np.sum(self._multi_index)
 
     @property
-    def data(self) -> np.ndarray:
+    def array(self) -> np.ndarray:
         return self._multi_index
 
     @property
@@ -52,7 +52,7 @@ class MultiIndex:
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, MultiIndex):
             return NotImplemented
-        return np.all(self.data == __o.data)
+        return np.all(self.array == __o.array)
 
 
 class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float]]):
