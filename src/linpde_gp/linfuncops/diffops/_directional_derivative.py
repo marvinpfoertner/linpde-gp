@@ -19,9 +19,7 @@ class DirectionalDerivative(LinearDifferentialOperator):
         coefficients = PartialDerivativeCoefficients(
             {
                 (): {
-                    MultiIndex.from_index(
-                        domain_index, direction.shape, 1
-                    ): coefficient
+                    MultiIndex.from_index(domain_index, direction.shape, 1): coefficient
                     for domain_index, coefficient in np.ndenumerate(direction)
                     if coefficient != 0.0
                 }
