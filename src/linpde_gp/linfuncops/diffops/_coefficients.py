@@ -12,8 +12,8 @@ class MultiIndex:
     A multi-index is an array of non-negative integers which is used to represent
     a partial derivative of a function.
 
-    For example, the multi-index :math:`(1, 2, 0)`
-    represents the partial derivative :math:`\frac{\partial^3}{\partial x_1 \partial x_2^2}`
+    For example, the multi-index :math:`(1, 2, 0)` represents the partial derivative
+    :math:`\frac{\partial^3}{\partial x_1 \partial x_2^2}`
     of a function :math:`f: \mathbb{R}^3 \to \mathbb{R}`.
     """
 
