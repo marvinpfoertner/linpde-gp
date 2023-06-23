@@ -10,20 +10,32 @@ import linpde_gp  # pylint: disable=unused-import # for type hints
 from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
 from .._linfuncop import LinearFunctionOperator
+from ._coefficients import PartialDerivativeCoefficients
 
 
 class LinearDifferentialOperator(LinearFunctionOperator):
+    """Linear differential operator that maps to functions with codomain R."""
+
     def __init__(
         self,
+        coefficients: PartialDerivativeCoefficients,
         input_shapes: tuple[ShapeLike, ShapeLike],
-        output_codomain_shape: ShapeLike = (),
     ) -> None:
-        input_shapes = tuple(input_shapes)
+        if coefficients.input_domain_shape != input_shapes[0]:
+            raise ValueError()
+        if coefficients.input_codomain_shape != input_shapes[1]:
+            raise ValueError()
 
         super().__init__(
             input_shapes=input_shapes,
-            output_shapes=(input_shapes[0], output_codomain_shape),
+            output_shapes=(input_shapes[0], ()),
         )
+
+        self._coefficients = coefficients
+
+    @property
+    def coefficients(self) -> PartialDerivativeCoefficients:
+        return self._coefficients
 
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):
@@ -70,27 +82,5 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     @functools.singledispatchmethod
     def weak_form(
         self, basis: pn.functions.Function, /
-    ) -> "linpde_gp.linfunctls.LinearFunctional":
-        raise NotImplementedError()
-
-
-class LambdaLinearDifferentialOperator(LinearDifferentialOperator):
-    def __init__(
-        self,
-        jax_diffop_fn,
-        /,
-        input_shapes: tuple[ShapeLike, ShapeLike],
-        output_codomain_shape: ShapeLike = (),
-    ) -> None:
-        super().__init__(input_shapes, output_codomain_shape)
-
-        self._jax_diffop_fn = jax_diffop_fn
-
-    def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
-        return self._jax_diffop_fn(f, **kwargs)
-
-    @functools.singledispatchmethod
-    def weak_form(
-        self, test_basis: pn.functions.Function, /
     ) -> "linpde_gp.linfunctls.LinearFunctional":
         raise NotImplementedError()

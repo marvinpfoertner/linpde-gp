@@ -6,6 +6,7 @@ import probnum as pn
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
 
+from ._coefficients import MultiIndex, PartialDerivativeCoefficients
 from ._lindiffop import LinearDifferentialOperator
 
 
@@ -17,7 +18,12 @@ class Derivative(LinearDifferentialOperator):
         if order < 0:
             raise ValueError(f"Order must be >= 0, but got {order}.")
 
-        super().__init__(input_shapes=((), ()))
+        super().__init__(
+            coefficients=PartialDerivativeCoefficients(
+                {(): {MultiIndex(order): 1.0}}, (), ()
+            ),
+            input_shapes=((), ()),
+        )
 
         self._order = order
 
