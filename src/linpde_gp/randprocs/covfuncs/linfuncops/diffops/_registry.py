@@ -41,12 +41,17 @@ def _(self, k: pn_covfuncs.Matern, /, *, argnum: int = 0):
     if self.order == 0:
         return k
 
-    if self.order == 1 and k.p is not None:
-        return _matern.HalfIntegerMatern_Identity_DirectionalDerivative(
-            k,
-            direction=1.0,
-            reverse=(argnum == 0),
-        )
+    if k.p is not None:
+        if argnum == 0:
+            L0 = self
+            L1 = diffops.Derivative(0)
+        else:
+            assert argnum == 1
+
+            L0 = diffops.Derivative(0)
+            L1 = self
+
+        return _matern.UnivariateHalfIntegerMatern_Derivative_Derivative(k, L0, L1)
 
     return super(diffops.Derivative, self).__call__(k, argnum=argnum)
 
@@ -54,34 +59,31 @@ def _(self, k: pn_covfuncs.Matern, /, *, argnum: int = 0):
 @diffops.Derivative.__call__.register  # pylint: disable=no-member
 def _(
     self,
-    k: _matern.HalfIntegerMatern_Identity_DirectionalDerivative,
+    L0kL1: _matern.UnivariateHalfIntegerMatern_Derivative_Derivative,
     /,
     *,
     argnum: int = 0,
 ):
-    validate_covfunc_transformation(self, k, argnum)
+    validate_covfunc_transformation(self, L0kL1, argnum)
 
-    assert k.matern.p is not None
+    assert L0kL1.covfunc.p is not None
 
     if self.order == 0:
-        return k
+        return L0kL1
 
-    if self.order == 1:
-        if argnum == 0 and not k.reverse:
-            return _matern.UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(  # pylint: disable=line-too-long
-                k.matern,
-                direction0=1.0,
-                direction1=k.direction,
-            )
+    L0 = L0kL1.L0
+    L1 = L0kL1.L1
 
-        if argnum == 1 and k.reverse:
-            return _matern.UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative(  # pylint: disable=line-too-long
-                k.matern,
-                direction0=k.direction,
-                direction1=1.0,
-            )
+    if argnum == 0:
+        L0 = diffops.Derivative(self.order + L0.order)
+    else:
+        assert argnum == 1
 
-    return super(diffops.Derivative, self).__call__(k, argnum=argnum)
+        L1 = diffops.Derivative(self.order + L1.order)
+
+    return _matern.UnivariateHalfIntegerMatern_Derivative_Derivative(
+        L0kL1.covfunc, L0, L1
+    )
 
 
 ########################################################################################

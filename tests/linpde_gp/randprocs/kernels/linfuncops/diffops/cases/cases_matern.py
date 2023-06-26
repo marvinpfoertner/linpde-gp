@@ -187,17 +187,11 @@ def case_matern_weighted_laplacian_directional_derivative(
 def case_matern_deriv_deriv(
     input_shape: ShapeType, nu: float
 ) -> CovarianceFunctionDiffOpTestCase:
-    k = covfuncs.Matern(input_shape, nu=nu)
-
-    rng = np.random.default_rng(413598)
-
-    direction0 = rng.standard_normal(size=input_shape)
-    direction1 = rng.standard_normal(size=input_shape)
+    k = covfuncs.Matern(input_shape, nu=nu, lengthscales=2.0)
 
     return CovarianceFunctionDiffOpTestCase(
         k=k,
-        L0=float(direction0) * diffops.Derivative(1),
-        L1=float(direction1) * diffops.Derivative(1),
-        L0_compare_to=diffops.DirectionalDerivative(direction0),
-        L1_compare_to=diffops.DirectionalDerivative(direction1),
+        L0=diffops.Derivative(3),
+        L1=diffops.Derivative(3),
+        expected_type=covfuncs_diffops.UnivariateHalfIntegerMatern_Derivative_Derivative,
     )

@@ -8,10 +8,62 @@ import numpy as np
 from probnum.randprocs import covfuncs
 from pykeops.numpy import LazyTensor, Pm, Vi, Vj
 
-from linpde_gp.functions import Monomial, RationalPolynomial
+from linpde_gp.functions import JaxFunction, Monomial, RationalPolynomial
 from linpde_gp.linfuncops import diffops
 
 from ..._jax import JaxCovarianceFunction, JaxIsotropicMixin
+from ._radial import UnivariateRadialCovarianceFunction_Derivative_Derivative
+
+
+class HalfIntegerMaternRadialDerivative(JaxFunction):
+    def __init__(self, p: int, order: int) -> None:
+        super().__init__(input_shape=())
+
+        assert p >= 0
+
+        self._p = p
+
+        assert 0 <= order <= 2 * self._p
+
+        self._order = order
+
+        self._sqrt_two_nu = np.sqrt(2 * self._p + 1)
+        self._output_scale_factor = self._sqrt_two_nu**self._order
+        self._poly = half_integer_matern_derivative_polynomial(p, order)
+
+    def _evaluate(self, r: np.ndarray) -> np.ndarray:
+        return (
+            self._output_scale_factor
+            * np.exp(-self._sqrt_two_nu * r)
+            * self._poly(self._sqrt_two_nu * r)
+        )
+
+    def _evaluate_jax(self, r: jnp.ndarray) -> jnp.ndarray:
+        return (
+            self._output_scale_factor
+            * jnp.exp(-self._sqrt_two_nu * r)
+            * self._poly.jax(self._sqrt_two_nu * r)
+        )
+
+
+class UnivariateHalfIntegerMatern_Derivative_Derivative(
+    UnivariateRadialCovarianceFunction_Derivative_Derivative
+):
+    def __init__(
+        self,
+        matern: covfuncs.Matern,
+        L0: diffops.Derivative,
+        L1: diffops.Derivative,
+    ) -> None:
+        super().__init__(
+            matern,
+            L0,
+            L1,
+            radial_derivative=HalfIntegerMaternRadialDerivative(
+                matern.p,
+                order=L0.order + L1.order,
+            ),
+        )
 
 
 class HalfIntegerMatern_Identity_DirectionalDerivative(JaxCovarianceFunction):

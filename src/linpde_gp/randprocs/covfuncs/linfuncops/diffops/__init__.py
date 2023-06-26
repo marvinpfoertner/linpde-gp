@@ -8,6 +8,7 @@ from ._expquad import (
 from ._matern import (
     HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative,
     HalfIntegerMatern_Identity_DirectionalDerivative,
+    UnivariateHalfIntegerMatern_Derivative_Derivative,
     UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative,
     UnivariateHalfIntegerMatern_DirectionalDerivative_WeightedLaplacian,
     UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
