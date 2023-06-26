@@ -200,15 +200,20 @@ def _(self, k: pn_covfuncs.Matern, /, *, argnum: int = 0):
 def _(self, k: pn_covfuncs.CovarianceFunction, /, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
-    from ...crosscov.linfunctls.projections import (  # pylint: disable=import-outside-toplevel
-        CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis,
-    )
+    try:
+        return super(L2Projection_UnivariateLinearInterpolationBasis, self).__call__(
+            k, argnum=argnum
+        )
+    except NotImplementedError:
+        from ...crosscov.linfunctls.projections import (  # pylint: disable=import-outside-toplevel
+            CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis,
+        )
 
-    return CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis(
-        covfunc=k,
-        proj=self,
-        reverse=(argnum == 0),
-    )
+        return CovarianceFunction_L2Projection_UnivariateLinearInterpolationBasis(
+            covfunc=k,
+            proj=self,
+            reverse=(argnum == 0),
+        )
 
 
 @L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
