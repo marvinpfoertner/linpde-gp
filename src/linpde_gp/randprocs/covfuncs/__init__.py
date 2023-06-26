@@ -16,4 +16,4 @@ from ._utils import validate_covfunc_transformation
 from ._wendland import WendlandCovarianceFunction, WendlandFunction, WendlandPolynomial
 from ._zero import Zero
 
-from . import _linfunctls, linfuncops  # isort: skip
+from . import linfuncops, linfunctls  # isort: skip
