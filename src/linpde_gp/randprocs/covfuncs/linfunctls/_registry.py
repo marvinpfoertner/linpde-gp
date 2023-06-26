@@ -39,10 +39,8 @@ def _(self, k: SumCovarianceFunction, /, *, argnum: int = 0):
     )
 
 
-@linfunctls.CompositeLinearFunctional.__call__.register(  # pylint: disable=no-member
-    pn_covfuncs.CovarianceFunction
-)
-def _(self, k: pn_covfuncs.CovarianceFunction, /, argnum: int = 0):
+@linfunctls.CompositeLinearFunctional.__call__.register  # pylint: disable=no-member
+def _(self, k: pn_covfuncs.CovarianceFunction, /, *, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
     res = k
@@ -194,10 +192,8 @@ def _(self, k: pn_covfuncs.Matern, /, *, argnum: int = 0):
 ########################################################################################
 
 
-@L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
-    pn_covfuncs.CovarianceFunction
-)
-def _(self, k: pn_covfuncs.CovarianceFunction, /, argnum: int = 0):
+@L2Projection_UnivariateLinearInterpolationBasis.__call__.register  # pylint: disable=no-member
+def _(self, k: pn_covfuncs.CovarianceFunction, /, *, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
     try:
@@ -216,10 +212,8 @@ def _(self, k: pn_covfuncs.CovarianceFunction, /, argnum: int = 0):
         )
 
 
-@L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
-    pn_covfuncs.Matern,
-)
-def _(self, k: pn_covfuncs.Matern, /, argnum: int = 0):
+@L2Projection_UnivariateLinearInterpolationBasis.__call__.register  # pylint: disable=no-member
+def _(self, k: pn_covfuncs.Matern, /, *, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
     from ...crosscov.linfunctls.projections import (  # pylint: disable=import-outside-toplevel
@@ -241,10 +235,8 @@ def _(self, k: pn_covfuncs.Matern, /, argnum: int = 0):
     )
 
 
-@L2Projection_UnivariateLinearInterpolationBasis.__call__.register(  # pylint: disable=no-member
-    covfuncs.GalerkinCovarianceFunction
-)
-def _(self, k: covfuncs.GalerkinCovarianceFunction, /, argnum: int = 0):
+@L2Projection_UnivariateLinearInterpolationBasis.__call__.register  # pylint: disable=no-member
+def _(self, k: covfuncs.GalerkinCovarianceFunction, /, *, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
     if k.P is self:
