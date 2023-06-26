@@ -2,20 +2,12 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable
-import functools
-import operator
 from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
 from probnum.randprocs.covfuncs import CovarianceFunction
 from probnum.typing import ArrayLike
-
-from ... import linfuncops
-
-CovarianceFunction.input_size = property(
-    lambda self: functools.reduce(operator.mul, self.input_shape, 1)
-)
 
 CovarianceFunction._batched_sum = (  # pylint: disable=protected-access
     lambda self, a, **sum_kwargs: np.sum(
@@ -152,22 +144,6 @@ class JaxIsotropicMixin:  # pylint: disable=too-few-public-methods
 
         return jnp.sqrt(
             self._squared_euclidean_distances_jax(x0, x1, scale_factors=scale_factors)
-        )
-
-
-@linfuncops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
-def _(self, k: JaxCovarianceFunctionMixin, /, *, argnum=0):
-    try:
-        return super(linfuncops.LinearDifferentialOperator, self).__call__(
-            k, argnum=argnum
-        )
-    except NotImplementedError:
-        return JaxLambdaCovarianceFunction(
-            self._jax_fallback(  # pylint: disable=protected-access
-                k.jax, argnum=argnum
-            ),
-            input_shape=self.output_domain_shape,
-            vectorize=True,
         )
 
 

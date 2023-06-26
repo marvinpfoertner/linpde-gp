@@ -40,21 +40,3 @@ class Identity(_linfuncop.LinearFunctionOperator):
             raise ValueError()
 
         return f
-
-    @__call__.register(pn.randprocs.covfuncs.CovarianceFunction)
-    def _(
-        self, k: pn.randprocs.covfuncs.CovarianceFunction, /, argnum: int = 0
-    ) -> pn.randprocs.covfuncs.CovarianceFunction:
-        if argnum not in (0, 1):
-            raise ValueError()
-
-        input_shape = k.input_shape_0 if argnum == 0 else k.input_shape_1
-        output_shape = k.output_shape_0 if argnum == 0 else k.output_shape_1
-
-        if input_shape != self.input_domain_shape:
-            raise ValueError()
-
-        if output_shape != self.input_codomain_shape:
-            raise ValueError()
-
-        return k
