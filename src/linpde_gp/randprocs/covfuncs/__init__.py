@@ -12,6 +12,7 @@ from ._matern import Matern
 from ._parametric import ParametricCovarianceFunction
 from ._stack import StackCovarianceFunction
 from ._tensor_product import TensorProduct, TensorProductGrid
+from ._utils import validate_covfunc_transformation
 from ._wendland import WendlandCovarianceFunction, WendlandFunction, WendlandPolynomial
 from ._zero import Zero
 
