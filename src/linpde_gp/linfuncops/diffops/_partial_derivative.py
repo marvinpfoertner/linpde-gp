@@ -91,6 +91,12 @@ class TimeDerivative(PartialDerivative):
             MultiIndex(multi_index),
         )
 
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        raise NotImplementedError()
+
 
 class JaxPartialDerivative(LinearDifferentialOperator):
     def __init__(
