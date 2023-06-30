@@ -35,7 +35,7 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
 
         L0kL1s = np.empty(self.k.input_shape, dtype=dict)
         for idx, _ in np.ndenumerate(L0kL1s):
-            L0kL1s[idx] = dict()
+            L0kL1s[idx] = {}
 
         L0_coeffs = self._L0.coefficients[()]
         L1_coeffs = self._L1.coefficients[()]
@@ -78,7 +78,7 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
     ):
         L0kL1_evals = np.empty(self.k.input_shape, dtype=dict)
         for idx, _ in np.ndenumerate(L0kL1_evals):
-            L0kL1_evals[idx] = dict()
+            L0kL1_evals[idx] = {}
 
         L0_coeffs = self._L0.coefficients[()]
         L1_coeffs = self._L1.coefficients[()]
@@ -122,7 +122,11 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
     ) -> "LazyTensor":
         x0s, x1s = split_outputs_contiguous(x0, x1, len(self._k.factors))
         return self._compute_res(
-            lambda k, idx: k._keops_lazy_tensor(x0s[idx[0]], x1s[idx[0]]),
+            lambda k, idx: (
+                k._keops_lazy_tensor(  # pylint: disable=protected-access
+                    x0s[idx[0]], x1s[idx[0]]
+                ),
+            )
         )
 
     def linop(

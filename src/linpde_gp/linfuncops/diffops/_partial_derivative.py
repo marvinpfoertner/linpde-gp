@@ -70,8 +70,6 @@ class PartialDerivative(LinearDifferentialOperator):
     def weak_form(
         self, test_basis: pn.functions.Function, /
     ) -> "linpde_gp.linfunctls.LinearFunctional":
-        if self.input_domain_ndim == 0:
-            return self._derivative.weak_form(test_basis)
         raise NotImplementedError()
 
     def __repr__(self) -> str:
@@ -157,9 +155,11 @@ class JaxPartialDerivative(LinearDifferentialOperator):
 
             df = _f_arg
             for single_idx in self.multi_index.split_to_single_order():
-                df = lambda x, df=df: jax.jvp(
-                    df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)
-                )[1]
+                df = lambda x, df=df, single_idx=single_idx: (  # pylint: disable=unnecessary-lambda-assignment,line-too-long
+                    jax.jvp(
+                        df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)
+                    )[1]
+                )
             if self.output_idx:
                 return df(args[argnum])[self.output_idx]
             return df(args[argnum])

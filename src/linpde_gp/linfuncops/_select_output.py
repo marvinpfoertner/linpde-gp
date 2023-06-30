@@ -31,6 +31,6 @@ class SelectOutput(LinearFunctionOperator):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
-    
+
     def __repr__(self) -> str:
         return f"SelectOutput(idx={self.idx})"

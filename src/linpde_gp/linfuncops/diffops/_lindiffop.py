@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Callable
 import functools
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 import probnum as pn
@@ -9,12 +9,15 @@ from probnum.typing import ShapeLike
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
 
-from .._arithmetic import CompositeLinearFunctionOperator, SumLinearFunctionOperator
+from .._arithmetic import SumLinearFunctionOperator
 from .._linfuncop import LinearFunctionOperator
 from .._select_output import SelectOutput
 from ._coefficients import PartialDerivativeCoefficients
 
 if TYPE_CHECKING:
+    from typing import Union
+
+    from .._arithmetic import CompositeLinearFunctionOperator
     from ._partial_derivative import JaxPartialDerivative, PartialDerivative
 
 
@@ -47,14 +50,16 @@ class LinearDifferentialOperator(LinearFunctionOperator):
         return self._coefficients.has_mixed
 
     # PartialDerivative or PartialDerivative @ SelectOutput
-    PartialDerivativeSummand = "Union[PartialDerivative, CompositeLinearFunctionOperator]"
+    PartialDerivativeSummand = "Union[PartialDerivative, CompositeLinearFunctionOperator]"  # pylint: disable=line-too-long
 
     def to_sum(
         self,
     ) -> (
         "SumLinearFunctionOperator[SumLinearFunctionOperator[PartialDerivativeSummand]]"
     ):
-        from ._partial_derivative import PartialDerivative
+        from ._partial_derivative import (  # pylint: disable=import-outside-toplevel
+            PartialDerivative,
+        )
 
         outer_summands = []
         for output_index in self.coefficients:
@@ -74,7 +79,9 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     def to_sum_jax(
         self,
     ) -> "SumLinearFunctionOperator[SumLinearFunctionOperator[JaxPartialDerivative]]":
-        from ._partial_derivative import JaxPartialDerivative
+        from ._partial_derivative import (  # pylint: disable=import-outside-toplevel
+            JaxPartialDerivative,
+        )
 
         outer_summands = []
         for output_index in self.coefficients:

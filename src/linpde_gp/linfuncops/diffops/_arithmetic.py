@@ -57,6 +57,6 @@ class ScaledLinearDifferentialOperator(LinearDifferentialOperator):
     @functools.singledispatchmethod
     def weak_form(self, test_basis, /):
         return self._scalar * self._lindiffop.weak_form(test_basis)
-    
+
     def __repr__(self) -> str:
         return f"{self._scalar} * {self._lindiffop}"

@@ -1,6 +1,5 @@
 from linpde_gp import functions
 
-from ._derivative import Derivative
 from ._directional_derivative import DirectionalDerivative
 from ._laplacian import Laplacian, SpatialLaplacian
 from ._partial_derivative import PartialDerivative
