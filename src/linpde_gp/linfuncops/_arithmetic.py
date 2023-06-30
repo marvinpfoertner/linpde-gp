@@ -1,5 +1,6 @@
 import functools
 import operator
+from typing import Generic, TypeVar
 
 import numpy as np
 import probnum as pn
@@ -56,8 +57,11 @@ class ScaledLinearFunctionOperator(LinearFunctionOperator):
         return f"{self._scalar} * {self._linfuncop}"
 
 
-class SumLinearFunctionOperator(LinearFunctionOperator):
-    def __init__(self, *summands: LinearFunctionOperator) -> None:
+T = TypeVar("T", bound=LinearFunctionOperator)
+
+
+class SumLinearFunctionOperator(LinearFunctionOperator, Generic[T]):
+    def __init__(self, *summands: T) -> None:
         self._summands = tuple(summands)
 
         input_domain_shape = self._summands[0].input_domain_shape
@@ -88,7 +92,7 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
         )
 
     @property
-    def summands(self) -> tuple[LinearFunctionOperator, ...]:
+    def summands(self) -> tuple[T, ...]:
         return self._summands
 
     @functools.singledispatchmethod
