@@ -8,6 +8,7 @@ import probnum as pn
 from probnum.typing import ShapeLike
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
+from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
 from .._arithmetic import SumLinearFunctionOperator
 from .._linfuncop import LinearFunctionOperator
@@ -109,7 +110,27 @@ class LinearDifferentialOperator(LinearFunctionOperator):
             # in to_sum so that we have the option of using a more efficient
             # jax fallback.
             pass
-        return self._jax_fallback(f, **kwargs)
+
+        if isinstance(f, JaxFunction):
+            if f.input_shape != self.input_domain_shape:
+                raise ValueError()
+
+            if f.output_shape != self.input_codomain_shape:
+                raise ValueError()
+
+            return JaxLambdaFunction(
+                self._jax_fallback(f.jax, **kwargs),
+                input_shape=self.output_domain_shape,
+                output_shape=self.output_codomain_shape,
+                vectorize=True,
+            )
+
+        return JaxLambdaFunction(
+            self._jax_fallback(f, **kwargs),
+            input_shape=self.output_domain_shape,
+            output_shape=self.output_codomain_shape,
+            vectorize=True,
+        )
 
     def _jax_fallback(  # pylint: disable=arguments-differ
         self, f: Callable, /, *, argnum: int = 0, **kwargs

@@ -125,7 +125,7 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
             lambda k, idx: (
                 k._keops_lazy_tensor(  # pylint: disable=protected-access
                     x0s[idx[0]], x1s[idx[0]]
-                ),
+                )
             )
         )
 
