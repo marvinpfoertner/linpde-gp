@@ -35,6 +35,24 @@ class MultiIndex:
     def order(self) -> int:
         return np.sum(self._multi_index)
 
+    @functools.cached_property
+    def is_mixed(self) -> bool:
+        return np.count_nonzero(self._multi_index) > 1
+
+    def split_to_unmixed(self) -> tuple["MultiIndex", ...]:
+        indices = []
+        for idx, order in np.ndenumerate(self._multi_index):
+            if order > 0:
+                indices.append(MultiIndex.from_index(idx, self.shape, order))
+        return tuple(indices)
+
+    def split_to_single_order(self) -> tuple["MultiIndex", ...]:
+        indices = []
+        for idx, order in np.ndenumerate(self._multi_index):
+            for _ in range(order):
+                indices.append(MultiIndex.from_index(idx, self.shape, 1))
+        return tuple(indices)
+
     @property
     def array(self) -> np.ndarray:
         return self._multi_index
@@ -53,6 +71,9 @@ class MultiIndex:
         if not isinstance(__o, MultiIndex):
             return NotImplemented
         return np.all(self.array == __o.array)
+
+    def __repr__(self) -> str:
+        return f"MultiIndex({self._multi_index.tolist()})"
 
 
 class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float]]):
@@ -92,6 +113,7 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
         input_codomain_shape: ShapeType,
     ) -> None:
         self._num_entries = 0
+        self._has_mixed = False
         for codomain_idx in coefficient_dict.keys():
             if len(codomain_idx) != len(input_codomain_shape) or not all(
                 x < y for x, y in zip(codomain_idx, input_codomain_shape)
@@ -106,6 +128,8 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
                         f"Multi-index shape {multi_index.shape} does not match "
                         f"input domain shape {input_domain_shape}."
                     )
+                if multi_index.is_mixed:
+                    self._has_mixed = True
                 self._num_entries += 1
 
         self._coefficient_dict = coefficient_dict
@@ -115,6 +139,10 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
     @property
     def num_entries(self) -> int:
         return self._num_entries
+
+    @property
+    def has_mixed(self) -> bool:
+        return self._has_mixed
 
     @property
     def input_domain_shape(self) -> ShapeType:
