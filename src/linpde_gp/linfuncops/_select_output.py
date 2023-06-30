@@ -12,6 +12,8 @@ class SelectOutput(LinearFunctionOperator):
         input_shapes: tuple[ShapeLike, ShapeLike],
         idx,
     ) -> None:
+        if isinstance(idx, tuple) and len(idx) == 1:
+            idx = idx[0]
         self._idx = idx
 
         super().__init__(
@@ -29,3 +31,6 @@ class SelectOutput(LinearFunctionOperator):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
+    
+    def __repr__(self) -> str:
+        return f"SelectOutput(idx={self.idx})"

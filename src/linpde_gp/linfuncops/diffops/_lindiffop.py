@@ -1,16 +1,21 @@
 import abc
 from collections.abc import Callable
 import functools
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
-from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
+from .._arithmetic import CompositeLinearFunctionOperator, SumLinearFunctionOperator
 from .._linfuncop import LinearFunctionOperator
+from .._select_output import SelectOutput
 from ._coefficients import PartialDerivativeCoefficients
+
+if TYPE_CHECKING:
+    from ._partial_derivative import JaxPartialDerivative, PartialDerivative
 
 
 class LinearDifferentialOperator(LinearFunctionOperator):
@@ -37,37 +42,72 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     def coefficients(self) -> PartialDerivativeCoefficients:
         return self._coefficients
 
+    @property
+    def has_mixed(self) -> bool:
+        return self._coefficients.has_mixed
+
+    # PartialDerivative or PartialDerivative @ SelectOutput
+    PartialDerivativeSummand = Union[PartialDerivative, CompositeLinearFunctionOperator]
+
+    def to_sum(
+        self,
+    ) -> (
+        "SumLinearFunctionOperator[SumLinearFunctionOperator[PartialDerivativeSummand]]"
+    ):
+        from ._partial_derivative import PartialDerivative
+
+        outer_summands = []
+        for output_index in self.coefficients:
+            inner_summands = []
+            for multi_index in self.coefficients[output_index]:
+                partial_diffop = PartialDerivative(multi_index, use_jax_fallback=False)
+                if output_index != ():  # pylint: disable=comparison-with-callable
+                    partial_diffop = partial_diffop @ SelectOutput(
+                        self.input_shapes, output_index
+                    )
+                inner_summands.append(
+                    self.coefficients[output_index][multi_index] * partial_diffop
+                )
+            outer_summands.append(SumLinearFunctionOperator(*inner_summands))
+        return SumLinearFunctionOperator(*outer_summands)
+
+    def to_sum_jax(
+        self,
+    ) -> "SumLinearFunctionOperator[SumLinearFunctionOperator[JaxPartialDerivative]]":
+        from ._partial_derivative import JaxPartialDerivative
+
+        outer_summands = []
+        for output_index in self.coefficients:
+            inner_summands = []
+            for multi_index in self.coefficients[output_index]:
+                partial_diffop = JaxPartialDerivative(
+                    multi_index, output_index if output_index != () else None
+                )
+                inner_summands.append(
+                    self.coefficients[output_index][multi_index] * partial_diffop
+                )
+            outer_summands.append(SumLinearFunctionOperator(*inner_summands))
+        return SumLinearFunctionOperator(*outer_summands)
+
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):
         try:
             return super().__call__(f, **kwargs)
         except NotImplementedError:
             pass
+        try:
+            return self.to_sum()(f, **kwargs)
+        except NotImplementedError:
+            # We intentionally disable the jax fallbacks of `PartialDerivative`
+            # in to_sum so that we have the option of using a more efficient
+            # jax fallback.
+            pass
+        return self._jax_fallback(f, **kwargs)
 
-        if isinstance(f, JaxFunction):
-            if f.input_shape != self.input_domain_shape:
-                raise ValueError()
-
-            if f.output_shape != self.input_codomain_shape:
-                raise ValueError()
-
-            return JaxLambdaFunction(
-                self._jax_fallback(f.jax, **kwargs),
-                input_shape=self.output_domain_shape,
-                output_shape=self.output_codomain_shape,
-                vectorize=True,
-            )
-
-        return JaxLambdaFunction(
-            self._jax_fallback(f, **kwargs),
-            input_shape=self.output_domain_shape,
-            output_shape=self.output_codomain_shape,
-            vectorize=True,
-        )
-
-    @abc.abstractmethod
-    def _jax_fallback(self, f: Callable, /, **kwargs) -> Callable:
-        pass
+    def _jax_fallback(  # pylint: disable=arguments-differ
+        self, f: Callable, /, *, argnum: int = 0, **kwargs
+    ) -> Callable:
+        return self.to_sum_jax()(f, argnum=argnum, **kwargs)
 
     def __rmul__(self, other) -> LinearFunctionOperator:
         if np.ndim(other) == 0:

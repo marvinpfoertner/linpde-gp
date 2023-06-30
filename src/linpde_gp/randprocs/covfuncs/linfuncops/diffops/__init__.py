@@ -1,3 +1,4 @@
+import numpy as np
 from probnum.randprocs import covfuncs as _pn_covfuncs
 
 from linpde_gp.linfuncops import diffops
@@ -18,114 +19,112 @@ from ._matern import (
     UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
     UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian,
 )
-from ._tensor_product import (
-    TensorProduct_DirectionalDerivative_DirectionalDerivative,
-    TensorProduct_DirectionalDerivative_WeightedLaplacian,
-    TensorProduct_Identity_DirectionalDerivative,
-    TensorProduct_Identity_WeightedLaplacian,
-    TensorProduct_WeightedLaplacian_WeightedLaplacian,
-)
+from ._tensor_product import TensorProduct_LinDiffop_LinDiffop
+
+########################################################################################
+# LinearDifferentialOperator ###########################################################
+########################################################################################
+
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+@diffops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: _tensor_product.TensorProduct,
+    /,
+    *,
+    argnum: int = 0,
+):
+    D0 = (
+        self
+        if argnum == 0
+        else diffops.PartialDerivative(diffops.MultiIndex(np.zeros(k.input_shape_0)))
+    )
+    D1 = (
+        self
+        if argnum == 1
+        else diffops.PartialDerivative(diffops.MultiIndex(np.zeros(k.input_shape_1)))
+    )
+    return TensorProduct_LinDiffop_LinDiffop(k, L0=D0, L1=D1)
+
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+@diffops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: TensorProduct_LinDiffop_LinDiffop,
+    /,
+    *,
+    argnum: int = 0,
+):
+    if argnum == 0 and k.L0.order == 0:
+        D0 = self
+        D1 = k.L1
+    elif argnum == 1 and k.L1.order == 0:
+        D0 = k.L0
+        D1 = self
+    else:
+        return NotImplemented
+    return TensorProduct_LinDiffop_LinDiffop(k.k, L0=D0, L1=D1)
 
 
 ########################################################################################
-# Derivative ###########################################################################
+# Partial Derivative ###################################################################
 ########################################################################################
-@diffops.Derivative.__call__.register  # pylint: disable=no-member
+
+
+def _partial_derivative_fallback(
+    D: diffops.PartialDerivative, k: _pn_covfuncs.CovarianceFunction, argnum: int = 0
+):
+    if D.order == 0:
+        return k
+    if int(np.prod(D.input_domain_shape)) == 1:
+        if D.order == 1:
+            return diffops.DirectionalDerivative(1.0)(k, argnum=argnum)
+        if D.order == 2:
+            return diffops.WeightedLaplacian(1.0)(k, argnum=argnum)
+    return NotImplemented
+
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
 def _(self, k: _pn_covfuncs.Matern, /, *, argnum: int = 0):
-    if k.input_shape != ():
-        return ValueError(
-            "`Derivative` operator can only be applied to kernels with "
-            "input shape `()`."
-        )
-    if self.order == 0:
-        return k
-    if self.order > 1:
-        return NotImplemented
-
-    if k.p is not None and self.order == 1:
-        return HalfIntegerMatern_Identity_DirectionalDerivative(
-            k,
-            direction=1.0,
-            reverse=(argnum == 0),
-        )
-
-    return NotImplemented
+    return _partial_derivative_fallback(self, k, argnum=argnum)
 
 
-@diffops.Derivative.__call__.register  # pylint: disable=no-member
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
 def _(self, k: HalfIntegerMatern_Identity_DirectionalDerivative, /, *, argnum: int = 0):
-    assert k.matern.p is not None
-    if k.input_shape != ():
-        return ValueError(
-            "`Derivative` operator can only be applied to kernels with "
-            "input shape `()`."
-        )
-    if self.order == 0:
-        return k
-    if self.order > 1:
-        return NotImplemented
+    return _partial_derivative_fallback(self, k, argnum=argnum)
 
-    if argnum == 0 and not k.reverse:
-        return (
-            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
-            if k.matern.input_size == 1
-            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
-        )(
-            k.matern,
-            direction0=1.0,
-            direction1=k.direction,
-        )
 
-    if argnum == 1 and k.reverse:
-        return (
-            UnivariateHalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
-            if k.matern.input_size == 1
-            else HalfIntegerMatern_DirectionalDerivative_DirectionalDerivative
-        )(
-            k.matern,
-            direction0=k.direction,
-            direction1=1.0,
-        )
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+def _(
+    self,
+    k: UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
+    /,
+    *,
+    argnum: int = 0,
+):
+    return _partial_derivative_fallback(self, k, argnum=argnum)
 
-    return NotImplemented
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: _pn_covfuncs.ExpQuad, /, *, argnum: int = 0):
+    return _partial_derivative_fallback(self, k, argnum=argnum)
+
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: ExpQuad_Identity_DirectionalDerivative, /, *, argnum: int = 0):
+    return _partial_derivative_fallback(self, k, argnum=argnum)
+
+
+@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: ExpQuad_Identity_WeightedLaplacian, /, *, argnum: int = 0):
+    return _partial_derivative_fallback(self, k, argnum=argnum)
 
 
 ########################################################################################
 # Directional Derivative ###############################################################
 ########################################################################################
-
-
-@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
-def _(self, k: _tensor_product.TensorProduct, /, *, argnum: int = 0):
-    return TensorProduct_Identity_DirectionalDerivative(k, self, reverse=argnum == 0)
-
-
-@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
-def _(self, k: TensorProduct_Identity_DirectionalDerivative, /, *, argnum: int = 0):
-    if argnum == 0 and not k.reverse:
-        return TensorProduct_DirectionalDerivative_DirectionalDerivative(
-            k.k, L0=self, L1=k.L
-        )
-
-    if argnum == 1 and k.reverse:
-        return TensorProduct_DirectionalDerivative_DirectionalDerivative(
-            k.k, L0=k.L, L1=self
-        )
-
-    return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
-
-
-@diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
-def _(self, k: TensorProduct_Identity_WeightedLaplacian, /, *, argnum: int = 0):
-    if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
-        return TensorProduct_DirectionalDerivative_WeightedLaplacian(
-            k.k,
-            dderiv=self,
-            laplacian=k.L,
-            reverse=k.reverse,
-        )
-
-    return super(diffops.DirectionalDerivative, self).__call__(k, argnum=argnum)
 
 
 @diffops.DirectionalDerivative.__call__.register  # pylint: disable=no-member
@@ -234,43 +233,6 @@ def _(self, k: ExpQuad_Identity_WeightedLaplacian, /, *, argnum: int = 0):
 ########################################################################################
 # (Weighted) Laplacian #################################################################
 ########################################################################################
-
-
-@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
-def _(self, k: _tensor_product.TensorProduct, /, *, argnum: int = 0):
-    return TensorProduct_Identity_WeightedLaplacian(k, self, reverse=argnum == 0)
-
-
-@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
-def _(self, k: TensorProduct_Identity_WeightedLaplacian, /, *, argnum: int = 0):
-    if argnum == 0 and not k.reverse:
-        return TensorProduct_WeightedLaplacian_WeightedLaplacian(
-            k.k,
-            L0=self,
-            L1=k.L,
-        )
-
-    if argnum == 1 and k.reverse:
-        return TensorProduct_WeightedLaplacian_WeightedLaplacian(
-            k.k,
-            L0=k.L,
-            L1=self,
-        )
-
-    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
-
-
-@diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member
-def _(self, k: TensorProduct_Identity_DirectionalDerivative, /, *, argnum: int = 0):
-    if (argnum == 0 and not k.reverse) or (argnum == 1 and k.reverse):
-        return TensorProduct_DirectionalDerivative_WeightedLaplacian(
-            k.k,
-            dderiv=k.L,
-            laplacian=self,
-            reverse=not k.reverse,
-        )
-
-    return super(diffops.WeightedLaplacian, self).__call__(k, argnum=argnum)
 
 
 @diffops.WeightedLaplacian.__call__.register  # pylint: disable=no-member

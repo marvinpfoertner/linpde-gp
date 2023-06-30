@@ -7,7 +7,7 @@ import probnum as pn
 from probnum.typing import FloatLike, ShapeLike
 
 from .._arithmetic import SumLinearFunctionOperator
-from ._directional_derivative import TimeDerivative
+from ._partial_derivative import TimeDerivative
 from ._laplacian import WeightedLaplacian
 
 

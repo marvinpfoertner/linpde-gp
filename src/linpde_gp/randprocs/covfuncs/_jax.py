@@ -155,20 +155,13 @@ class JaxIsotropicMixin:  # pylint: disable=too-few-public-methods
         )
 
 
-@linfuncops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
-def _(self, k: JaxCovarianceFunctionMixin, /, *, argnum=0):
-    try:
-        return super(linfuncops.LinearDifferentialOperator, self).__call__(
-            k, argnum=argnum
-        )
-    except NotImplementedError:
-        return JaxLambdaCovarianceFunction(
-            self._jax_fallback(  # pylint: disable=protected-access
-                k.jax, argnum=argnum
-            ),
-            input_shape=self.output_domain_shape,
-            vectorize=True,
-        )
+@linfuncops.diffops.JaxPartialDerivative.__call__.register  # pylint: disable=no-member
+def _(self, k: JaxCovarianceFunction, /, *, argnum=0):
+    return JaxLambdaCovarianceFunction(
+        self._derive(k.jax, argnum=argnum),  # pylint: disable=protected-access
+        input_shape=self.output_domain_shape,
+        vectorize=True,
+    )
 
 
 class JaxLambdaCovarianceFunction(JaxCovarianceFunction):
@@ -180,9 +173,18 @@ class JaxLambdaCovarianceFunction(JaxCovarianceFunction):
     ):
         super().__init__(**covfunc_kwargs)
 
+        input_signature = "()" if self.input_shape == () else "(d)"
+        output_signature = "("
+        if self.output_shape_0 != ():
+            output_signature += "n"
+            if self.output_shape_1 != ():
+                output_signature += ","
+        if self.output_shape_1 != ():
+            output_signature += "m"
+        output_signature += ")"
         if vectorize:
             k = jnp.vectorize(
-                k, signature="(),()->()" if self.input_shape == () else "(d),(d)->()"
+                k, signature=f"{input_signature},{input_signature}->{output_signature}"
             )
 
         self._k = k
