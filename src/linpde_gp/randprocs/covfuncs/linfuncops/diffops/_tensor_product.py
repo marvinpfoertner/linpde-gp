@@ -105,11 +105,17 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
 
     def _evaluate(self, x0: np.ndarray, x1: Optional[np.ndarray]) -> np.ndarray:
         return self._compute_res(
-            lambda k, idx: k(x0[(..., *idx)], x1[(..., *idx)]),
+            lambda k, idx: k(
+                x0[(..., *idx)], x1[(..., *idx)] if x1 is not None else None
+            ),
         )
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:
-        return self._compute_res(lambda k, idx: k.jax(x0[(..., *idx)], x1[(..., *idx)]))
+        return self._compute_res(
+            lambda k, idx: k.jax(
+                x0[(..., *idx)], x1[(..., *idx)] if x1 is not None else None
+            )
+        )
 
     def _keops_lazy_tensor(
         self, x0: np.ndarray, x1: Optional[np.ndarray]
