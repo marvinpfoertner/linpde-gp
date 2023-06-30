@@ -10,7 +10,6 @@ from probnum.randprocs.covfuncs._arithmetic_fallbacks import (
 )
 from probnum.typing import ArrayLike, ScalarLike, ScalarType
 
-from ... import linfuncops
 from ._jax import JaxCovarianceFunction, JaxCovarianceFunctionMixin
 
 
@@ -42,13 +41,6 @@ class JaxScaledCovarianceFunction(JaxCovarianceFunctionMixin, ScaledCovarianceFu
         return super().__rmul__(other)
 
 
-@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
-def _(
-    self, k: JaxScaledCovarianceFunction, /, *, argnum: int = 0
-) -> JaxScaledCovarianceFunction:
-    return k.scalar * self(k.covfunc, argnum=argnum)
-
-
 class JaxSumCovarianceFunction(JaxCovarianceFunctionMixin, SumCovarianceFunction):
     def __init__(self, *summands: JaxCovarianceFunction):
         if not all(
@@ -67,12 +59,3 @@ class JaxSumCovarianceFunction(JaxCovarianceFunctionMixin, SumCovarianceFunction
             operator.add,
             (summand.jax(x0, x1) for summand in self.summands),
         )
-
-
-@linfuncops.LinearFunctionOperator.__call__.register  # pylint: disable=no-member
-def _(
-    self, k: JaxSumCovarianceFunction, /, *, argnum: int = 0
-) -> JaxSumCovarianceFunction:
-    return JaxSumCovarianceFunction(
-        *(self(summand, argnum=argnum) for summand in k.summands)
-    )

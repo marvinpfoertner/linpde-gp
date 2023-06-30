@@ -47,7 +47,7 @@ class LinearDifferentialOperator(LinearFunctionOperator):
         return self._coefficients.has_mixed
 
     # PartialDerivative or PartialDerivative @ SelectOutput
-    PartialDerivativeSummand = Union[PartialDerivative, CompositeLinearFunctionOperator]
+    PartialDerivativeSummand = "Union[PartialDerivative, CompositeLinearFunctionOperator]"
 
     def to_sum(
         self,
