@@ -47,7 +47,13 @@ class PartialDerivative(LinearDifferentialOperator):
     def to_sum(self) -> SumLinearFunctionOperator:
         return SumLinearFunctionOperator(SumLinearFunctionOperator(self))
 
-    def __getitem__(self, idx: tuple[int, ...]) -> "PartialDerivative":
+    def get_factor_at_dim(self, idx: tuple[int, ...]) -> "PartialDerivative":
+        """Get the factor of the partial derivative at the given input dimension
+        index.
+
+        This can be used, for example, to compute a mixed partial derivative
+        as the composition of several unmixed partial derivatives.
+        """
         return PartialDerivative(MultiIndex(self.multi_index[idx]))
 
     @functools.singledispatchmethod
@@ -132,7 +138,7 @@ class JaxPartialDerivative(LinearDifferentialOperator):
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return JaxLambdaFunction(
-            self._derive(f, **kwargs),
+            self._jax_fallback(f, **kwargs),
             input_shape=self.output_domain_shape,
             output_shape=self.output_codomain_shape,
             vectorize=True,
@@ -147,20 +153,20 @@ class JaxPartialDerivative(LinearDifferentialOperator):
             raise ValueError()
 
         return JaxLambdaFunction(
-            self._derive(f.jax, **kwargs),
+            self._jax_fallback(f.jax, **kwargs),
             input_shape=self.output_domain_shape,
             output_shape=self.output_codomain_shape,
             vectorize=True,
         )
 
-    def _derive(self, f, /, *, argnum=0):
+    def _jax_fallback(self, f, /, *, argnum=0):
         @jax.jit
         def f_deriv(*args):
             def _f_arg(arg):
                 return f(*args[:argnum], arg, *args[argnum + 1 :])
 
             df = _f_arg
-            for single_idx in self.multi_index.split_to_single_order():
+            for single_idx in self.multi_index.factorize_first_order():
                 df = lambda x, df=df, single_idx=single_idx: (  # pylint: disable=unnecessary-lambda-assignment,line-too-long
                     jax.jvp(
                         df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)

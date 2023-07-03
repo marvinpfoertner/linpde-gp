@@ -86,7 +86,7 @@ def _(self, k: covfuncs.JaxCovarianceFunction, /, *, argnum=0):
     validate_covfunc_transformation(self, k, argnum)
 
     return covfuncs.JaxLambdaCovarianceFunction(
-        self._derive(k.jax, argnum=argnum),  # pylint: disable=protected-access
+        self._jax_fallback(k.jax, argnum=argnum),  # pylint: disable=protected-access
         input_shape=self.output_domain_shape,
         vectorize=True,
     )

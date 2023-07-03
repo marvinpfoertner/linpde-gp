@@ -54,8 +54,10 @@ class TensorProduct_LinDiffop_LinDiffop(JaxSumCovarianceFunction[TensorProduct])
                         )
                     )
 
-                    cur_factor = PD_0[domain_idx](
-                        PD_1[domain_idx](self.k.factors[domain_idx[0]], argnum=1),
+                    cur_factor = PD_0.get_factor_at_dim(domain_idx)(
+                        PD_1.get_factor_at_dim(domain_idx)(
+                            self.k.factors[domain_idx[0]], argnum=1
+                        ),
                         argnum=0,
                     )
                     L0kL1s[domain_idx][

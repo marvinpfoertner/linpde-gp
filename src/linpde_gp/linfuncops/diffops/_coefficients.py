@@ -39,14 +39,17 @@ class MultiIndex:
     def is_mixed(self) -> bool:
         return np.count_nonzero(self._multi_index) > 1
 
-    def split_to_unmixed(self) -> tuple["MultiIndex", ...]:
+    def factorize_dimwise(self) -> tuple["MultiIndex", ...]:
+        """Factorize a multi-index along its input dimensions. The resulting
+        multi-indices all describe partial derivatives without mixed terms."""
         indices = []
         for idx, order in np.ndenumerate(self._multi_index):
             if order > 0:
                 indices.append(MultiIndex.from_index(idx, self.shape, order))
         return tuple(indices)
 
-    def split_to_single_order(self) -> tuple["MultiIndex", ...]:
+    def factorize_first_order(self) -> tuple["MultiIndex", ...]:
+        """Factorize a multi-index into a tuple of first-order multi-indices."""
         indices = []
         for idx, order in np.ndenumerate(self._multi_index):
             for _ in range(order):
@@ -113,7 +116,6 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
         input_codomain_shape: ShapeType,
     ) -> None:
         self._num_entries = 0
-        self._has_mixed = False
         for codomain_idx in coefficient_dict.keys():
             if len(codomain_idx) != len(input_codomain_shape) or not all(
                 x < y for x, y in zip(codomain_idx, input_codomain_shape)
@@ -128,8 +130,6 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
                         f"Multi-index shape {multi_index.shape} does not match "
                         f"input domain shape {input_domain_shape}."
                     )
-                if multi_index.is_mixed:
-                    self._has_mixed = True
                 self._num_entries += 1
 
         self._coefficient_dict = coefficient_dict
@@ -140,9 +140,13 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
     def num_entries(self) -> int:
         return self._num_entries
 
-    @property
+    @functools.cached_property
     def has_mixed(self) -> bool:
-        return self._has_mixed
+        return any(
+            multi_index.is_mixed
+            for codomain_idx in self._coefficient_dict
+            for multi_index in self._coefficient_dict[codomain_idx]
+        )
 
     @property
     def input_domain_shape(self) -> ShapeType:
