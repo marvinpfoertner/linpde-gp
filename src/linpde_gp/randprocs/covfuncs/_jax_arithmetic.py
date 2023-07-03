@@ -1,6 +1,6 @@
 import functools
 import operator
-from typing import Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from jax import numpy as jnp
 import numpy as np
@@ -44,7 +44,9 @@ class JaxScaledCovarianceFunction(JaxCovarianceFunctionMixin, ScaledCovarianceFu
 T = TypeVar("T", bound=JaxCovarianceFunction)
 
 
-class JaxSumCovarianceFunction(JaxCovarianceFunctionMixin, SumCovarianceFunction):
+class JaxSumCovarianceFunction(
+    JaxCovarianceFunctionMixin, SumCovarianceFunction, Generic[T]
+):
     def __init__(self, *summands: T):
         if not all(
             isinstance(summand, JaxCovarianceFunctionMixin) for summand in summands
