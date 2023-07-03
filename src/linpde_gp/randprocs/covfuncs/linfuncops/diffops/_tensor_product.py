@@ -10,7 +10,6 @@ from pykeops.numpy import LazyTensor
 
 from linpde_gp.linfuncops import diffops
 
-from ..._jax import JaxCovarianceFunction
 from ..._jax_arithmetic import JaxSumCovarianceFunction
 from ..._tensor_product import (
     TensorProduct,
