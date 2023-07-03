@@ -11,6 +11,7 @@ from pykeops.numpy import LazyTensor
 from linpde_gp.linfuncops import diffops
 
 from ..._jax import JaxCovarianceFunction
+from ..._jax_arithmetic import JaxSumCovarianceFunction
 from ..._tensor_product import (
     TensorProduct,
     TensorProductGrid,
@@ -18,7 +19,7 @@ from ..._tensor_product import (
 )
 
 
-class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
+class TensorProduct_LinDiffop_LinDiffop(JaxSumCovarianceFunction[TensorProduct]):
     def __init__(
         self,
         k: TensorProduct,
@@ -26,8 +27,6 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
         L0: diffops.LinearDifferentialOperator,
         L1: diffops.LinearDifferentialOperator,
     ):
-        super().__init__(input_shape=k.input_shape)
-
         self._k = k
 
         self._L0 = L0
@@ -40,8 +39,10 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
         L0_coeffs = self._L0.coefficients[()]
         L1_coeffs = self._L1.coefficients[()]
 
-        for L0_multi_index, _ in L0_coeffs.items():
-            for L1_multi_index, _ in L1_coeffs.items():
+        summands = []
+        for L0_multi_index, L0_coeff in L0_coeffs.items():
+            for L1_multi_index, L1_coeff in L1_coeffs.items():
+                cur_tp_factors = []
                 for domain_idx, _ in np.ndenumerate(L0_multi_index.array):
                     PD_0 = diffops.PartialDerivative(
                         diffops.MultiIndex.from_index(
@@ -53,13 +54,19 @@ class TensorProduct_LinDiffop_LinDiffop(JaxCovarianceFunction):
                             domain_idx, L1_multi_index.shape, L1_multi_index[domain_idx]
                         )
                     )
-                    L0kL1s[domain_idx][
-                        (L0_multi_index[domain_idx], L1_multi_index[domain_idx])
-                    ] = PD_0[domain_idx](
+
+                    cur_factor = PD_0[domain_idx](
                         PD_1[domain_idx](self.k.factors[domain_idx[0]], argnum=1),
                         argnum=0,
                     )
+                    L0kL1s[domain_idx][
+                        (L0_multi_index[domain_idx], L1_multi_index[domain_idx])
+                    ] = cur_factor
+                    cur_tp_factors.append(cur_factor)
+                summands.append(L0_coeff * L1_coeff * TensorProduct(*cur_tp_factors))
         self._L0kL1s = L0kL1s
+
+        super().__init__(*summands)
 
     @property
     def k(self) -> TensorProduct:
