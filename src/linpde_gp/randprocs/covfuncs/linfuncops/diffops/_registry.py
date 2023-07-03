@@ -39,6 +39,8 @@ def _(
     *,
     argnum: int = 0,
 ):
+    validate_covfunc_transformation(self, k, argnum)
+
     D0 = (
         self
         if argnum == 0
@@ -61,6 +63,8 @@ def _(
     *,
     argnum: int = 0,
 ):
+    validate_covfunc_transformation(self, k, argnum)
+
     if argnum == 0 and k.L0.order == 0:
         D0 = self
         D1 = k.L1
@@ -79,6 +83,8 @@ def _(
 
 @diffops.JaxPartialDerivative.__call__.register  # pylint: disable=no-member
 def _(self, k: covfuncs.JaxCovarianceFunction, /, *, argnum=0):
+    validate_covfunc_transformation(self, k, argnum)
+
     return covfuncs.JaxLambdaCovarianceFunction(
         self._derive(k.jax, argnum=argnum),  # pylint: disable=protected-access
         input_shape=self.output_domain_shape,
@@ -95,6 +101,7 @@ def _partial_derivative_fallback(
     D: diffops.PartialDerivative, k: pn_covfuncs.CovarianceFunction, argnum: int = 0
 ):
     validate_covfunc_transformation(D, k, argnum)
+
     if D.order == 0:
         return k
     if int(np.prod(D.input_domain_shape)) == 1:
