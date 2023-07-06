@@ -19,8 +19,6 @@ class PartialDerivative(LinearDifferentialOperator):
     def __init__(
         self,
         multi_index: MultiIndex,
-        *,
-        use_jax_fallback: bool = True,
     ) -> None:
         super().__init__(
             coefficients=PartialDerivativeCoefficients(
@@ -30,7 +28,6 @@ class PartialDerivative(LinearDifferentialOperator):
         )
 
         self._multi_index = multi_index
-        self._use_jax_fallback = use_jax_fallback
 
     @property
     def multi_index(self) -> MultiIndex:
@@ -60,17 +57,7 @@ class PartialDerivative(LinearDifferentialOperator):
     def __call__(self, f, /, **kwargs):
         if self.order == 0:
             return f
-        try:
-            return super(LinearDifferentialOperator, self).__call__(f, **kwargs)
-        except NotImplementedError:
-            pass
-
-        if self._use_jax_fallback:
-            return self._jax_fallback(f, **kwargs)
-        raise NotImplementedError()
-
-    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
-        return JaxPartialDerivative(self.multi_index)(f, argnum=argnum, **kwargs)
+        return super().__call__(f, **kwargs)
 
     @functools.singledispatchmethod
     def weak_form(
@@ -78,8 +65,43 @@ class PartialDerivative(LinearDifferentialOperator):
     ) -> "linpde_gp.linfunctls.LinearFunctional":
         raise NotImplementedError()
 
+    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
+        @jax.jit
+        def f_deriv(*args):
+            def _f_arg(arg):
+                return f(*args[:argnum], arg, *args[argnum + 1 :])
+
+            df = _f_arg
+            for single_idx in self.multi_index.factorize_first_order():
+                df = lambda x, df=df, single_idx=single_idx: (  # pylint: disable=unnecessary-lambda-assignment,line-too-long
+                    jax.jvp(
+                        df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)
+                    )[1]
+                )
+            return df(args[argnum])
+
+        return f_deriv
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(multi_index={self.multi_index})"
+
+
+class _PartialDerivativeNoJax(PartialDerivative):
+    def __init__(self, multi_index: MultiIndex) -> None:
+        super().__init__(multi_index)
+
+    @functools.singledispatchmethod
+    def __call__(self, f: Callable, /, **kwargs) -> Callable:
+        return super().__call__(f, **kwargs)
+
+    @functools.singledispatchmethod
+    def weak_form(
+        self, test_basis: pn.functions.Function, /
+    ) -> "linpde_gp.linfunctls.LinearFunctional":
+        return super().weak_form(test_basis)
+
+    def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
+        raise NotImplementedError()
 
 
 class TimeDerivative(PartialDerivative):
@@ -102,87 +124,3 @@ class TimeDerivative(PartialDerivative):
         self, test_basis: pn.functions.Function, /
     ) -> "linpde_gp.linfunctls.LinearFunctional":
         raise NotImplementedError()
-
-
-class JaxPartialDerivative(LinearDifferentialOperator):
-    def __init__(
-        self,
-        multi_index: MultiIndex,
-        output_idx: Union[int, tuple[int, ...]] = None,
-    ) -> None:
-        super().__init__(
-            coefficients=PartialDerivativeCoefficients(
-                {(): {multi_index: 1.0}}, multi_index.shape, ()
-            ),
-            input_shapes=(multi_index.shape, ()),
-        )
-
-        self._multi_index = multi_index
-        self._output_idx = output_idx
-
-    @property
-    def multi_index(self) -> MultiIndex:
-        return self._multi_index
-
-    @property
-    def output_idx(self) -> Union[int, tuple[int, ...]]:
-        return self._output_idx
-
-    @property
-    def is_mixed(self) -> bool:
-        return self._multi_index.is_mixed
-
-    def to_sum(self) -> SumLinearFunctionOperator:
-        return SumLinearFunctionOperator(SumLinearFunctionOperator(self))
-
-    @functools.singledispatchmethod
-    def __call__(self, f, /, **kwargs):
-        return JaxLambdaFunction(
-            self._jax_fallback(f, **kwargs),
-            input_shape=self.output_domain_shape,
-            output_shape=self.output_codomain_shape,
-            vectorize=True,
-        )
-
-    @__call__.register
-    def _(self, f: JaxFunction, /, **kwargs):
-        if f.input_shape != self.input_domain_shape:
-            raise ValueError()
-
-        if f.output_shape != self.input_codomain_shape:
-            raise ValueError()
-
-        return JaxLambdaFunction(
-            self._jax_fallback(f.jax, **kwargs),
-            input_shape=self.output_domain_shape,
-            output_shape=self.output_codomain_shape,
-            vectorize=True,
-        )
-
-    def _jax_fallback(self, f, /, *, argnum=0):
-        @jax.jit
-        def f_deriv(*args):
-            def _f_arg(arg):
-                return f(*args[:argnum], arg, *args[argnum + 1 :])
-
-            df = _f_arg
-            for single_idx in self.multi_index.factorize_first_order():
-                df = lambda x, df=df, single_idx=single_idx: (  # pylint: disable=unnecessary-lambda-assignment,line-too-long
-                    jax.jvp(
-                        df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)
-                    )[1]
-                )
-            if self.output_idx:
-                return df(args[argnum])[self.output_idx]
-            return df(args[argnum])
-
-        return f_deriv
-
-    @functools.singledispatchmethod
-    def weak_form(
-        self, test_basis: pn.functions.Function, /
-    ) -> "linpde_gp.linfunctls.LinearFunctional":
-        raise NotImplementedError()
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(multi_index={self.multi_index})"

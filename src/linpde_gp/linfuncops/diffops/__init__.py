@@ -5,7 +5,7 @@ from ._directional_derivative import DirectionalDerivative
 from ._heat import HeatOperator
 from ._laplacian import Laplacian, SpatialLaplacian, WeightedLaplacian
 from ._lindiffop import LinearDifferentialOperator
-from ._partial_derivative import JaxPartialDerivative, PartialDerivative, TimeDerivative
+from ._partial_derivative import PartialDerivative, TimeDerivative
 
 # isort: off
 from . import _functions

@@ -17,9 +17,7 @@ def _(self, k: covfuncs.JaxCovarianceFunctionMixin, /, *, argnum=0):
     validate_covfunc_transformation(self, k, argnum)
 
     try:
-        return super(diffops.LinearDifferentialOperator, self).__call__(
-            k, argnum=argnum
-        )
+        return self._call_no_jax(k, argnum=argnum)
     except NotImplementedError:
         return covfuncs.JaxLambdaCovarianceFunction(
             self._jax_fallback(  # pylint: disable=protected-access
@@ -30,7 +28,6 @@ def _(self, k: covfuncs.JaxCovarianceFunctionMixin, /, *, argnum=0):
         )
 
 
-@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
 @diffops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
 def _(
     self,
@@ -54,7 +51,6 @@ def _(
     return _tensor_product.TensorProduct_LinDiffop_LinDiffop(k, L0=D0, L1=D1)
 
 
-@diffops.PartialDerivative.__call__.register  # pylint: disable=no-member
 @diffops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
 def _(
     self,
@@ -74,22 +70,6 @@ def _(
     else:
         return NotImplemented
     return _tensor_product.TensorProduct_LinDiffop_LinDiffop(k.k, L0=D0, L1=D1)
-
-
-########################################################################################
-# Jax Partial Derivative ###############################################################
-########################################################################################
-
-
-@diffops.JaxPartialDerivative.__call__.register  # pylint: disable=no-member
-def _(self, k: covfuncs.JaxCovarianceFunction, /, *, argnum=0):
-    validate_covfunc_transformation(self, k, argnum)
-
-    return covfuncs.JaxLambdaCovarianceFunction(
-        self._jax_fallback(k.jax, argnum=argnum),  # pylint: disable=protected-access
-        input_shape=self.output_domain_shape,
-        vectorize=True,
-    )
 
 
 ########################################################################################

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from typing import Union
 
     from .._arithmetic import CompositeLinearFunctionOperator
-    from ._partial_derivative import JaxPartialDerivative, PartialDerivative
+    from ._partial_derivative import PartialDerivative, _PartialDerivativeNoJax
 
 
 class LinearDifferentialOperator(LinearFunctionOperator):
@@ -65,7 +65,7 @@ class LinearDifferentialOperator(LinearFunctionOperator):
         for output_index in self.coefficients:
             inner_summands = []
             for multi_index in self.coefficients[output_index]:
-                partial_diffop = PartialDerivative(multi_index, use_jax_fallback=False)
+                partial_diffop = PartialDerivative(multi_index)
                 if output_index != ():  # pylint: disable=comparison-with-callable
                     partial_diffop = partial_diffop @ SelectOutput(
                         self.input_shapes, output_index
@@ -76,20 +76,24 @@ class LinearDifferentialOperator(LinearFunctionOperator):
             outer_summands.append(SumLinearFunctionOperator(*inner_summands))
         return SumLinearFunctionOperator(*outer_summands)
 
-    def to_sum_jax(
+    def _to_sum_no_jax(
         self,
-    ) -> "SumLinearFunctionOperator[SumLinearFunctionOperator[JaxPartialDerivative]]":
+    ) -> (
+        "SumLinearFunctionOperator[SumLinearFunctionOperator[_PartialDerivativeNoJax]]"
+    ):
         from ._partial_derivative import (  # pylint: disable=import-outside-toplevel
-            JaxPartialDerivative,
+            _PartialDerivativeNoJax,
         )
 
         outer_summands = []
         for output_index in self.coefficients:
             inner_summands = []
             for multi_index in self.coefficients[output_index]:
-                partial_diffop = JaxPartialDerivative(
-                    multi_index, output_index if output_index != () else None
-                )
+                partial_diffop = _PartialDerivativeNoJax(multi_index)
+                if output_index != ():  # pylint: disable=comparison-with-callable
+                    partial_diffop = partial_diffop @ SelectOutput(
+                        self.input_shapes, output_index
+                    )
                 inner_summands.append(
                     self.coefficients[output_index][multi_index] * partial_diffop
                 )
@@ -99,15 +103,8 @@ class LinearDifferentialOperator(LinearFunctionOperator):
     @functools.singledispatchmethod
     def __call__(self, f, **kwargs):
         try:
-            return super().__call__(f, **kwargs)
+            return self._call_no_jax(f, **kwargs)
         except NotImplementedError:
-            pass
-        try:
-            return self.to_sum()(f, **kwargs)
-        except NotImplementedError:
-            # We intentionally disable the jax fallbacks of `PartialDerivative`
-            # in to_sum so that we have the option of using a more efficient
-            # jax fallback.
             pass
 
         if isinstance(f, JaxFunction):
@@ -131,10 +128,24 @@ class LinearDifferentialOperator(LinearFunctionOperator):
             vectorize=True,
         )
 
+    def _call_no_jax(self, f, **kwargs):
+        try:
+            return super().__call__(f, **kwargs)
+        except NotImplementedError:
+            pass
+
+        from ._partial_derivative import (  # pylint: disable=import-outside-toplevel
+            PartialDerivative,
+        )
+
+        if isinstance(self, PartialDerivative):
+            raise NotImplementedError()
+        return self._to_sum_no_jax()(f, **kwargs)
+
     def _jax_fallback(  # pylint: disable=arguments-differ
         self, f: Callable, /, *, argnum: int = 0, **kwargs
     ) -> Callable:
-        return self.to_sum_jax()(f, argnum=argnum, **kwargs)
+        return self.to_sum()(f, argnum=argnum, **kwargs)
 
     def __rmul__(self, other) -> LinearFunctionOperator:
         if np.ndim(other) == 0:
