@@ -63,8 +63,8 @@ class StackedProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
                 res[(..., *idx)] = eval_at_idx
         else:
             res = np.zeros(self._pv_crosscovs.shape + batch_shape + self.randvar_shape)
-            for idx, eval in np.ndenumerate(evals):
-                res[(*idx, ...)] = eval
+            for idx, eval_at_idx in np.ndenumerate(evals):
+                res[(*idx, ...)] = eval_at_idx
             # Move entire batch shape to the front
             res = np.moveaxis(
                 res,
@@ -86,8 +86,8 @@ class StackedProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
 
         if self.reverse:
             res = jnp.zeros(self.randvar_shape + batch_shape + self._pv_crosscovs.shape)
-            for idx, eval in np.ndenumerate(evals):
-                res.at[(..., *idx)].set(eval)
+            for idx, eval_at_idx in np.ndenumerate(evals):
+                res.at[(..., *idx)].set(eval_at_idx)
         else:
             res = jnp.zeros(self._pv_crosscovs.shape + batch_shape + self.randvar_shape)
             for idx, eval_at_idx in np.ndenumerate(evals):

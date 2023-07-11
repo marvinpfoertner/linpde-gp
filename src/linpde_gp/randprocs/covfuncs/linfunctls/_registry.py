@@ -68,13 +68,12 @@ def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
     from ...crosscov import (  # pylint: disable=import-outside-toplevel
         StackedProcessVectorCrossCovariance,
     )
+
     L_covfuncs = np.copy(k.covfuncs)
     for idx, covfunc in np.ndenumerate(L_covfuncs):
         L_covfuncs[idx] = self(covfunc, argnum=argnum)
 
-    return StackedProcessVectorCrossCovariance(
-        L_covfuncs
-    )
+    return StackedProcessVectorCrossCovariance(L_covfuncs)
 
 
 @linfunctls.LinearFunctional.__call__.register  # pylint: disable=no-member
