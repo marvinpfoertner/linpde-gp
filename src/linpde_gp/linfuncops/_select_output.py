@@ -10,10 +10,8 @@ class SelectOutput(LinearFunctionOperator):
     def __init__(
         self,
         input_shapes: tuple[ShapeLike, ShapeLike],
-        idx,
+        idx: tuple[int, ...] | int,
     ) -> None:
-        if isinstance(idx, tuple) and len(idx) == 1:
-            idx = idx[0]
         self._idx = idx
 
         super().__init__(
@@ -25,7 +23,7 @@ class SelectOutput(LinearFunctionOperator):
         )
 
     @property
-    def idx(self):
+    def idx(self) -> tuple[int, ...] | int:
         return self._idx
 
     @functools.singledispatchmethod
