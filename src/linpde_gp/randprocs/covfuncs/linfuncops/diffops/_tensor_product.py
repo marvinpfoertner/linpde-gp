@@ -18,7 +18,7 @@ from ..._tensor_product import (
 )
 
 
-class TensorProduct_LinDiffop_LinDiffop(JaxSumCovarianceFunction[TensorProduct]):
+class TensorProduct_LinDiffOp_LinDiffOp(JaxSumCovarianceFunction[TensorProduct]):
     def __init__(
         self,
         k: TensorProduct,

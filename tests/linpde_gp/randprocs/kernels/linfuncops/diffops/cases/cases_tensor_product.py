@@ -22,7 +22,7 @@ def case_tensor_product_identity_directional_derivative() -> (
         ),
         L0=None,
         L1=diffops.DirectionalDerivative(direction),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -41,7 +41,7 @@ def case_tensor_product_directional_derivative_identity() -> (
         ),
         L0=diffops.DirectionalDerivative(direction),
         L1=None,
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -63,7 +63,7 @@ def case_tensor_product_directional_derivative_directional_derivative() -> (
         ),
         L0=diffops.DirectionalDerivative(direction0),
         L1=diffops.DirectionalDerivative(direction1),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -81,7 +81,7 @@ def case_tensor_product_identity_weighted_laplacian() -> (
         ),
         L0=None,
         L1=diffops.WeightedLaplacian(weights),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -99,7 +99,7 @@ def case_tensor_product_weighted_laplacian_identity() -> (
         ),
         L0=diffops.WeightedLaplacian(weights),
         L1=None,
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -118,7 +118,7 @@ def case_tensor_product_weighted_laplacian_weighted_laplacian() -> (
         ),
         L0=diffops.WeightedLaplacian(weights0),
         L1=diffops.WeightedLaplacian(weights1),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -139,7 +139,7 @@ def case_tensor_product_directional_derivative_weighted_laplacian() -> (
         ),
         L0=diffops.DirectionalDerivative(direction),
         L1=diffops.WeightedLaplacian(weights),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 
@@ -160,7 +160,7 @@ def case_tensor_product_weighted_laplacian_directional_derivative() -> (
         ),
         L0=diffops.WeightedLaplacian(weights),
         L1=diffops.DirectionalDerivative(direction),
-        expected_type=covfuncs_diffops.TensorProduct_LinDiffop_LinDiffop,
+        expected_type=covfuncs_diffops.TensorProduct_LinDiffOp_LinDiffOp,
     )
 
 

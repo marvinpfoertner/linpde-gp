@@ -48,13 +48,13 @@ def _(
         if argnum == 1
         else diffops.PartialDerivative(diffops.MultiIndex(np.zeros(k.input_shape_1)))
     )
-    return _tensor_product.TensorProduct_LinDiffop_LinDiffop(k, L0=D0, L1=D1)
+    return _tensor_product.TensorProduct_LinDiffOp_LinDiffOp(k, L0=D0, L1=D1)
 
 
 @diffops.LinearDifferentialOperator.__call__.register  # pylint: disable=no-member
 def _(
     self,
-    k: _tensor_product.TensorProduct_LinDiffop_LinDiffop,
+    k: _tensor_product.TensorProduct_LinDiffOp_LinDiffOp,
     /,
     *,
     argnum: int = 0,
@@ -69,7 +69,7 @@ def _(
         D1 = self
     else:
         return NotImplemented
-    return _tensor_product.TensorProduct_LinDiffop_LinDiffop(k.k, L0=D0, L1=D1)
+    return _tensor_product.TensorProduct_LinDiffOp_LinDiffOp(k.k, L0=D0, L1=D1)
 
 
 ########################################################################################
