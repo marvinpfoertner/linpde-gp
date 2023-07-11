@@ -109,8 +109,8 @@ class SumLinearFunctionOperator(LinearFunctionOperator, Generic[T]):
         return " + ".join(str(summand) for summand in self._summands)
 
 
-class CompositeLinearFunctionOperator(LinearFunctionOperator):
-    def __init__(self, *linfuncops: LinearFunctionOperator) -> None:
+class CompositeLinearFunctionOperator(LinearFunctionOperator, Generic[T]):
+    def __init__(self, *linfuncops: T) -> None:
         assert all(
             L0.input_shapes == L1.output_shapes
             for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
@@ -130,6 +130,10 @@ class CompositeLinearFunctionOperator(LinearFunctionOperator):
             reversed(self._linfuncops),
             f,
         )
+
+    @property
+    def linfuncops(self) -> tuple[T, ...]:
+        return self._linfuncops
 
     def __repr__(self) -> str:
         return " @ ".join(repr(linfuncop) for linfuncop in self._linfuncops)
