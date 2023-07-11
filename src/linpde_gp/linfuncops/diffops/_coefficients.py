@@ -39,23 +39,6 @@ class MultiIndex:
     def is_mixed(self) -> bool:
         return np.count_nonzero(self._multi_index) > 1
 
-    def factorize_dimwise(self) -> tuple["MultiIndex", ...]:
-        """Factorize a multi-index along its input dimensions. The resulting
-        multi-indices all describe partial derivatives without mixed terms."""
-        indices = []
-        for idx, order in np.ndenumerate(self._multi_index):
-            if order > 0:
-                indices.append(MultiIndex.from_index(idx, self.shape, order))
-        return tuple(indices)
-
-    def factorize_first_order(self) -> tuple["MultiIndex", ...]:
-        """Factorize a multi-index into a tuple of first-order multi-indices."""
-        indices = []
-        for idx, order in np.ndenumerate(self._multi_index):
-            for _ in range(order):
-                indices.append(MultiIndex.from_index(idx, self.shape, 1))
-        return tuple(indices)
-
     @property
     def array(self) -> np.ndarray:
         return self._multi_index

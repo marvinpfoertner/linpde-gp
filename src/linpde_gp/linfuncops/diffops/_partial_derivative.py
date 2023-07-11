@@ -4,13 +4,14 @@ from typing import Union
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import probnum as pn
 from probnum.typing import ShapeLike
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
 from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
-from .._arithmetic import SumLinearFunctionOperator
+from .._arithmetic import CompositeLinearFunctionOperator, SumLinearFunctionOperator
 from ._coefficients import MultiIndex, PartialDerivativeCoefficients
 from ._lindiffop import LinearDifferentialOperator
 
@@ -65,6 +66,30 @@ class PartialDerivative(LinearDifferentialOperator):
     ) -> "linpde_gp.linfunctls.LinearFunctional":
         raise NotImplementedError()
 
+    def factorize_first_order(
+        self,
+    ) -> CompositeLinearFunctionOperator["PartialDerivative"]:
+        factors = []
+        for idx, order in np.ndenumerate(self.multi_index.array):
+            for _ in range(order):
+                factors.append(
+                    PartialDerivative(
+                        MultiIndex.from_index(idx, self.multi_index.shape, 1)
+                    )
+                )
+        return CompositeLinearFunctionOperator(*factors)
+
+    def factorize_dimwise(self) -> CompositeLinearFunctionOperator["PartialDerivative"]:
+        factors = []
+        for idx, order in np.ndenumerate(self.multi_index.array):
+            if order > 0:
+                factors.append(
+                    PartialDerivative(
+                        MultiIndex.from_index(idx, self.multi_index.shape, order)
+                    )
+                )
+        return CompositeLinearFunctionOperator(*factors)
+
     def _jax_fallback(self, f: Callable, /, *, argnum: int = 0, **kwargs) -> Callable:
         @jax.jit
         def f_deriv(*args):
@@ -72,11 +97,11 @@ class PartialDerivative(LinearDifferentialOperator):
                 return f(*args[:argnum], arg, *args[argnum + 1 :])
 
             df = _f_arg
-            for single_idx in self.multi_index.factorize_first_order():
+            for single_idx in [
+                pd.multi_index.array for pd in self.factorize_first_order().linfuncops
+            ]:
                 df = lambda x, df=df, single_idx=single_idx: (  # pylint: disable=unnecessary-lambda-assignment,line-too-long
-                    jax.jvp(
-                        df, (x,), (jnp.array(single_idx.array, dtype=jnp.float64),)
-                    )[1]
+                    jax.jvp(df, (x,), (jnp.array(single_idx, dtype=jnp.float64),))[1]
                 )
             return df(args[argnum])
 
