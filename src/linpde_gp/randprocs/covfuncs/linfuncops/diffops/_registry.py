@@ -17,7 +17,7 @@ def _(self, k: covfuncs.JaxCovarianceFunctionMixin, /, *, argnum=0):
     validate_covfunc_transformation(self, k, argnum)
 
     try:
-        return self._call_no_jax(k, argnum=argnum)
+        return self._call_no_jax(k, argnum=argnum)  # pylint: disable=protected-access
     except NotImplementedError:
         return covfuncs.JaxLambdaCovarianceFunction(
             self._jax_fallback(  # pylint: disable=protected-access

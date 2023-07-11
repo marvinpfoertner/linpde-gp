@@ -1,10 +1,8 @@
-from collections.abc import Sequence
-
 from jax import numpy as jnp
 import numpy as np
+from probnum.typing import ArrayLike
 
 from linpde_gp.linops import BlockMatrix
-from probnum.typing import ArrayLike
 
 from ._pv_crosscov import ProcessVectorCrossCovariance
 
@@ -61,8 +59,8 @@ class StackedProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
 
         if self.reverse:
             res = np.zeros(self.randvar_shape + batch_shape + self._pv_crosscovs.shape)
-            for idx, eval in np.ndenumerate(evals):
-                res[(..., *idx)] = eval
+            for idx, eval_at_idx in np.ndenumerate(evals):
+                res[(..., *idx)] = eval_at_idx
         else:
             res = np.zeros(self._pv_crosscovs.shape + batch_shape + self.randvar_shape)
             for idx, eval in np.ndenumerate(evals):
@@ -92,8 +90,8 @@ class StackedProcessVectorCrossCovariance(ProcessVectorCrossCovariance):
                 res.at[(..., *idx)].set(eval)
         else:
             res = jnp.zeros(self._pv_crosscovs.shape + batch_shape + self.randvar_shape)
-            for idx, eval in np.ndenumerate(evals):
-                res.at[(*idx, ...)].set(eval)
+            for idx, eval_at_idx in np.ndenumerate(evals):
+                res.at[(*idx, ...)].set(eval_at_idx)
             # Move entire batch shape to the front
             res = jnp.moveaxis(
                 res,

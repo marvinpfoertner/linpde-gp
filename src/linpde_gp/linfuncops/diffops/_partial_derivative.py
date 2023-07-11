@@ -1,6 +1,5 @@
 from collections.abc import Callable
 import functools
-from typing import Union
 
 import jax
 import jax.numpy as jnp
@@ -9,7 +8,6 @@ import probnum as pn
 from probnum.typing import ShapeLike
 
 import linpde_gp  # pylint: disable=unused-import # for type hints
-from linpde_gp.functions import JaxFunction, JaxLambdaFunction
 
 from .._arithmetic import CompositeLinearFunctionOperator, SumLinearFunctionOperator
 from ._coefficients import MultiIndex, PartialDerivativeCoefficients
@@ -112,9 +110,6 @@ class PartialDerivative(LinearDifferentialOperator):
 
 
 class _PartialDerivativeNoJax(PartialDerivative):
-    def __init__(self, multi_index: MultiIndex) -> None:
-        super().__init__(multi_index)
-
     @functools.singledispatchmethod
     def __call__(self, f: Callable, /, **kwargs) -> Callable:
         return super().__call__(f, **kwargs)

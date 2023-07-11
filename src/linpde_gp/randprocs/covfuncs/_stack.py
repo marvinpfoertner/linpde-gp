@@ -1,11 +1,10 @@
-from collections.abc import Sequence
 from typing import Optional
 
 from jax import numpy as jnp
 import numpy as np
 import probnum as pn
-from probnum.typing import ArrayLike
 from probnum.randprocs import covfuncs as pn_covfuncs
+from probnum.typing import ArrayLike
 
 from linpde_gp.linops import BlockMatrix
 
@@ -68,8 +67,8 @@ class StackCovarianceFunction(
                 batch_shape = evals[idx].shape
 
         res = np.zeros(batch_shape + self._covfuncs.shape)
-        for idx, eval in np.ndenumerate(evals):
-            res.at[(..., *idx)].set(eval)
+        for idx, eval_at_idx in np.ndenumerate(evals):
+            res[(..., *idx)] = eval_at_idx
         return res
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: jnp.ndarray | None) -> jnp.ndarray:
@@ -81,8 +80,8 @@ class StackCovarianceFunction(
                 batch_shape = evals[idx].shape
 
         res = jnp.zeros(batch_shape + self._covfuncs.shape)
-        for idx, eval in np.ndenumerate(evals):
-            res.at[(..., *idx)].set(eval)
+        for idx, eval_at_idx in np.ndenumerate(evals):
+            res.at[(..., *idx)].set(eval_at_idx)
         return res
 
     def linop(
