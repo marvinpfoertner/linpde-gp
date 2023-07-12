@@ -67,6 +67,8 @@ class PartialDerivative(LinearDifferentialOperator):
     def factorize_first_order(
         self,
     ) -> CompositeLinearFunctionOperator["PartialDerivative"]:
+        """Factorizes a mixed partial derivative into a product of first order
+        partial derivatives."""
         factors = []
         for idx, order in np.ndenumerate(self.multi_index.array):
             for _ in range(order):
@@ -78,7 +80,8 @@ class PartialDerivative(LinearDifferentialOperator):
         return CompositeLinearFunctionOperator(*factors)
 
     def factorize_dimwise(self) -> CompositeLinearFunctionOperator["PartialDerivative"]:
-        """Factorizes a mixed partial derivative into a product of non-mixed partial derivatives"""
+        """Factorizes a mixed partial derivative into a product of non-mixed
+        partial derivatives."""
         factors = []
         for idx, order in np.ndenumerate(self.multi_index.array):
             if order > 0:
