@@ -156,9 +156,18 @@ class JaxLambdaCovarianceFunction(JaxCovarianceFunction):
     ):
         super().__init__(**covfunc_kwargs)
 
+        input_signature = "()" if self.input_shape == () else "(d)"
+        output_signature = "("
+        if self.output_shape_0 != ():
+            output_signature += "n"
+            if self.output_shape_1 != ():
+                output_signature += ","
+        if self.output_shape_1 != ():
+            output_signature += "m"
+        output_signature += ")"
         if vectorize:
             k = jnp.vectorize(
-                k, signature="(),()->()" if self.input_shape == () else "(d),(d)->()"
+                k, signature=f"{input_signature},{input_signature}->{output_signature}"
             )
 
         self._k = k

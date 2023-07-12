@@ -10,7 +10,7 @@ class SelectOutput(LinearFunctionOperator):
     def __init__(
         self,
         input_shapes: tuple[ShapeLike, ShapeLike],
-        idx,
+        idx: tuple[int, ...] | int,
     ) -> None:
         self._idx = idx
 
@@ -23,9 +23,12 @@ class SelectOutput(LinearFunctionOperator):
         )
 
     @property
-    def idx(self):
+    def idx(self) -> tuple[int, ...] | int:
         return self._idx
 
     @functools.singledispatchmethod
     def __call__(self, f, /, **kwargs):
         return super().__call__(f, **kwargs)
+
+    def __repr__(self) -> str:
+        return f"SelectOutput(idx={self.idx})"

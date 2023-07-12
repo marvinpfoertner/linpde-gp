@@ -1,6 +1,6 @@
 import functools
 import operator
-from typing import Optional
+from typing import Generic, Optional, TypeVar
 
 from jax import numpy as jnp
 import numpy as np
@@ -41,8 +41,13 @@ class JaxScaledCovarianceFunction(JaxCovarianceFunctionMixin, ScaledCovarianceFu
         return super().__rmul__(other)
 
 
-class JaxSumCovarianceFunction(JaxCovarianceFunctionMixin, SumCovarianceFunction):
-    def __init__(self, *summands: JaxCovarianceFunction):
+T = TypeVar("T", bound=JaxCovarianceFunction)
+
+
+class JaxSumCovarianceFunction(
+    JaxCovarianceFunctionMixin, SumCovarianceFunction, Generic[T]
+):
+    def __init__(self, *summands: T):
         if not all(
             isinstance(summand, JaxCovarianceFunctionMixin) for summand in summands
         ):
@@ -51,7 +56,7 @@ class JaxSumCovarianceFunction(JaxCovarianceFunctionMixin, SumCovarianceFunction
         super().__init__(*summands)
 
     @property
-    def summands(self) -> tuple[JaxCovarianceFunction, ...]:
+    def summands(self) -> tuple[T, ...]:
         return self._summands
 
     def _evaluate_jax(self, x0: jnp.ndarray, x1: Optional[jnp.ndarray]) -> jnp.ndarray:

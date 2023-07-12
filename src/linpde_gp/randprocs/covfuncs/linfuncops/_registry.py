@@ -1,3 +1,4 @@
+import numpy as np
 from probnum.randprocs import covfuncs as pn_covfuncs
 
 from linpde_gp import linfuncops
@@ -35,8 +36,12 @@ def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
     validate_covfunc_transformation(self, k, argnum)
 
     if (argnum == 0 and k.output_idx == 1) or (argnum == 1 and k.output_idx == 0):
+        L_covfuncs = np.copy(k.covfuncs)
+        for idx, covfunc in np.ndenumerate(L_covfuncs):
+            L_covfuncs[idx] = self(covfunc, argnum=argnum)
+
         return covfuncs.StackCovarianceFunction(
-            *(self(covfunc, argnum=argnum) for covfunc in k.covfuncs),
+            L_covfuncs,
             output_idx=k.output_idx,
         )
 
@@ -104,8 +109,12 @@ def _(
     assert isinstance(self.idx, int)
 
     return covfuncs.StackCovarianceFunction(
-        *([zero_cov] * self.idx),
-        k.covfuncs[self.idx],
-        *([zero_cov] * (len(k.covfuncs) - self.idx - 1)),
+        tuple(
+            (
+                *([zero_cov] * self.idx),
+                k.covfuncs[self.idx],
+                *([zero_cov] * (len(k.covfuncs) - self.idx - 1)),
+            )
+        ),
         output_idx=1 - argnum,
     )

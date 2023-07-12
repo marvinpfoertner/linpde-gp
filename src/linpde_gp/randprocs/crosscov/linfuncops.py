@@ -84,6 +84,4 @@ def _(self, pv_crosscov: CovarianceFunction_Evaluation_Identity, /):
 
 @linfuncops.SelectOutput.__call__.register  # pylint: disable=no-member
 def _(self, stacked_pv_crosscov: crosscov.StackedProcessVectorCrossCovariance, /):
-    assert isinstance(self.idx, int)
-
     return stacked_pv_crosscov.pv_crosscovs[self.idx]

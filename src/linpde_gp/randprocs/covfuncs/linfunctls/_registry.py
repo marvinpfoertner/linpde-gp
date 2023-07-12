@@ -1,6 +1,7 @@
 import functools
 import operator
 
+import numpy as np
 from probnum.randprocs import covfuncs as pn_covfuncs
 from probnum.randprocs.covfuncs._arithmetic_fallbacks import (
     ScaledCovarianceFunction,
@@ -68,9 +69,11 @@ def _(self, k: covfuncs.StackCovarianceFunction, /, *, argnum: int = 0):
         StackedProcessVectorCrossCovariance,
     )
 
-    return StackedProcessVectorCrossCovariance(
-        *(self(covfunc, argnum=argnum) for covfunc in k.covfuncs)
-    )
+    L_covfuncs = np.copy(k.covfuncs)
+    for idx, covfunc in np.ndenumerate(L_covfuncs):
+        L_covfuncs[idx] = self(covfunc, argnum=argnum)
+
+    return StackedProcessVectorCrossCovariance(L_covfuncs)
 
 
 @linfunctls.LinearFunctional.__call__.register  # pylint: disable=no-member

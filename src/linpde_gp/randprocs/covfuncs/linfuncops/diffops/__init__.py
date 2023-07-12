@@ -13,12 +13,6 @@ from ._matern import (
     UnivariateHalfIntegerMatern_Identity_WeightedLaplacian,
     UnivariateHalfIntegerMatern_WeightedLaplacian_WeightedLaplacian,
 )
-from ._tensor_product import (
-    TensorProduct_DirectionalDerivative_DirectionalDerivative,
-    TensorProduct_DirectionalDerivative_WeightedLaplacian,
-    TensorProduct_Identity_DirectionalDerivative,
-    TensorProduct_Identity_WeightedLaplacian,
-    TensorProduct_WeightedLaplacian_WeightedLaplacian,
-)
+from ._tensor_product import TensorProduct_LinDiffOp_LinDiffOp
 
 from . import _registry  # isort: skip

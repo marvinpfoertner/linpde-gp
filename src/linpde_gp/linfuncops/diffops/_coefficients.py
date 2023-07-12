@@ -35,6 +35,10 @@ class MultiIndex:
     def order(self) -> int:
         return np.sum(self._multi_index)
 
+    @functools.cached_property
+    def is_mixed(self) -> bool:
+        return np.count_nonzero(self._multi_index) > 1
+
     @property
     def array(self) -> np.ndarray:
         return self._multi_index
@@ -53,6 +57,9 @@ class MultiIndex:
         if not isinstance(__o, MultiIndex):
             return NotImplemented
         return np.all(self.array == __o.array)
+
+    def __repr__(self) -> str:
+        return f"MultiIndex({self._multi_index.tolist()})"
 
 
 class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float]]):
@@ -115,6 +122,14 @@ class PartialDerivativeCoefficients(Mapping[ShapeType, Mapping[MultiIndex, float
     @property
     def num_entries(self) -> int:
         return self._num_entries
+
+    @functools.cached_property
+    def has_mixed(self) -> bool:
+        return any(
+            multi_index.is_mixed
+            for codomain_idx in self._coefficient_dict
+            for multi_index in self._coefficient_dict[codomain_idx]
+        )
 
     @property
     def input_domain_shape(self) -> ShapeType:

@@ -1,5 +1,6 @@
 import functools
 import operator
+from typing import Generic, TypeVar
 
 import numpy as np
 import probnum as pn
@@ -56,8 +57,11 @@ class ScaledLinearFunctionOperator(LinearFunctionOperator):
         return f"{self._scalar} * {self._linfuncop}"
 
 
-class SumLinearFunctionOperator(LinearFunctionOperator):
-    def __init__(self, *summands: LinearFunctionOperator) -> None:
+T = TypeVar("T", bound=LinearFunctionOperator)
+
+
+class SumLinearFunctionOperator(LinearFunctionOperator, Generic[T]):
+    def __init__(self, *summands: T) -> None:
         self._summands = tuple(summands)
 
         input_domain_shape = self._summands[0].input_domain_shape
@@ -88,7 +92,7 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
         )
 
     @property
-    def summands(self) -> tuple[LinearFunctionOperator, ...]:
+    def summands(self) -> tuple[T, ...]:
         return self._summands
 
     @functools.singledispatchmethod
@@ -105,8 +109,8 @@ class SumLinearFunctionOperator(LinearFunctionOperator):
         return " + ".join(str(summand) for summand in self._summands)
 
 
-class CompositeLinearFunctionOperator(LinearFunctionOperator):
-    def __init__(self, *linfuncops: LinearFunctionOperator) -> None:
+class CompositeLinearFunctionOperator(LinearFunctionOperator, Generic[T]):
+    def __init__(self, *linfuncops: T) -> None:
         assert all(
             L0.input_shapes == L1.output_shapes
             for L0, L1 in zip(linfuncops[:-1], linfuncops[1:])
@@ -126,6 +130,10 @@ class CompositeLinearFunctionOperator(LinearFunctionOperator):
             reversed(self._linfuncops),
             f,
         )
+
+    @property
+    def linfuncops(self) -> tuple[T, ...]:
+        return self._linfuncops
 
     def __repr__(self) -> str:
         return " @ ".join(repr(linfuncop) for linfuncop in self._linfuncops)
