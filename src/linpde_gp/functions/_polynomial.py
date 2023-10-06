@@ -283,6 +283,7 @@ def _mul_rational_polynomial_fraction(self, other: Fraction | int):
 
 
 @RationalPolynomial.__mul__.register  # pylint: disable=no-member
+@RationalPolynomial.__rmul__.register  # pylint: disable=no-member
 def _mul_rational_polynomial_monomial(self, other: Monomial) -> RationalPolynomial:
     return RationalPolynomial(
         (
