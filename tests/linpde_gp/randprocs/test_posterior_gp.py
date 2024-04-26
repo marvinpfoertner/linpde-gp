@@ -10,8 +10,6 @@ import pytest
 
 import linpde_gp
 
-jax.config.update("jax_enable_x64", True)
-
 
 @pytest.fixture(params=[1], scope="module")
 def input_dim(request) -> int:
